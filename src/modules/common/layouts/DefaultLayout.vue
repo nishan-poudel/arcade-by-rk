@@ -5,7 +5,7 @@
       <nav class="nav">
         <div class="nav-brand">
           <RouterLink :to="{ name: 'home' }" class="brand-link">
-            <span class="brand-text">{{ locale.brand.name }}</span>
+            <span class="brand-text">{{ locale.brand.namePrefix }}<abbr class="brand-rk" :title="locale.brand.nameAbbrFull">{{ locale.brand.nameAbbr }}</abbr></span>
           </RouterLink>
         </div>
 
@@ -59,6 +59,15 @@
               <span class="link-text">{{ locale.nav.mathPuzzle }}</span>
             </RouterLink>
           </li>
+          <li class="nav-item nav-item--theme">
+            <button
+              class="theme-toggle"
+              :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+              @click="toggle"
+            >
+              <span class="theme-toggle-icon">{{ theme === 'dark' ? '☀️' : '🌙' }}</span>
+            </button>
+          </li>
         </ul>
       </nav>
     </header>
@@ -74,7 +83,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p>&copy; {{ locale.brand.copyright }}</p>
+      <p>{{ locale.brand.footer }}</p>
     </footer>
   </div>
 </template>
@@ -83,12 +92,14 @@
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { computed, ref } from 'vue'
 import { en as locale } from '@/locales/en'
+import { useTheme } from '@/modules/shared/composables/useTheme'
 
 const route    = useRoute()
 const isHome   = computed(() => route.name === 'home')
 const isGame   = computed(() => route.name === 'game')
 const isPuzzle = computed(() => route.name === 'puzzle')
 const menuOpen = ref(false)
+const { theme, toggle } = useTheme()
 </script>
 
 <style scoped src="./DefaultLayout.scss"></style>

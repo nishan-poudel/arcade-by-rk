@@ -1,0 +1,34 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="gridDesktop" width="80" height="80" patternUnits="userSpaceOnUse">
+      <path d="M80 0V80" stroke="#1a1a1a" stroke-width=".5"/>
+      <path d="M0 80H80" stroke="#1a1a1a" stroke-width=".5"/>
+    </pattern>
+  </defs>
+  <rect width="1920" height="1080" fill="#0d0d0d"/>
+  <rect width="1920" height="1080" fill="url(#gridDesktop)" opacity=".1"/>
+  <g fill="none" stroke="#fff" stroke-width=".5" opacity=".08">
+    <rect x="420" y="260" width="32" height="32"/>
+    <rect x="980" y="180" width="24" height="24"/>
+    <rect x="1380" y="420" width="28" height="28"/>
+    <rect x="760" y="620" width="20" height="20"/>
+    <rect x="1180" y="760" width="26" height="26"/>
+  </g>
+  <g fill="#fefce8" opacity=".2">
+    <circle cx="460" cy="310" r="2"/>
+    <circle cx="1010" cy="210" r="1.5"/>
+    <circle cx="1410" cy="460" r="2"/>
+    <circle cx="790" cy="660" r="1.5"/>
+    <circle cx="1210" cy="800" r="2"/>
+    <circle cx="1550" cy="300" r="1.5"/>
+    <circle cx="600" cy="500" r="1.5"/>
+  </g>
+  <line x1="200" y1="1000" x2="1720" y2="80" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" filter="url(#glow)" opacity=".15"/>
+</svg>

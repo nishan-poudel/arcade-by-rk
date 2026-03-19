@@ -1,15 +1,4 @@
 // ─────────────────────────────── design tokens ──────────────────────────────
-$bg:         #0d0d0d;
-$surface:    rgba(255, 255, 255, 0.03);
-$border:     rgba(255, 255, 255, 0.08);
-$blue:       #60a5fa;
-$blue-dim:   rgba(96, 165, 250, 0.12);
-$blue-glow:  rgba(96, 165, 250, 0.4);
-$green:      #4ade80;
-$red:        #f87171;
-$amber:      #fbbf24;
-$text:       rgba(255, 255, 255, 0.85);
-$text-dim:   rgba(255, 255, 255, 0.38);
 $mono:       'Courier New', Courier, monospace;
 $sans:       -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
@@ -26,9 +15,10 @@ $R:  52px;   // row/col result
   flex-direction: column;
   align-items: center;
   padding: 2rem 1rem 3rem;
-  background: $bg;
-  color: $text;
+  background: var(--bg);
+  color: var(--text);
   font-family: $sans;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .mp-screen {
@@ -47,9 +37,9 @@ $R:  52px;   // row/col result
   align-items: center;
   gap: 1.25rem;
   padding: 2.25rem 1.75rem;
-  border: 1px solid $border;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: $surface;
+  background: var(--cell-faint);
   width: 100%;
   text-align: center;
 }
@@ -69,14 +59,14 @@ $R:  52px;   // row/col result
   font-family: $mono;
   padding: 0.2rem 0.55rem;
   border-radius: 100px;
-  color: rgba(96, 165, 250, 0.65);
-  background: rgba(96, 165, 250, 0.07);
-  border: 1px solid rgba(96, 165, 250, 0.18);
+  color: var(--blue-text);
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-border);
 }
 
 .idle-desc {
   font-size: 0.84rem;
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--text-dim);
   line-height: 1.65;
   margin: -0.25rem 0 0;
   text-align: center;
@@ -86,22 +76,22 @@ $R:  52px;   // row/col result
 .idle-glyph {
   font-size: 3rem;
   font-family: $mono;
-  color: $blue;
+  color: var(--blue);
   line-height: 1;
-  text-shadow: 0 0 28px $blue-glow;
+  text-shadow: 0 0 28px var(--blue-glow);
 }
 
 .idle-title {
   font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: 5px;
-  color: white;
+  color: var(--heading);
   margin: 0;
 }
 
 .idle-sub {
   font-size: 0.85rem;
-  color: $text-dim;
+  color: var(--text-dim);
   margin: 0;
   letter-spacing: 0.4px;
 }
@@ -122,7 +112,7 @@ $R:  52px;   // row/col result
   align-items: flex-start;
   gap: 0.75rem;
   font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-dim);
   line-height: 1.45;
 }
 
@@ -149,24 +139,24 @@ $R:  52px;   // row/col result
   padding: 0.65rem 0.5rem;
   min-height: 48px;
   background: transparent;
-  border: 1px solid $border;
+  border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
-  color: $text-dim;
+  color: var(--text-dim);
   font-family: $sans;
   -webkit-tap-highlight-color: transparent;
 
   &:hover {
-    border-color: rgba(96, 165, 250, 0.3);
-    color: rgba(255, 255, 255, 0.65);
+    border-color: var(--blue-border);
+    color: var(--text);
   }
 
   &.active {
-    border-color: $blue;
-    background: $blue-dim;
-    color: $blue;
-    box-shadow: 0 0 14px rgba(96, 165, 250, 0.18);
+    border-color: var(--blue);
+    background: var(--blue-dim);
+    color: var(--blue);
+    box-shadow: 0 0 14px var(--blue-glow);
   }
 }
 
@@ -183,9 +173,9 @@ $R:  52px;   // row/col result
 }
 
 // difficulty accent colours (used in stats + solved card)
-.diff-accent-easy   { color: $green !important; }
-.diff-accent-medium { color: $blue  !important; }
-.diff-accent-hard   { color: $red   !important; }
+.diff-accent-easy   { color: var(--green-bright) !important; }
+.diff-accent-medium { color: var(--blue)  !important; }
+.diff-accent-hard   { color: var(--red)   !important; }
 
 // ─────────────────────────────── stats bar ──────────────────────────────────
 .play-screen { gap: 1.25rem; }
@@ -193,7 +183,7 @@ $R:  52px;   // row/col result
 .mp-stats {
   display: flex;
   width: 100%;
-  border: 1px solid $border;
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -204,7 +194,7 @@ $R:  52px;   // row/col result
   flex-direction: column;
   align-items: center;
   padding: 0.55rem 0.5rem;
-  border-right: 1px solid $border;
+  border-right: 1px solid var(--border);
 
   &:last-child { border-right: none; }
 }
@@ -213,20 +203,20 @@ $R:  52px;   // row/col result
   font-size: 0.58rem;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: $text-dim;
+  color: var(--text-dim);
 }
 
 .mp-stat-val {
   font-size: 1rem;
   font-weight: 700;
   font-family: $mono;
-  color: white;
+  color: var(--heading);
   margin-top: 2px;
   letter-spacing: 1px;
 
   &.timer    { letter-spacing: 2px; }
-  &.level-val { color: $blue; text-shadow: 0 0 10px rgba(96, 165, 250, 0.4); }
-  &.score-val { color: $amber; font-size: 0.9rem; }
+  &.level-val { color: var(--blue); text-shadow: 0 0 10px var(--blue-glow); }
+  &.score-val { color: var(--amber-bright); font-size: 0.9rem; }
 }
 
 // ─────────────────────────────── puzzle grid ────────────────────────────────
@@ -266,58 +256,58 @@ $R:  52px;   // row/col result
 
   &.cell-fixed {
     background: transparent;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--cell-text);
     font-weight: 800;
     border-color: transparent;
   }
 
   &.cell-blank {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.14);
+    background: var(--cell-bg);
+    border-color: var(--cell-border);
     color: transparent;
     cursor: pointer;
 
     &:hover {
-      border-color: rgba(96, 165, 250, 0.4);
-      background: $blue-dim;
+      border-color: var(--blue-border);
+      background: var(--blue-dim);
     }
   }
 
   &.cell-selected {
-    background: $blue-dim;
-    border-color: $blue;
-    color: $blue;
+    background: var(--blue-dim);
+    border-color: var(--blue);
+    color: var(--blue);
     cursor: pointer;
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18), 0 0 14px rgba(96, 165, 250, 0.3);
+    box-shadow: 0 0 0 3px var(--blue-glow), 0 0 14px var(--blue-glow);
     animation: cellPulse 1.6s ease-in-out infinite alternate;
   }
 
   &.cell-correct {
-    background: rgba(74, 222, 128, 0.1);
-    border-color: rgba(74, 222, 128, 0.45);
-    color: $green;
+    background: var(--green-bright-dim);
+    border-color: var(--green-bright-border);
+    color: var(--green-bright);
     cursor: pointer;
   }
 
   &.cell-wrong {
-    background: rgba(248, 113, 113, 0.1);
-    border-color: rgba(248, 113, 113, 0.45);
-    color: $red;
+    background: var(--red-dim);
+    border-color: var(--red-border);
+    color: var(--red);
     cursor: pointer;
     animation: shake 0.28s ease;
 
     // Selected + wrong: keep red colour so user sees the error, add focus ring
     &.cell-selected {
-      border-color: $red;
-      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.22), 0 0 14px rgba(248, 113, 113, 0.3);
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px var(--red-dim), 0 0 14px var(--red-glow);
       animation: shake 0.28s ease;
     }
   }
 }
 
 @keyframes cellPulse {
-  from { box-shadow: 0 0 0 3px rgba(96,165,250,0.12), 0 0 8px rgba(96,165,250,0.18); }
-  to   { box-shadow: 0 0 0 3px rgba(96,165,250,0.28), 0 0 20px rgba(96,165,250,0.42); }
+  from { box-shadow: 0 0 0 3px var(--blue-dim), 0 0 8px var(--blue-glow); }
+  to   { box-shadow: 0 0 0 3px var(--blue-glow), 0 0 20px var(--blue-glow); }
 }
 
 @keyframes shake {
@@ -336,7 +326,7 @@ $R:  52px;   // row/col result
   font-size: 1.15rem;
   font-weight: 700;
   font-family: $mono;
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--cell-op);
 }
 
 .eq-sign {
@@ -348,7 +338,7 @@ $R:  52px;   // row/col result
   font-size: 1.1rem;
   font-weight: 700;
   font-family: $mono;
-  color: rgba(255, 255, 255, 0.22);
+  color: var(--cell-eq);
 }
 
 // ── row / col targets ────────────────────────────────────────────────────────
@@ -360,25 +350,25 @@ $R:  52px;   // row/col result
   font-weight: 800;
   font-family: $mono;
   border-radius: 8px;
-  border: 1px solid $border;
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  background: var(--cell-faint);
   transition: all 0.2s ease;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--text-dim);
 
   &.correct {
-    color: $green;
-    border-color: rgba(74, 222, 128, 0.4);
-    background: rgba(74, 222, 128, 0.08);
-    box-shadow: 0 0 12px rgba(74, 222, 128, 0.2);
+    color: var(--green-bright);
+    border-color: var(--green-bright-border);
+    background: var(--green-bright-dim);
+    box-shadow: 0 0 12px var(--green-bright-dim);
   }
 
   &.wrong {
-    color: $red;
-    border-color: rgba(248, 113, 113, 0.35);
-    background: rgba(248, 113, 113, 0.07);
+    color: var(--red);
+    border-color: var(--red-border);
+    background: var(--red-dim);
   }
 
-  &.pending { color: rgba(255, 255, 255, 0.4); }
+  &.pending { color: var(--text-dim); }
 }
 
 .row-target {
@@ -396,7 +386,7 @@ $R:  52px;   // row/col result
   font-size: 1.1rem;
   font-weight: 700;
   font-family: $mono;
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--cell-op);
 }
 
 .col-eq {
@@ -408,7 +398,7 @@ $R:  52px;   // row/col result
   font-size: 1rem;
   font-weight: 700;
   font-family: $mono;
-  color: rgba(255, 255, 255, 0.22);
+  color: var(--cell-eq);
 }
 
 .col-target {
@@ -423,10 +413,10 @@ $R:  52px;   // row/col result
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  border: 1px solid $border;
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.8rem 1rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--cell-faint);
 }
 
 .diag-eq {
@@ -439,25 +429,25 @@ $R:  52px;   // row/col result
   transition: all 0.2s ease;
 
   &.diag-correct {
-    border-color: rgba(74, 222, 128, 0.28);
-    background: rgba(74, 222, 128, 0.05);
+    border-color: var(--green-bright-border);
+    background: var(--green-bright-dim);
 
-    .diag-result { color: $green; }
+    .diag-result { color: var(--green-bright); }
   }
 
   &.diag-wrong {
-    border-color: rgba(248, 113, 113, 0.28);
-    background: rgba(248, 113, 113, 0.05);
+    border-color: var(--red-border);
+    background: var(--red-dim);
 
-    .diag-result { color: $red; }
+    .diag-result { color: var(--red); }
   }
 
-  &.diag-pending { .diag-result { color: rgba(255, 255, 255, 0.4); } }
+  &.diag-pending { .diag-result { color: var(--text-dim); } }
 }
 
 .diag-arrow {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--text-faint);
   width: 1.4rem;
   flex-shrink: 0;
   text-align: center;
@@ -473,19 +463,19 @@ $R:  52px;   // row/col result
   font-weight: 700;
   font-family: $mono;
   border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  background: var(--cell-bg);
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--text);
   transition: all 0.12s ease;
 
-  &:hover { border-color: rgba(96, 165, 250, 0.4); }
+  &:hover { border-color: var(--blue-border); }
 
   &.diag-cell-sel {
-    border-color: $blue;
-    background: $blue-dim;
-    color: $blue;
-    box-shadow: 0 0 8px rgba(96, 165, 250, 0.28);
+    border-color: var(--blue);
+    background: var(--blue-dim);
+    color: var(--blue);
+    box-shadow: 0 0 8px var(--blue-glow);
   }
 }
 
@@ -493,7 +483,7 @@ $R:  52px;   // row/col result
   font-size: 0.9rem;
   font-weight: 700;
   font-family: $mono;
-  color: rgba(255, 255, 255, 0.32);
+  color: var(--cell-op);
   width: 28px;
   text-align: center;
   flex-shrink: 0;
@@ -502,7 +492,7 @@ $R:  52px;   // row/col result
 .diag-eq-sign {
   font-size: 0.9rem;
   font-family: $mono;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--cell-eq);
   margin: 0 0.35rem 0 auto;
   flex-shrink: 0;
 }
@@ -531,32 +521,32 @@ $R:  52px;   // row/col result
   font-size: 1.15rem;
   font-weight: 700;
   font-family: $mono;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--cell-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: white;
+  color: var(--heading);
   cursor: pointer;
   transition: all 0.12s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 
   &:hover {
-    background: $blue-dim;
-    border-color: rgba(96, 165, 250, 0.45);
-    color: $blue;
+    background: var(--blue-dim);
+    border-color: var(--blue-border);
+    color: var(--blue);
   }
 
   &:active { transform: scale(0.93); }
 
   &.erase-key {
     font-size: 1rem;
-    color: rgba(255, 255, 255, 0.4);
-    border-color: rgba(255, 255, 255, 0.07);
+    color: var(--text-dim);
+    border-color: var(--border);
 
     &:hover {
-      background: rgba(248, 113, 113, 0.1);
-      border-color: rgba(248, 113, 113, 0.4);
-      color: $red;
+      background: var(--red-dim);
+      border-color: var(--red-border);
+      color: var(--red);
     }
   }
 }
@@ -575,51 +565,53 @@ $R:  52px;   // row/col result
   -webkit-tap-highlight-color: transparent;
 
   &.primary {
-    background: $blue-dim;
-    border: 1px solid $blue;
-    color: $blue;
+    background: var(--blue-dim);
+    border: 1px solid var(--blue);
+    color: var(--blue);
     width: 100%;
     padding: 0.8rem;
     min-height: 48px;
     font-size: 0.9rem;
-    box-shadow: 0 0 12px rgba(96, 165, 250, 0.18);
+    box-shadow: 0 0 12px var(--blue-glow);
 
     &:hover {
-      background: rgba(96, 165, 250, 0.2);
-      box-shadow: 0 0 24px rgba(96, 165, 250, 0.38);
+      background: var(--blue-glow);
+      box-shadow: 0 0 24px var(--blue-glow);
     }
   }
 
   &.ghost {
     flex: 1;
     background: transparent;
-    border: 1px solid $border;
-    color: $text-dim;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
 
-    &:hover { border-color: rgba(255, 255, 255, 0.22); color: white; }
+    &:hover { border-color: var(--cell-border); color: var(--heading); }
 
     // go-back button — doesn't expand, sits flush-left
     &.back-btn {
       flex: 0 0 auto;
       padding: 0.65rem 0.9rem;
       font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.3);
+      color: var(--text-faint);
       letter-spacing: 0.8px;
 
-      &:hover { color: rgba(255, 255, 255, 0.65); border-color: rgba(255, 255, 255, 0.22); }
+      &:hover { color: var(--text-dim); border-color: var(--cell-border); }
     }
   }
 
   &.reveal-btn {
     flex: 1;
     background: transparent;
-    border: 1px solid rgba(248, 113, 113, 0.28);
-    color: rgba(248, 113, 113, 0.55);
+    border: 1px solid var(--red-border);
+    color: var(--red);
+    opacity: 0.65;
 
     &:hover {
-      border-color: $red;
-      color: $red;
-      background: rgba(248, 113, 113, 0.06);
+      border-color: var(--red);
+      color: var(--red);
+      opacity: 1;
+      background: var(--red-dim);
     }
   }
 }
@@ -635,7 +627,7 @@ $R:  52px;   // row/col result
   position: fixed;
   inset: 0;
   z-index: 500;
-  background: rgba(0, 0, 0, 0.72);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -644,11 +636,11 @@ $R:  52px;   // row/col result
 }
 
 .solved-card {
-  background: #0a1a0a;
-  border: 1px solid rgba(74, 222, 128, 0.3);
+  background: var(--bg-surface);
+  border: 1px solid var(--green-bright-border);
   border-radius: 16px;
   padding: 2.5rem 2rem;
-  box-shadow: 0 0 60px rgba(74, 222, 128, 0.1), 0 0 120px rgba(74, 222, 128, 0.04);
+  box-shadow: 0 0 60px var(--green-bright-dim), 0 0 120px var(--green-bright-dim);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -662,14 +654,14 @@ $R:  52px;   // row/col result
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: rgba(74, 222, 128, 0.1);
-  border: 2px solid rgba(74, 222, 128, 0.45);
+  background: var(--green-bright-dim);
+  border: 2px solid var(--green-bright-border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  color: $green;
-  box-shadow: 0 0 28px rgba(74, 222, 128, 0.3);
+  color: var(--green-bright);
+  box-shadow: 0 0 28px var(--green-bright-dim);
 }
 
 .solved-level-tag {
@@ -677,7 +669,7 @@ $R:  52px;   // row/col result
   font-weight: 700;
   letter-spacing: 3.5px;
   text-transform: uppercase;
-  color: rgba(74, 222, 128, 0.55);
+  color: var(--green-bright);
   font-family: $mono;
   margin-bottom: -0.25rem;
 }
@@ -694,9 +686,9 @@ $R:  52px;   // row/col result
   font-size: 2.4rem;
   font-weight: 900;
   font-family: $mono;
-  color: $amber;
+  color: var(--amber-bright);
   letter-spacing: 1px;
-  text-shadow: 0 0 24px rgba(251, 191, 36, 0.5);
+  text-shadow: 0 0 24px var(--amber-bright-glow);
   line-height: 1;
 }
 
@@ -705,7 +697,8 @@ $R:  52px;   // row/col result
   font-weight: 700;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: rgba(251, 191, 36, 0.5);
+  color: var(--amber-bright);
+  opacity: 0.7;
   font-family: $mono;
 }
 
@@ -713,9 +706,9 @@ $R:  52px;   // row/col result
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: $amber;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: var(--amber-bright);
+  background: var(--amber-bright-dim);
+  border: 1px solid var(--chip-border);
   border-radius: 100px;
   padding: 0.2rem 0.85rem;
   font-family: $mono;
@@ -730,16 +723,16 @@ $R:  52px;   // row/col result
 .ss-val {
   font-size: 1.1rem;
   font-family: $mono;
-  color: white;
+  color: var(--heading);
   letter-spacing: 1px;
 
-  &.score-val { color: $amber; }
-  &.hi-val    { color: rgba(251, 191, 36, 0.65); }
+  &.score-val { color: var(--amber-bright); }
+  &.hi-val    { color: var(--amber-bright); opacity: 0.7; }
 }
 
 .solved-next-hint {
   font-size: 0.78rem;
-  color: $text-dim;
+  color: var(--text-dim);
   font-family: $mono;
   letter-spacing: 0.5px;
   margin: -0.25rem 0 0;
@@ -757,14 +750,14 @@ $R:  52px;   // row/col result
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: 5px;
-  color: $green;
+  color: var(--green-bright);
   margin: 0;
-  text-shadow: 0 0 20px rgba(74, 222, 128, 0.45);
+  text-shadow: 0 0 20px var(--green-bright-dim);
 }
 
 .solved-sub {
   font-size: 0.85rem;
-  color: $text-dim;
+  color: var(--text-dim);
   margin: 0;
 }
 
@@ -772,9 +765,9 @@ $R:  52px;   // row/col result
   display: flex;
   gap: 2.5rem;
   padding: 0.75rem 1.5rem;
-  border: 1px solid $border;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--cell-faint);
 }
 
 .solved-stat {
@@ -788,7 +781,7 @@ $R:  52px;   // row/col result
   font-size: 0.65rem;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: $text-dim;
+  color: var(--text-dim);
 }
 
 // ─────────────────────────────── transitions ────────────────────────────────

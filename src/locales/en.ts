@@ -6,7 +6,11 @@ export const en = {
   },
   brand: {
     name: 'Arcade by RK',
-    copyright: '2026 Arcade by RK. All rights reserved.'
+    namePrefix: 'Arcade by ',
+    nameAbbr: 'RK',
+    nameAbbrFull: 'Rocky Kaka',
+    copyright: 'Handcrafted with caffeine & chaos by Nishan',
+    footer: 'Powered by late nights & bad decisions — made with ☕ by Nishan'
   },
   homePage: {
     eyebrow: 'GAME ARCADE',
@@ -14,16 +18,16 @@ export const en = {
     sub: 'Two original browser games. No installs, no accounts — just play.',
     cards: {
       hack: {
-        tags: ['ROGUELIKE', 'GRID', 'KEYBOARD'],
+        tags: ['GRID', 'KEYBOARD', 'ROGUELIKE'],
         title: 'Grid Raider',
         desc: 'Navigate a neon-lit data grid. Collect every packet while dodging barrier tiles — one touch ends your run. Each level spawns more chaos. Every level is guaranteed solvable.',
-        cta: 'LAUNCH RAID',
+        cta: 'Play →',
       },
       puzzle: {
         tags: ['MATH', 'LOGIC', 'LEVELS'],
         title: 'Math Chain',
         desc: 'Fill a 3×3 grid so every row, column and diagonal balances as a left-to-right equation. Progressive levels ramp from 2 blanks to 7. Score is based on speed and difficulty.',
-        cta: 'START PUZZLE',
+        cta: 'Play →',
       },
     },
   },

@@ -1,4 +1,142 @@
 // ─────────────────────────────── Global base styles ─────────────────────────
+
+// ── Dark theme (default) ────────────────────────────────────────────────────
+:root,
+[data-theme="dark"] {
+  --bg:            #0d0d0d;
+  --bg-surface:    #151515;
+  --bg-surface-up: #1c1c1c;
+  --text:          rgba(255, 255, 255, 0.85);
+  --text-dim:      rgba(255, 255, 255, 0.45);
+  --text-faint:    rgba(255, 255, 255, 0.22);
+  --heading:       #ffffff;
+  --border:        rgba(255, 255, 255, 0.07);
+  --amber:         #f59e0b;
+  --amber-dim:     rgba(245, 158, 11, 0.14);
+  --green:         #00ff41;
+  --green-dim:     rgba(0, 255, 65, 0.08);
+  --green-glow:    rgba(0, 255, 65, 0.18);
+  --green-border:  rgba(0, 255, 65, 0.2);
+  --green-text:    rgba(0, 255, 65, 0.75);
+  --blue:          #60a5fa;
+  --blue-dim:      rgba(96, 165, 250, 0.08);
+  --blue-glow:     rgba(96, 165, 250, 0.18);
+  --blue-border:   rgba(96, 165, 250, 0.2);
+  --blue-text:     rgba(96, 165, 250, 0.8);
+  --nav-game:      rgba(0, 200, 65, 0.65);
+  --nav-game-hover:#00ff41;
+  --nav-game-bg:   rgba(0, 255, 65, 0.07);
+  --nav-game-active-bg: rgba(0, 255, 65, 0.1);
+  --nav-game-active-border: rgba(0, 255, 65, 0.3);
+  --nav-puzzle:    rgba(96, 165, 250, 0.65);
+  --nav-puzzle-hover: #60a5fa;
+  --nav-puzzle-bg: rgba(96, 165, 250, 0.07);
+  --nav-puzzle-active-bg: rgba(96, 165, 250, 0.1);
+  --nav-puzzle-active-border: rgba(96, 165, 250, 0.3);
+  --nav-home:      rgba(245, 158, 11, 0.65);
+  --nav-home-hover:#f59e0b;
+  --nav-home-bg:   rgba(245, 158, 11, 0.07);
+  --nav-home-active-bg: rgba(245, 158, 11, 0.1);
+  --nav-home-active-border: rgba(245, 158, 11, 0.3);
+  --red:           #ff4444;
+  --red-dim:       rgba(255, 68, 68, 0.1);
+  --red-border:    rgba(255, 68, 68, 0.35);
+  --red-glow:      rgba(255, 68, 68, 0.4);
+  --green-bright:  #4ade80;
+  --green-bright-dim:    rgba(74, 222, 128, 0.1);
+  --green-bright-border: rgba(74, 222, 128, 0.3);
+  --amber-bright:  #fbbf24;
+  --amber-bright-dim:    rgba(251, 191, 36, 0.1);
+  --amber-bright-glow:   rgba(251, 191, 36, 0.5);
+  --overlay-bg:    rgba(0, 0, 0, 0.72);
+  --cell-bg:       rgba(255, 255, 255, 0.04);
+  --cell-border:   rgba(255, 255, 255, 0.14);
+  --cell-text:     rgba(255, 255, 255, 0.9);
+  --cell-op:       rgba(255, 255, 255, 0.38);
+  --cell-eq:       rgba(255, 255, 255, 0.22);
+  --cell-faint:    rgba(255, 255, 255, 0.04);
+  --glow-bg:       rgba(245, 158, 11, 0.15);
+  --chip-border:   rgba(245, 158, 11, 0.35);
+  --chip-bg:       rgba(245, 158, 11, 0.07);
+  --btn-border:    rgba(255, 255, 255, 0.2);
+  --btn-border-hover: rgba(255, 255, 255, 0.5);
+  --btn-hover-bg:  rgba(255, 255, 255, 0.05);
+  --toggle-icon:   '☀️';
+  --mobile-drawer: #111;
+  --backdrop-bg:   rgba(0, 0, 0, 0.6);
+  --tooltip-bg:    #f59e0b;
+  --tooltip-text:  #000;
+  --hamburger:     #fff;
+}
+
+// ── Light theme (cream + brown) ─────────────────────────────────────────────
+[data-theme="light"] {
+  --bg:            #faf6f0;
+  --bg-surface:    #f0ebe3;
+  --bg-surface-up: #e8e1d7;
+  --text:          rgba(62, 39, 23, 0.88);
+  --text-dim:      rgba(62, 39, 23, 0.68);
+  --text-faint:    rgba(62, 39, 23, 0.48);
+  --heading:       #3e2723;
+  --border:        rgba(62, 39, 23, 0.15);
+  --amber:         #8c5a00;
+  --amber-dim:     rgba(140, 90, 0, 0.1);
+  --green:         #1b5e20;
+  --green-dim:     rgba(27, 94, 32, 0.08);
+  --green-glow:    rgba(27, 94, 32, 0.14);
+  --green-border:  rgba(27, 94, 32, 0.25);
+  --green-text:    #1b5e20;
+  --blue:          #0d47a1;
+  --blue-dim:      rgba(13, 71, 161, 0.08);
+  --blue-glow:     rgba(13, 71, 161, 0.14);
+  --blue-border:   rgba(13, 71, 161, 0.25);
+  --blue-text:     #0d47a1;
+  --nav-game:      #1b5e20;
+  --nav-game-hover:#1b5e20;
+  --nav-game-bg:   rgba(27, 94, 32, 0.07);
+  --nav-game-active-bg: rgba(27, 94, 32, 0.1);
+  --nav-game-active-border: rgba(27, 94, 32, 0.25);
+  --nav-puzzle:    #0d47a1;
+  --nav-puzzle-hover: #0d47a1;
+  --nav-puzzle-bg: rgba(13, 71, 161, 0.07);
+  --nav-puzzle-active-bg: rgba(13, 71, 161, 0.1);
+  --nav-puzzle-active-border: rgba(13, 71, 161, 0.25);
+  --nav-home:      #8c5a00;
+  --nav-home-hover:#8c5a00;
+  --nav-home-bg:   rgba(140, 90, 0, 0.07);
+  --nav-home-active-bg: rgba(140, 90, 0, 0.1);
+  --nav-home-active-border: rgba(140, 90, 0, 0.25);
+  --red:           #b71c1c;
+  --red-dim:       rgba(183, 28, 28, 0.08);
+  --red-border:    rgba(183, 28, 28, 0.3);
+  --red-glow:      rgba(183, 28, 28, 0.25);
+  --green-bright:  #2e7d32;
+  --green-bright-dim:    rgba(46, 125, 50, 0.08);
+  --green-bright-border: rgba(46, 125, 50, 0.25);
+  --amber-bright:  #8c5a00;
+  --amber-bright-dim:    rgba(140, 90, 0, 0.1);
+  --amber-bright-glow:   rgba(140, 90, 0, 0.35);
+  --overlay-bg:    rgba(0, 0, 0, 0.45);
+  --cell-bg:       rgba(62, 39, 23, 0.06);
+  --cell-border:   rgba(62, 39, 23, 0.22);
+  --cell-text:     rgba(62, 39, 23, 0.92);
+  --cell-op:       rgba(62, 39, 23, 0.58);
+  --cell-eq:       rgba(62, 39, 23, 0.42);
+  --cell-faint:    rgba(62, 39, 23, 0.04);
+  --glow-bg:       rgba(140, 90, 0, 0.08);
+  --chip-border:   rgba(140, 90, 0, 0.35);
+  --chip-bg:       rgba(140, 90, 0, 0.06);
+  --btn-border:    rgba(62, 39, 23, 0.25);
+  --btn-border-hover: rgba(62, 39, 23, 0.5);
+  --btn-hover-bg:  rgba(62, 39, 23, 0.06);
+  --toggle-icon:   '🌙';
+  --mobile-drawer: #f0ebe3;
+  --backdrop-bg:   rgba(0, 0, 0, 0.25);
+  --tooltip-bg:    #3e2723;
+  --tooltip-text:  #faf6f0;
+  --hamburger:     #3e2723;
+}
+
 html {
   overflow-x: hidden;
 }
@@ -13,9 +151,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
   line-height: 1.5;
-  color: white;
-  background: #0d0d0d;
+  color: var(--text);
+  background: var(--bg);
   overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 input,

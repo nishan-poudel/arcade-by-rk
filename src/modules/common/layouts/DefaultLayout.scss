@@ -1,27 +1,25 @@
-$bg: #0d0d0d;
-$border: rgba(255, 255, 255, 0.07);
-$amber: #f59e0b;
-$amber-dim: rgba(245, 158, 11, 0.14);
-$text-dim: rgba(255, 255, 255, 0.45);
+$mono: 'Courier New', Courier, monospace;
 
 .layout {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: $bg;
+  background: var(--bg);
   overflow-x: hidden;
+  transition: background 0.3s ease;
 }
 
 .header {
-  background: $bg;
-  color: white;
+  background: var(--bg);
+  color: var(--heading);
   padding: 0;
-  border-bottom: 1px solid $border;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .nav {
@@ -60,13 +58,71 @@ $text-dim: rgba(255, 255, 255, 0.45);
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: $amber;
+  background: var(--amber);
   margin-top: 2px;
 }
 
 .brand-text {
-  color: white;
-  transition: opacity 0.2s ease;
+  color: var(--heading);
+  transition: opacity 0.2s ease, color 0.3s ease;
+}
+
+// ── RK hover tooltip (easter egg — no visual hint) ──────────────────────────
+.brand-rk,
+.footer-rk {
+  text-decoration: none;
+  border: none;
+  cursor: inherit;
+  position: relative;
+  font-style: normal;
+  display: inline-block;
+
+  &::after {
+    content: attr(title);
+    position: absolute;
+    left: 50%;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 200;
+  }
+}
+
+// Nav brand: tooltip drops DOWN (header is at top of viewport)
+.brand-rk {
+  &::after {
+    top: calc(100% + 6px);
+    transform: translateX(-50%) translateY(-4px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+
+  &:hover::after,
+  &:focus::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+// Footer: tooltip pops UP
+.footer-rk {
+  &::after {
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%) translateY(4px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+
+  &:hover::after,
+  &:focus::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 // ── Mobile hamburger toggle ─────────────────────────────────────────────────
@@ -89,7 +145,7 @@ $text-dim: rgba(255, 255, 255, 0.45);
   display: block;
   width: 100%;
   height: 2px;
-  background: white;
+  background: var(--hamburger);
   border-radius: 2px;
   transition: transform 0.25s ease, opacity 0.2s ease;
 }
@@ -107,19 +163,19 @@ $text-dim: rgba(255, 255, 255, 0.45);
 
 /* HOME tab — amber accent, matches brand dot */
 .nav-link--home {
-  color: rgba(245, 158, 11, 0.65);
+  color: var(--nav-home);
   font-size: 0.8rem;
   letter-spacing: 1px;
 
   &:hover {
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.07);
+    color: var(--nav-home-hover);
+    background: var(--nav-home-bg);
   }
 
   &.active {
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.1);
-    outline: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--nav-home-hover);
+    background: var(--nav-home-active-bg);
+    outline: 1px solid var(--nav-home-active-border);
   }
 }
 
@@ -135,7 +191,7 @@ $text-dim: rgba(255, 255, 255, 0.45);
 }
 
 .nav-link {
-  color: $text-dim;
+  color: var(--text-dim);
   text-decoration: none;
   font-weight: 500;
   font-size: 0.875rem;
@@ -155,31 +211,31 @@ $text-dim: rgba(255, 255, 255, 0.45);
 }
 
 .nav-link:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--heading);
+  background: var(--border);
 }
 
 .nav-link.active {
-  color: white;
-  background: $amber-dim;
-  outline: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--heading);
+  background: var(--amber-dim);
+  outline: 1px solid var(--nav-home-active-border);
 }
 
 /* Math Chain tab — calm blue accent */
 .nav-link--puzzle {
-  color: rgba(96, 165, 250, 0.65);
+  color: var(--nav-puzzle);
   font-weight: 600;
   letter-spacing: 0.3px;
 
   &:hover {
-    color: #60a5fa;
-    background: rgba(96, 165, 250, 0.07);
+    color: var(--nav-puzzle-hover);
+    background: var(--nav-puzzle-bg);
   }
 
   &.active {
-    color: #60a5fa;
-    background: rgba(96, 165, 250, 0.1);
-    outline: 1px solid rgba(96, 165, 250, 0.3);
+    color: var(--nav-puzzle-hover);
+    background: var(--nav-puzzle-active-bg);
+    outline: 1px solid var(--nav-puzzle-active-border);
   }
 }
 
@@ -189,33 +245,34 @@ $text-dim: rgba(255, 255, 255, 0.45);
   flex-direction: column;
 }
 
-// Game nav link — neon green accent
+// Game nav link
 .nav-link--game {
-  color: rgba(0, 200, 65, 0.65);
-  font-family: 'Courier New', Courier, monospace;
+  color: var(--nav-game);
+  font-family: $mono;
   font-weight: 700;
   letter-spacing: 0.6px;
 
   &:hover {
-    color: #00ff41;
-    background: rgba(0, 255, 65, 0.07);
+    color: var(--nav-game-hover);
+    background: var(--nav-game-bg);
   }
 
   &.active {
-    color: #00ff41;
-    background: rgba(0, 255, 65, 0.1);
-    outline: 1px solid rgba(0, 255, 65, 0.3);
+    color: var(--nav-game-hover);
+    background: var(--nav-game-active-bg);
+    outline: 1px solid var(--nav-game-active-border);
   }
 }
 
 .footer {
-  background: $bg;
-  color: $text-dim;
+  background: var(--bg);
+  color: var(--text-dim);
   text-align: center;
   padding: 1.5rem 2rem;
-  border-top: 1px solid $border;
+  border-top: 1px solid var(--border);
   font-size: 0.85rem;
   letter-spacing: 0.3px;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .footer p {
@@ -251,7 +308,7 @@ $text-dim: rgba(255, 255, 255, 0.45);
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--backdrop-bg);
     z-index: 99;
     -webkit-tap-highlight-color: transparent;
   }
@@ -263,8 +320,8 @@ $text-dim: rgba(255, 255, 255, 0.45);
     width: 240px;
     height: 100dvh;
     flex-direction: column;
-    background: #111;
-    border-left: 1px solid $border;
+    background: var(--mobile-drawer);
+    border-left: 1px solid var(--border);
     padding: 5rem 1.25rem 2rem;
     gap: 0.4rem;
     z-index: 105;
@@ -295,4 +352,32 @@ $text-dim: rgba(255, 255, 255, 0.45);
     padding: 1.25rem 1rem;
     font-size: 0.8rem;
   }
+}
+
+// ── Theme toggle ─────────────────────────────────────────────────────────────
+.nav-item--theme {
+  margin-left: 0.25rem;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    background: var(--border);
+  }
+}
+
+.theme-toggle-icon {
+  font-size: 1rem;
+  line-height: 1;
 }
