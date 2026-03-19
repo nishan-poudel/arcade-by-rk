@@ -1,0 +1,217 @@
+$mono:        'Courier New', Courier, monospace;
+$sans:        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+// ── Page wrapper ─────────────────────────────────────────────────────────────
+.home-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4.5rem 1.5rem 5rem;
+  background: var(--bg);
+  color: var(--text);
+  font-family: $sans;
+  transition: background 0.3s ease, color 0.3s ease;
+
+  @media (max-width: 640px) {
+    padding: 3rem 1rem 3.5rem;
+  }
+}
+
+// ── Hero ─────────────────────────────────────────────────────────────────────
+.hero {
+  text-align: center;
+  max-width: 560px;
+  margin-bottom: 3.5rem;
+}
+
+.hero-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  font-family: $mono;
+  margin: 0 0 1rem;
+}
+
+.hero-headline {
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: var(--heading);
+  margin: 0 0 0.85rem;
+  line-height: 1.1;
+  transition: color 0.3s ease;
+}
+
+.hero-sub {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.65;
+}
+
+// ── Cards grid ───────────────────────────────────────────────────────────────
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 820px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+// ── Individual card ───────────────────────────────────────────────────────────
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  text-decoration: none;
+  color: var(--text);
+  overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    transform: translateY(-3px);
+    .card-cta { opacity: 1; letter-spacing: 2.5px; }
+  }
+
+  // remove hover lift on touch devices to avoid sticky state
+  @media (hover: none) {
+    &:hover { transform: none; }
+    &:active { transform: scale(0.98); }
+  }
+
+  &--hack:hover {
+    border-color: var(--green-border);
+    box-shadow: 0 8px 40px var(--green-dim);
+  }
+
+  &--puzzle:hover {
+    border-color: var(--blue-border);
+    box-shadow: 0 8px 40px var(--blue-dim);
+  }
+}
+
+// ambient glow blob (decorative)
+.card-glow {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: var(--green-glow);
+  filter: blur(60px);
+  pointer-events: none;
+  opacity: 0.5;
+
+  &--puzzle {
+    background: var(--blue-glow);
+  }
+}
+
+// ── Card top row ─────────────────────────────────────────────────────────────
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-family: $mono;
+  padding: 0.2rem 0.5rem;
+  border-radius: 100px;
+
+  &--green {
+    color: var(--green-text);
+    background: var(--green-dim);
+    border: 1px solid var(--green-border);
+  }
+
+  &--blue {
+    color: var(--blue-text);
+    background: var(--blue-dim);
+    border: 1px solid var(--blue-border);
+  }
+}
+
+.card-icon {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &--hack {
+    font-family: $mono;
+    color: var(--green-text);
+    text-shadow: 0 0 14px var(--green-glow);
+  }
+
+  &--puzzle {
+    color: var(--blue-text);
+    text-shadow: 0 0 14px var(--blue-glow);
+  }
+}
+
+// ── Card content ─────────────────────────────────────────────────────────────
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+
+  &--hack   { font-family: $mono; color: var(--green); }
+  &--puzzle { color: var(--blue); }
+}
+
+.card-desc {
+  font-size: 0.865rem;
+  color: var(--text-dim);
+  line-height: 1.65;
+  margin: 0;
+  flex: 1;
+}
+
+// ── Card footer ──────────────────────────────────────────────────────────────
+.card-footer {
+  margin-top: 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.card-cta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  font-family: $mono;
+  opacity: 0.7;
+  transition: opacity 0.18s ease, letter-spacing 0.18s ease;
+
+  &--hack   { color: var(--green); }
+  &--puzzle { color: var(--blue); }
+}
