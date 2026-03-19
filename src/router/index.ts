@@ -7,6 +7,7 @@ import DefaultLayout from '@/modules/common/layouts/DefaultLayout.vue'
 import TerminalGame from '@/modules/game/views/TerminalGame.vue'
 import MathPuzzle   from '@/modules/mathpuzzle/views/MathPuzzle.vue'
 import HomePage     from '@/modules/home/views/HomePage.vue'
+import About       from '@/modules/about/views/About.vue'
 
 /**
  * Route Metadata Type
@@ -23,12 +24,14 @@ export const ROUTE_NAMES = {
   HOME:   'home',
   GAME:   'game',
   PUZZLE: 'puzzle',
+  ABOUT:  'about',
 } as const
 
 export const ROUTE_PATHS = {
   HOME:   '/',
   GAME:   '/game',
   PUZZLE: '/puzzle',
+  ABOUT:  '/about',
 } as const
 
 /**
@@ -58,6 +61,12 @@ const routes: RouteRecordRaw[] = [
         component: MathPuzzle,
         name: ROUTE_NAMES.PUZZLE,
         meta: { title: 'Math Chain' },
+      },
+      {
+        path: ROUTE_PATHS.ABOUT,
+        component: About,
+        name: ROUTE_NAMES.ABOUT,
+        meta: { title: 'About' },
       },
     ],
   },

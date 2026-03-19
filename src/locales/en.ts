@@ -3,6 +3,7 @@ export const en = {
     home:       'HOME',
     game:        '>_ Grid',
     mathPuzzle:  '± Chain',
+    about:      'ABOUT',
   },
   brand: {
     name: 'Arcade by RK',
@@ -10,7 +11,7 @@ export const en = {
     nameAbbr: 'RK',
     nameAbbrFull: 'Rocky Kaka',
     copyright: 'Handcrafted with caffeine & chaos by Nishan',
-    footer: 'Powered by late nights & bad decisions. Made with ☕ by Nishan'
+    footer: 'Powered by late nights & bad decisions. Made with ☕ by',
   },
   homePage: {
     eyebrow: 'GAME ARCADE',
@@ -45,7 +46,25 @@ export const en = {
     stackLabel: 'What I work with',
     stack: ['Vue 3', 'TypeScript', 'Vite', 'SCSS', 'Vuex', 'Vue Router'],
     badge: 'Open to work ✨',
-    cta: '← Back home'
+    cta: '← Back home',
+    builderNote: 'Built this app in a day vibe coding. Stressed? Maybe. Worth it? You tell me.',
+    madeByLabel: 'Made by',
+    nameDefault: 'Nishan',
+    nameAlternate: 'Rocky Kaka',
+    backBtn: 'Back to Home',
+    contactTitle: 'Get in Touch',
+    contactSubtitle: 'Have feedback or want to chat?',
+    contactEmail: 'https://formspree.io/f/mpqybeoa',
+    contactForm: {
+      subjectLabel: 'Subject',
+      subjectPlaceholder: 'Your subject',
+      descriptionLabel: 'Message',
+      descriptionPlaceholder: 'Tell me what\'s on your mind...',
+      submitBtn: 'Send Message',
+      sendingBtn: 'Sending...',
+      successMsg: 'Message sent! Thanks for reaching out.',
+      errorMsg: 'Oops, something went wrong. Try again?',
+    },
   },
   game: {
     pageTitle: 'Grid Raider',

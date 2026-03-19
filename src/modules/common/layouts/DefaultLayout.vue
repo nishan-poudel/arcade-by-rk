@@ -59,6 +59,16 @@
               <span class="link-text">{{ locale.nav.mathPuzzle }}</span>
             </RouterLink>
           </li>
+          <li class="nav-item">
+            <RouterLink
+              :to="{ name: 'about' }"
+              :class="{ active: isAbout }"
+              class="nav-link nav-link--about"
+              @click="menuOpen = false"
+            >
+              <span class="link-text">{{ locale.nav.about }}</span>
+            </RouterLink>
+          </li>
           <li class="nav-item nav-item--theme">
             <button
               class="theme-toggle"
@@ -83,7 +93,14 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p>{{ locale.brand.footer }}</p>
+      <p>
+        {{ locale.brand.footer }} <button
+          :key="footerDisplayName"
+          class="footer-name-toggle" :class="{ rotating: footerIsRotating }"
+          @click="toggleFooterName">
+          {{ footerDisplayName }}
+        </button>
+      </p>
     </footer>
   </div>
 </template>
@@ -98,8 +115,22 @@ const route    = useRoute()
 const isHome   = computed(() => route.name === 'home')
 const isGame   = computed(() => route.name === 'game')
 const isPuzzle = computed(() => route.name === 'puzzle')
+const isAbout  = computed(() => route.name === 'about')
 const menuOpen = ref(false)
 const { theme, toggle } = useTheme()
+
+// Footer name toggle - independent state
+const footerIsRockingKaka = ref(true)
+const footerIsRotating = ref(false)
+const footerDisplayName = computed(() => footerIsRockingKaka.value ? locale.about.nameAlternate : locale.about.nameDefault)
+
+const toggleFooterName = () => {
+  footerIsRotating.value = true
+  setTimeout(() => {
+    footerIsRockingKaka.value = !footerIsRockingKaka.value
+    footerIsRotating.value = false
+  }, 1200)
+}
 </script>
 
 <style scoped src="./DefaultLayout.scss"></style>

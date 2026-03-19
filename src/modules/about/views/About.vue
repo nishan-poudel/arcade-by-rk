@@ -1,46 +1,147 @@
 <template>
   <div class="about" data-test="about">
-    <div class="glow" />
-    <div class="about-grid" data-test="about-grid">
-      <div class="about-image" data-test="about-image">
-        <div class="img-frame">
-          <img
-            src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=700&q=80"
-            alt="Developer at work"
-            class="about-img"
-            data-test="about-img"
-          >
-        </div>
-        <div class="img-badge" data-test="badge">{{ locale.about.badge }}</div>
+    <div class="about-container">
+      <div class="about-header">
+        <h1>{{ locale.about.contactTitle }}</h1>
+        <p class="about-subtitle">{{ locale.about.contactSubtitle }}</p>
       </div>
-      <div class="about-content" data-test="about-content">
-        <p class="eyebrow" data-test="eyebrow">{{ locale.about.eyebrow }}</p>
-        <h1 data-test="title">{{ locale.about.title }}</h1>
-        <p class="desc" data-test="description">{{ locale.about.description }}</p>
-        <div class="stack" data-test="stack">
-          <p class="stack-label" data-test="stack-label">{{ locale.about.stackLabel }}</p>
-          <div class="chips" data-test="chips">
-            <span
-              v-for="tech in locale.about.stack" :key="tech"
-              class="chip" data-test="chip">{{ tech }}</span>
+
+      <div class="about-content">
+        <form class="contact-form" @submit.prevent="sendMessage">
+          <div class="form-group">
+            <label for="subject" class="form-label">{{ locale.about.contactForm.subjectLabel }}</label>
+            <input
+              id="subject"
+              v-model="formData.subject"
+              type="text"
+              class="form-input"
+              :placeholder="locale.about.contactForm.subjectPlaceholder"
+              required
+              :disabled="isSubmitting"
+            >
           </div>
-        </div>
-        <RouterLink
-          :to="{ name: 'home' }" class="btn"
-          data-test="cta">
-          {{ locale.about.cta }}
+
+          <div class="form-group">
+            <label for="message" class="form-label">{{ locale.about.contactForm.descriptionLabel }}</label>
+            <textarea
+              id="message"
+              v-model="formData.message"
+              class="form-textarea"
+              :placeholder="locale.about.contactForm.descriptionPlaceholder"
+              rows="6"
+              required
+              :disabled="isSubmitting"
+            />
+          </div>
+
+          <button
+            type="submit"
+            class="btn btn-submit"
+            :disabled="isSubmitting"
+          >
+            {{ isSubmitting ? locale.about.contactForm.sendingBtn : locale.about.contactForm.submitBtn }}
+          </button>
+
+          <div v-if="formMessage.text" :class="['form-message', formMessage.type]">
+            {{ formMessage.text }}
+          </div>
+        </form>
+
+        <RouterLink :to="{ name: 'home' }" class="btn btn-back">
+          {{ locale.about.backBtn }}
         </RouterLink>
+
+        <div class="builder-note">
+          <p>{{ locale.about.builderNote }}</p>
+          <p class="made-by">
+            {{ locale.about.madeByLabel }} <button
+              :key="displayName"
+              class="name-toggle" :class="{ rotating: isRotating }"
+              @click="toggleName">
+              {{ displayName }}
+            </button>.
+          </p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { en as locale } from '@/locales/en'
 import { usePageTitle } from '@/modules/shared/composables/usePageTitle'
 
 usePageTitle('About')
+
+const isRockingKaka = ref(true)
+const isRotating = ref(false)
+const displayName = computed(() => isRockingKaka.value ? locale.about.nameAlternate : locale.about.nameDefault)
+
+const toggleName = () => {
+  isRotating.value = true
+  setTimeout(() => {
+    isRockingKaka.value = !isRockingKaka.value
+    isRotating.value = false
+  }, 1200)
+}
+
+const formData = ref({
+  subject: '',
+  message: '',
+})
+
+const isSubmitting = ref(false)
+const formMessage = ref({
+  text: '',
+  type: '' as 'success' | 'error',
+})
+
+const sendMessage = async () => {
+  if (isSubmitting.value) {
+    return
+  }
+
+  isSubmitting.value = true
+  formMessage.value = { text: '', type: 'success' }
+
+  try {
+    const response = await fetch(locale.about.contactEmail, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subject: formData.value.subject,
+        message: formData.value.message,
+      }),
+    })
+
+    if (response.ok) {
+      formMessage.value = {
+        text: locale.about.contactForm.successMsg,
+        type: 'success',
+      }
+      formData.value = { subject: '', message: '' }
+      setTimeout(() => {
+        formMessage.value = { text: '', type: 'success' }
+      }, 4000)
+    } else {
+      formMessage.value = {
+        text: locale.about.contactForm.errorMsg,
+        type: 'error',
+      }
+    }
+  } catch (error) {
+    formMessage.value = {
+      text: locale.about.contactForm.errorMsg,
+      type: 'error',
+    }
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <style scoped src="./About.scss"></style>

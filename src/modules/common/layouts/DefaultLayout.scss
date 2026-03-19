@@ -279,6 +279,39 @@ $mono: 'Courier New', Courier, monospace;
   margin: 0;
 }
 
+.footer-name-toggle {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-weight: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: inline;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    text-decoration: underline;
+    opacity: 0.8;
+  }
+
+  &.rotating {
+    animation: slowSpin 1.2s cubic-bezier(0.25, 0.46, 0.82, 1) forwards;
+  }
+}
+
+@keyframes slowSpin {
+  0% {
+    transform: rotateY(0deg);
+  }
+
+  100% {
+    transform: rotateY(720deg);
+  }
+}
+
 // ── Page transition ─────────────────────────────────────────────────────────
 .page-fade-enter-active,
 .page-fade-leave-active {
@@ -348,6 +381,16 @@ $mono: 'Courier New', Courier, monospace;
     font-size: 0.9rem;
   }
 
+  .nav-item--theme {
+    margin-left: 0;
+    padding: 0.75rem 1rem;
+  }
+
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+  }
+
   .footer {
     padding: 1.25rem 1rem;
     font-size: 0.8rem;
@@ -356,28 +399,41 @@ $mono: 'Courier New', Courier, monospace;
 
 // ── Theme toggle ─────────────────────────────────────────────────────────────
 .nav-item--theme {
-  margin-left: 0.25rem;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .theme-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: transparent;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg-surface);
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 
   &:hover {
     background: var(--border);
+    transform: scale(1.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+
+  &:active {
+    transform: scale(0.96);
   }
 }
 
 .theme-toggle-icon {
-  font-size: 1rem;
+  font-size: 1.2rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
