@@ -1,7 +1,7 @@
 {
-  "name": "vue3-vite-app",
+  "name": "arcade-by-rk",
   "version": "1.0.0",
-  "author": "Nishan",
+  "author": "Rocky Kaka",
   "type": "module",
   "scripts": {
     "dev": "vite",

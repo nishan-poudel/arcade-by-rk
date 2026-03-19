@@ -1,12 +1,12 @@
 export const en = {
   nav: {
     home:       'HOME',
-    game:        '>_ Hack',
+    game:        '>_ Grid',
     mathPuzzle:  '± Chain',
   },
   brand: {
-    name: 'Nishan',
-    copyright: '2026 Nishan. All rights reserved.'
+    name: 'Arcade by RK',
+    copyright: '2026 Arcade by RK. All rights reserved.'
   },
   homePage: {
     eyebrow: 'GAME ARCADE',
@@ -15,9 +15,9 @@ export const en = {
     cards: {
       hack: {
         tags: ['ROGUELIKE', 'GRID', 'KEYBOARD'],
-        title: 'Terminal Hack',
-        desc: 'Infiltrate a neon-lit network grid. Collect every data packet while dodging firewall tiles — one touch ends your run. Each level spawns more chaos. BFS-guaranteed solvable.',
-        cta: 'INITIATE HACK',
+        title: 'Grid Raider',
+        desc: 'Navigate a neon-lit data grid. Collect every packet while dodging barrier tiles — one touch ends your run. Each level spawns more chaos. Every level is guaranteed solvable.',
+        cta: 'LAUNCH RAID',
       },
       puzzle: {
         tags: ['MATH', 'LOGIC', 'LEVELS'],
@@ -29,7 +29,7 @@ export const en = {
   },
   home: {
     greeting: 'Hello, I\'m',
-    name: 'Nishan',
+    name: 'Rocky Kaka',
     tagline: 'I craft web experiences that feel human — clean, joyful & alive.',
     sub: 'Vue 3 · TypeScript · Vite',
     cta: 'Get to know me →'
@@ -44,18 +44,18 @@ export const en = {
     cta: '← Back home'
   },
   game: {
-    pageTitle: 'Terminal Hack',
+    pageTitle: 'Grid Raider',
     page: {
       tags: ['ROGUELIKE', 'GRID', 'KEYBOARD'],
-      headline: 'TERMINAL HACK',
-      sub: 'A roguelike grid-infiltration game. Collect all packets. Avoid the firewalls.',
-      desc: 'Navigate a procedurally generated terminal grid with W·A·S·D or Arrow keys. Each level spawns more firewall tiles and more data packets. One touch on a ◓ firewall ends your run instantly. Every level is BFS-guaranteed solvable.',
-      launchBtn: '[ INITIATE HACK ]',
+      headline: 'GRID RAIDER',
+      sub: 'A roguelike grid-raiding game. Collect all packets. Avoid the barriers.',
+      desc: 'Navigate a procedurally generated data grid with W·A·S·D or Arrow keys. Each level spawns more barrier tiles and more data packets. One touch on a barrier ends your run instantly. Every level is guaranteed solvable.',
+      launchBtn: '[ LAUNCH RAID ]',
       htpTitle: 'HOW TO PLAY',
     },
-    fabLabel: 'RUN SYSTEM_DIAGNOSTICS >_',
-    fabAriaLabel: 'Open Terminal Hack game',
-    overlayAriaLabel: 'Terminal Hack game',
+    fabLabel: 'LAUNCH GRID_RAIDER >_',
+    fabAriaLabel: 'Open Grid Raider game',
+    overlayAriaLabel: 'Grid Raider game',
     hud: {
       level: 'LEVEL',
       score: 'SCORE',
@@ -63,11 +63,11 @@ export const en = {
       hiScore: 'HI-SCORE',
     },
     idle: {
-      subtitle: 'Infiltrate the network. Collect all data packets.',
-      avoidHint: 'Avoid firewalls',
+      subtitle: 'Raid the grid. Collect all data packets.',
+      avoidHint: 'Avoid barriers',
       collectHint: 'Collect packets',
       moveHint: 'Move with',
-      startBtn: '[ INITIATE HACK ]',
+      startBtn: '[ LAUNCH RAID ]',
     },
     htp: {
       goalLabel: 'Goal:',
@@ -75,18 +75,18 @@ export const en = {
       moveLabel: 'Move:',
       moveKeys: 'W A S D or ↑ ← ↓ →',
       avoidLabel: 'Avoid:',
-      avoidText: 'firewalls — one hit ends your run',
+      avoidText: 'barriers — one hit ends your run',
     },
     board: {
       cursorLabel: 'CURSOR',
       packetLabel: 'PACKET',
-      firewallLabel: 'FIREWALL',
+      firewallLabel: 'BARRIER',
     },
     levelFlashUnlocked: 'UNLOCKED',
     closeBtn: '[ CLOSE ]',
     gameover: {
-      title: 'ACCESS DENIED',
-      subtitle: 'Firewall breach detected. System integrity compromised.',
+      title: 'MISSION FAILED',
+      subtitle: 'Barrier collision detected. Data extraction incomplete.',
       labelLevel: 'Level reached',
       labelData: 'Data collected',
       labelHiScore: 'High score',
@@ -94,8 +94,8 @@ export const en = {
     },
     status: {
       idle: 'AWAITING OPERATOR INPUT...',
-      gameover: '>>> CONNECTION TERMINATED',
-      playing: '>>> SYSTEM ACCESS GRANTED — MOVE TO EXTRACT DATA',
+      gameover: '>>> MISSION TERMINATED',
+      playing: '>>> GRID ACCESS GRANTED — MOVE TO COLLECT DATA',
       scanning: (lvl: number, sc: string) => `>>> SCANNING NETWORK SECTOR ${lvl}-${sc}...`,
     },
     share: {
@@ -103,7 +103,7 @@ export const en = {
       copied: '[ COPIED! ✓ ]',
       failed: '[ FAILED ]',
       text: (lvl: number, sc: number, hi: number) =>
-        `🖥️ Terminal Hack — Level ${lvl} reached! 💾 Score: ${sc} | Hi: ${hi}`,
+        `🎮 Grid Raider — Level ${lvl} reached! 💾 Score: ${sc} | Hi: ${hi}`,
     },
     howToPlay: {
       btn: 'HOW TO PLAY',
@@ -112,8 +112,8 @@ export const en = {
       steps: [
         { icon: '🎯', label: 'Goal',      text: 'Collect all ◈ Data Packets on the grid to advance to the next level.' },
         { icon: '⌨️', label: 'Move',      text: 'Use W · A · S · D or Arrow Keys to move your cursor around the grid.' },
-        { icon: '▓',  label: 'Firewalls', text: 'Avoid ▓ firewall tiles — one touch immediately ends your run.' },
-        { icon: '📈', label: 'Levels',    text: 'Each new level spawns more firewalls AND more packets to collect. Stay sharp.' },
+        { icon: '▓',  label: 'Barriers',  text: 'Avoid ▓ barrier tiles — one touch immediately ends your run.' },
+        { icon: '📈', label: 'Levels',    text: 'Each new level spawns more barriers AND more packets to collect. Stay sharp.' },
         { icon: '🏆', label: 'Score',     text: 'Every packet collected is +1 point. Your best score is auto-saved.' },
         { icon: '📋', label: 'Share',     text: 'Hit SHARE to copy a run summary to your clipboard.' },
       ],

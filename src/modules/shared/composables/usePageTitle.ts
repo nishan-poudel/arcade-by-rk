@@ -1,6 +1,6 @@
 import { watchEffect, type Ref } from 'vue'
 
-const DEFAULT_TITLE = 'WEB APP'
+const DEFAULT_TITLE = 'Arcade by RK'
 
 /**
  * Sets the browser tab title reactively.

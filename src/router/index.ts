@@ -51,7 +51,7 @@ const routes: RouteRecordRaw[] = [
         path: ROUTE_PATHS.GAME,
         component: TerminalGame,
         name: ROUTE_NAMES.GAME,
-        meta: { title: 'Terminal Hack' },
+        meta: { title: 'Grid Raider' },
       },
       {
         path: ROUTE_PATHS.PUZZLE,
