@@ -203,6 +203,18 @@
         </div>
       </div>
 
+      <!-- Reveal animation overlay -->
+      <Transition name="reveal-pop">
+        <div v-if="showRevealAnimation" class="reveal-overlay">
+          <div class="reveal-rays">
+            <span class="reveal-ray" /><span class="reveal-ray" /><span class="reveal-ray" />
+            <span class="reveal-ray" /><span class="reveal-ray" /><span class="reveal-ray" />
+          </div>
+          <div class="reveal-icon">✨</div>
+          <p class="reveal-text">ANSWERS REVEALED</p>
+        </div>
+      </Transition>
+
       <!-- ── numpad ── -->
       <div
         class="numpad"
@@ -288,6 +300,19 @@
           </button>
         </div>
       </div>
+
+      <!-- Next level excitement animation -->
+      <Transition name="nl-burst">
+        <div v-if="showNextLevelAnimation" class="nl-burst-overlay">
+          <div class="nl-confetti">
+            <span class="nl-particle" /><span class="nl-particle" /><span class="nl-particle" />
+            <span class="nl-particle" /><span class="nl-particle" /><span class="nl-particle" />
+            <span class="nl-particle" /><span class="nl-particle" /><span class="nl-particle" />
+          </div>
+          <div class="nl-badge">⚡</div>
+          <p class="nl-label">NEXT LEVEL!</p>
+        </div>
+      </Transition>
     </Transition>
   </div>
 </template>
@@ -345,6 +370,8 @@ const userInput  = ref<(number | null)[][]>(blankInput())
 const selected   = ref<[number, number] | null>(null)
 const elapsed    = ref(0)
 const revealed   = ref(false)  // true after REVEAL btn — blocks isSolved so win screen doesn't fire
+const showRevealAnimation = ref(false)  // reveal button animation
+const showNextLevelAnimation = ref(false)  // next level excitement animation
 
 const lastScore  = ref(0)   // points earned on the last completed puzzle
 const totalScore = ref(0)   // accumulated score for the current run
@@ -660,10 +687,16 @@ function advanceToNextBlank(fromR: number, fromC: number) {
 
 function revealAnswer() {
   if (!puzzle.value) { return }
-  // Set revealed flag BEFORE updating userInput — this prevents isSolved
-  // from firing the win screen when the answers are backfilled.
-  revealed.value  = true
-  userInput.value = puzzle.value.values.map(row => [...row])
+  // Show reveal animation, then fill answers
+  showRevealAnimation.value = true
+  setTimeout(() => {
+    revealed.value  = true
+    userInput.value = puzzle.value!.values.map(row => [...row])
+    // Hide animation after answers are shown
+    setTimeout(() => {
+      showRevealAnimation.value = false
+    }, 800)
+  }, 600)
 }
 
 function newPuzzle() {
@@ -683,8 +716,13 @@ function goBack() {
 }
 
 function levelUp() {
-  level.value++
-  startGame()
+  // Show next-level excitement animation
+  showNextLevelAnimation.value = true
+  setTimeout(() => {
+    level.value++
+    startGame()
+    showNextLevelAnimation.value = false
+  }, 1400)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

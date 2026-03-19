@@ -10,17 +10,17 @@ export const en = {
     nameAbbr: 'RK',
     nameAbbrFull: 'Rocky Kaka',
     copyright: 'Handcrafted with caffeine & chaos by Nishan',
-    footer: 'Powered by late nights & bad decisions — made with ☕ by Nishan'
+    footer: 'Powered by late nights & bad decisions. Made with ☕ by Nishan'
   },
   homePage: {
     eyebrow: 'GAME ARCADE',
     headline: 'Pick Your Challenge',
-    sub: 'Two original browser games. No installs, no accounts — just play.',
+    sub: 'Two original browser games. No installs, no accounts. Just play.',
     cards: {
       hack: {
         tags: ['GRID', 'KEYBOARD', 'ROGUELIKE'],
         title: 'Grid Raider',
-        desc: 'Navigate a neon-lit data grid. Collect every packet while dodging barrier tiles — one touch ends your run. Each level spawns more chaos. Every level is guaranteed solvable.',
+        desc: 'Navigate a neon-lit data grid. Collect every packet while dodging barrier tiles. One touch ends your run. Each level spawns more chaos. Every level is guaranteed solvable.',
         cta: 'Play →',
       },
       puzzle: {
@@ -34,14 +34,14 @@ export const en = {
   home: {
     greeting: 'Hello, I\'m',
     name: 'Rocky Kaka',
-    tagline: 'I craft web experiences that feel human — clean, joyful & alive.',
+    tagline: 'I craft web experiences that feel human: clean, joyful, and alive.',
     sub: 'Vue 3 · TypeScript · Vite',
     cta: 'Get to know me →'
   },
   about: {
     eyebrow: 'A little about me',
     title: 'Code with heart, ship with purpose.',
-    description: 'I\'m a front-end engineer who believes great software should spark joy. I blend sharp TypeScript with expressive Vue 3 components — turning ideas into interfaces people love to use.',
+    description: 'I\'m a front-end engineer who believes great software should spark joy. I blend sharp TypeScript with expressive Vue 3 components, turning ideas into interfaces people love to use.',
     stackLabel: 'What I work with',
     stack: ['Vue 3', 'TypeScript', 'Vite', 'SCSS', 'Vuex', 'Vue Router'],
     badge: 'Open to work ✨',
@@ -79,7 +79,7 @@ export const en = {
       moveLabel: 'Move:',
       moveKeys: 'W A S D or ↑ ← ↓ →',
       avoidLabel: 'Avoid:',
-      avoidText: 'barriers — one hit ends your run',
+      avoidText: 'barriers. One hit ends your run.',
     },
     board: {
       cursorLabel: 'CURSOR',
@@ -99,7 +99,7 @@ export const en = {
     status: {
       idle: 'AWAITING OPERATOR INPUT...',
       gameover: '>>> MISSION TERMINATED',
-      playing: '>>> GRID ACCESS GRANTED — MOVE TO COLLECT DATA',
+      playing: '>>> GRID ACCESS GRANTED. MOVE TO COLLECT DATA',
       scanning: (lvl: number, sc: string) => `>>> SCANNING NETWORK SECTOR ${lvl}-${sc}...`,
     },
     share: {
@@ -107,7 +107,7 @@ export const en = {
       copied: '[ COPIED! ✓ ]',
       failed: '[ FAILED ]',
       text: (lvl: number, sc: number, hi: number) =>
-        `🎮 Grid Raider — Level ${lvl} reached! 💾 Score: ${sc} | Hi: ${hi}`,
+        `🎮 Grid Raider · Level ${lvl} reached! 💾 Score: ${sc} | Hi: ${hi}`,
     },
     howToPlay: {
       btn: 'HOW TO PLAY',
@@ -116,7 +116,7 @@ export const en = {
       steps: [
         { icon: '🎯', label: 'Goal',      text: 'Collect all ◈ Data Packets on the grid to advance to the next level.' },
         { icon: '⌨️', label: 'Move',      text: 'Use W · A · S · D or Arrow Keys to move your cursor around the grid.' },
-        { icon: '▓',  label: 'Barriers',  text: 'Avoid ▓ barrier tiles — one touch immediately ends your run.' },
+        { icon: '▓',  label: 'Barriers',  text: 'Avoid ▓ barrier tiles. One touch immediately ends your run.' },
         { icon: '📈', label: 'Levels',    text: 'Each new level spawns more barriers AND more packets to collect. Stay sharp.' },
         { icon: '🏆', label: 'Score',     text: 'Every packet collected is +1 point. Your best score is auto-saved.' },
         { icon: '📋', label: 'Share',     text: 'Hit SHARE to copy a run summary to your clipboard.' },
@@ -140,8 +140,8 @@ export const en = {
       rules: [
         { icon: '➜',  text: 'Each row, column and diagonal is a left-to-right equation' },
         { icon: '✏️', text: 'Click a blank cell then type 1–9, or use the numpad below' },
-        { icon: '✅', text: 'Equations glow green the moment they balance — instant feedback' },
-        { icon: '↘↗', text: 'Both diagonals must balance too — that\'s the cross-check twist' },
+        { icon: '✅', text: 'Equations glow green the moment they balance. Instant feedback.' },
+        { icon: '↘↗', text: 'Both diagonals must balance too. That\'s the cross-check twist.' },
       ],
     },
     difficulty: {
