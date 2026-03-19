@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-// Layouts
+// Layout
 import DefaultLayout from '@/modules/common/layouts/DefaultLayout.vue'
 
-// Views
-import Home from '@/modules/home/views/Home.vue'
-import About from '@/modules/about/views/About.vue'
+// Games
+import TerminalGame from '@/modules/game/views/TerminalGame.vue'
+import MathPuzzle   from '@/modules/mathpuzzle/views/MathPuzzle.vue'
+import HomePage     from '@/modules/home/views/HomePage.vue'
 
 /**
  * Route Metadata Type
@@ -18,45 +19,49 @@ declare module 'vue-router' {
   }
 }
 
-/**
- * Route Constants
- *
- * All routes defined in one place.
- */
 export const ROUTE_NAMES = {
-  HOME: 'home',
-  ABOUT: 'about',
+  HOME:   'home',
+  GAME:   'game',
+  PUZZLE: 'puzzle',
 } as const
 
 export const ROUTE_PATHS = {
-  HOME: '/',
-  ABOUT: '/about',
+  HOME:   '/',
+  GAME:   '/game',
+  PUZZLE: '/puzzle',
 } as const
 
 /**
- * Routes Configuration
- *
- * Main routes configuration with layouts and components.
+ * Routes
  */
 const routes: RouteRecordRaw[] = [
   {
-    path: ROUTE_PATHS.HOME,
+    path: '/',
     component: DefaultLayout,
     meta: { layout: 'default' },
     children: [
+      // Home page
       {
         path: '',
-        component: Home,
+        component: HomePage,
         name: ROUTE_NAMES.HOME,
+        meta: { title: 'Arcade' },
       },
       {
-        path: ROUTE_PATHS.ABOUT,
-        component: About,
-        name: ROUTE_NAMES.ABOUT,
+        path: ROUTE_PATHS.GAME,
+        component: TerminalGame,
+        name: ROUTE_NAMES.GAME,
+        meta: { title: 'Terminal Hack' },
+      },
+      {
+        path: ROUTE_PATHS.PUZZLE,
+        component: MathPuzzle,
+        name: ROUTE_NAMES.PUZZLE,
+        meta: { title: 'Math Chain' },
       },
     ],
   },
-  // 404 Catch-all
+  // 404 — send to home
   {
     path: '/:pathMatch(.*)*',
     redirect: ROUTE_PATHS.HOME,
@@ -73,10 +78,15 @@ const router = createRouter({
 
 /**
  * Global Route Guard
+ *
+ * If a route declares `requiresAuth: true`, access is denied until an auth
+ * mechanism is wired up.  The guard is intentionally strict — it redirects
+ * to home rather than silently passing through (no stub next() calls).
  */
 router.beforeEach((to, _from, next) => {
   if (to.meta.requiresAuth) {
-    console.log('Route requires auth:', to.path)
+    next({ path: ROUTE_PATHS.GAME, replace: true })
+    return
   }
   next()
 })

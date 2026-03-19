@@ -1,0 +1,949 @@
+// ─────────────────────────────── design tokens ──────────────────────────────
+$green:       #00ff41;
+$green-dim:   #00c832;
+$green-dark:  rgba(0, 255, 65, 0.12);
+$green-glow:  rgba(0, 255, 65, 0.45);
+$red:         #ff2d2d;
+$amber:       #f59e0b;
+$bg:          #020c02;
+$bg-card:     rgba(2, 18, 2, 0.97);
+$border:      rgba(0, 255, 65, 0.22);
+$font:        'Courier New', 'Courier', 'JetBrains Mono', monospace;
+
+// ─────────────────────────────── Page wrapper ────────────────────────────────
+.tg-page {
+  min-height: 100%;
+  background: #0d0d0d;
+}
+
+// ─────────────────────────────── Game page hero ──────────────────────────────
+.game-hero {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.gh-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.gh-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-family: $font;
+  padding: 0.2rem 0.55rem;
+  border-radius: 100px;
+  color: rgba(0, 255, 65, 0.65);
+  background: rgba(0, 255, 65, 0.07);
+  border: 1px solid rgba(0, 255, 65, 0.18);
+}
+
+.gh-title {
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  font-family: $font;
+  color: $green;
+  text-shadow: 0 0 28px rgba(0, 255, 65, 0.4);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.gh-sub {
+  font-size: 1.05rem;
+  color: rgba(0, 255, 65, 0.6);
+  font-family: $font;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.gh-desc {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.7;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.gh-htp {
+  margin-top: 0.25rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(0, 255, 65, 0.14);
+  border-radius: 10px;
+  background: rgba(0, 255, 65, 0.03);
+}
+
+.gh-htp-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-family: $font;
+  color: rgba(0, 255, 65, 0.4);
+  margin: 0 0 0.85rem;
+}
+
+.gh-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.gh-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.84rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  strong {
+    color: rgba(0, 255, 65, 0.75);
+    font-family: $font;
+    margin-right: 0.35rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+  }
+}
+
+.gh-step-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  width: 1.5rem;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.gh-step-body {
+  flex: 1;
+}
+
+.gh-launch-btn {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  padding: 0.9rem 2rem;
+  background: rgba(0, 255, 65, 0.08);
+  border: 1px solid $green;
+  border-radius: 4px;
+  color: $green;
+  font-family: $font;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(0, 255, 65, 0.5);
+  box-shadow: 0 0 18px rgba(0, 255, 65, 0.12);
+  transition: all 0.15s ease;
+  min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    background: rgba(0, 255, 65, 0.15);
+    box-shadow: 0 0 32px rgba(0, 255, 65, 0.3);
+    letter-spacing: 2.6px;
+  }
+
+  &:active { transform: scale(0.97); }
+}
+
+@media (max-width: 480px) {
+  .game-hero { padding: 1rem 1rem 1.25rem; gap: 0.5rem; }
+  .gh-launch-btn { align-self: stretch; text-align: center; padding: 0.7rem 1.2rem; }
+  .gh-title { letter-spacing: 2px; font-size: clamp(1.4rem, 5vw, 2rem); }
+  .gh-sub { font-size: 0.82rem; }
+  .gh-desc { display: none; }
+  .gh-htp { display: none; }
+  .gh-tag { font-size: 0.52rem; padding: 0.15rem 0.4rem; }
+}
+
+// ─────────────────────────────── FAB ────────────────────────────────────────
+.fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  min-height: 48px;
+  background: rgba(2, 18, 2, 0.85);
+  border: 1px solid $green;
+  border-radius: 4px;
+  color: $green;
+  font-family: $font;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 0 10px $green-glow,
+    0 0 24px rgba(0, 255, 65, 0.2),
+    inset 0 0 6px rgba(0, 255, 65, 0.06);
+  animation: fabPulse 2.8s ease-in-out infinite;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    box-shadow:
+      0 0 18px $green-glow,
+      0 0 40px rgba(0, 255, 65, 0.35),
+      inset 0 0 10px rgba(0, 255, 65, 0.12);
+    transform: translateY(-2px);
+  }
+
+  &:active { transform: translateY(0); }
+}
+
+.fab-icon {
+  font-size: 0.7rem;
+  animation: fabBlink 1.1s step-end infinite;
+}
+
+.fab-label {
+  white-space: nowrap;
+}
+
+@keyframes fabPulse {
+  0%, 100% { box-shadow: 0 0 10px $green-glow, 0 0 24px rgba(0,255,65,0.2); }
+  50%       { box-shadow: 0 0 20px $green-glow, 0 0 46px rgba(0,255,65,0.38); }
+}
+
+@keyframes fabBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+// ─────────────────────────────── Overlay ────────────────────────────────────
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: $bg;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: $font;
+  color: $green;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+// CRT scanline effect
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.18) 2px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  animation: scanRoll 8s linear infinite;
+}
+
+@keyframes scanRoll {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 100%; }
+}
+
+// ─────────────────────────────── HUD ────────────────────────────────────────
+.hud {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid $border;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.hud-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-right: 1px solid $border;
+
+  &:last-child { border-right: none; }
+}
+
+.hud-label {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: rgba(0, 255, 65, 0.45);
+  text-transform: uppercase;
+}
+
+.hud-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin-top: 2px;
+  text-shadow: 0 0 8px $green-glow;
+
+  &.hi { color: $amber; text-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
+}
+
+// ─────────────────────────────── Game area ──────────────────────────────────
+.game-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+// ─────────────────────────────── Screens ────────────────────────────────────
+.screen-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+  max-width: 700px;
+  padding: 2rem;
+}
+
+.ascii-art {
+  font-size: 0.48rem;
+  line-height: 1.2;
+  color: $green;
+  text-shadow: 0 0 6px $green-glow;
+  white-space: pre;
+  margin: 0 0 0.5rem;
+  overflow-x: auto;
+}
+
+.screen-title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: $red;
+  text-shadow: 0 0 14px rgba(255, 45, 45, 0.8);
+  margin: 0;
+}
+
+// glitch
+.glitch {
+  position: relative;
+
+  &::before,
+  &::after {
+    content: attr(data-glitch);
+    position: absolute;
+    inset: 0;
+    font-size: inherit;
+    letter-spacing: inherit;
+    font-weight: inherit;
+  }
+
+  &::before {
+    color: #ff0040;
+    clip-path: polygon(0 30%, 100% 30%, 100% 50%, 0 50%);
+    transform: translateX(-3px);
+    animation: glitchA 2.1s infinite linear;
+  }
+
+  &::after {
+    color: #00ffb3;
+    clip-path: polygon(0 55%, 100% 55%, 100% 70%, 0 70%);
+    transform: translateX(3px);
+    animation: glitchB 2.1s infinite linear;
+  }
+}
+
+@keyframes glitchA {
+  0%, 90%, 100% { transform: translateX(-3px); opacity: 1; }
+  92%            { transform: translateX(4px);  opacity: 0.6; }
+}
+
+@keyframes glitchB {
+  0%, 90%, 100% { transform: translateX(3px);  opacity: 1; }
+  93%            { transform: translateX(-4px); opacity: 0.6; }
+}
+
+.screen-subtitle {
+  font-size: 0.8rem;
+  letter-spacing: 1.5px;
+  color: rgba(0, 255, 65, 0.7);
+  margin: 0;
+  line-height: 1.6;
+
+  &.dim { color: rgba(0, 255, 65, 0.45); }
+}
+
+kbd {
+  background: $green-dark;
+  border: 1px solid $border;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: $font;
+  font-size: 0.75rem;
+  color: $green;
+}
+
+// score summary on game-over
+.score-summary {
+  width: 100%;
+  max-width: 320px;
+  border: 1px solid $border;
+  background: $green-dark;
+  padding: 1rem 1.5rem;
+  border-radius: 4px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(0, 255, 65, 0.08);
+
+  &:last-child { border-bottom: none; }
+
+  .val { font-weight: 700; &.hi { color: $amber; } }
+}
+
+// ─────────────────────────────── Grid / Board ───────────────────────────────
+.board-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.grid {
+  --cell: 40px;
+  display: grid;
+  grid-template-columns: repeat(12, var(--cell));
+  grid-template-rows:    repeat(12, var(--cell));
+  border: 1px solid $border;
+  box-shadow: 0 0 30px rgba(0, 255, 65, 0.14), 0 0 6px rgba(0, 255, 65, 0.08);
+}
+
+.cell {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: $font;
+  letter-spacing: 0;
+  border: 1px solid rgba(0, 255, 65, 0.06);
+  transition: background 0.08s ease;
+  user-select: none;
+}
+
+.cell-0  { background: transparent; color: transparent; }
+
+.cell-c  {
+  background: rgba(0, 255, 65, 0.18);
+  color: $green;
+  text-shadow: 0 0 8px $green;
+  animation: cursorPulse 0.9s ease-in-out infinite alternate;
+}
+
+.cell-p  {
+  background: rgba(0, 200, 220, 0.1);
+  color: #00d4e8;
+  text-shadow: 0 0 6px rgba(0, 212, 232, 0.8);
+}
+
+.cell-x  {
+  background: rgba(255, 45, 45, 0.14);
+  color: $red;
+  text-shadow: 0 0 6px rgba(255, 45, 45, 0.6);
+}
+
+@keyframes cursorPulse {
+  from { box-shadow: inset 0 0 4px rgba(0, 255, 65, 0.3); }
+  to   { box-shadow: inset 0 0 12px rgba(0, 255, 65, 0.6), 0 0 8px $green-glow; }
+}
+
+// ─────────────────────────────── How-to-play strip ──────────────────────────
+.how-to-play {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  padding: 0.45rem 0.9rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid rgba(0, 255, 65, 0.14);
+  border-radius: 3px;
+  background: rgba(0, 255, 65, 0.04);
+  font-size: 0.74rem;
+  color: rgba(0, 255, 65, 0.65);
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+
+  strong { color: rgba(0, 255, 65, 0.9); font-weight: 700; }
+}
+
+.htp-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.htp-icon { font-size: 0.78rem; }
+
+.htp-sep {
+  color: rgba(0, 255, 65, 0.22);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+// ─────────────────────────────── Level flash ─────────────────────────────────
+.level-flash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 8px;
+  color: $green;
+  text-shadow: 0 0 24px $green-glow, 0 0 50px rgba(0, 255, 65, 0.4);
+  background: rgba(2, 12, 2, 0.72);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.level-flash-enter-active { animation: flashIn 0.3s ease; }
+.level-flash-leave-active { animation: flashIn 0.3s ease reverse; }
+
+@keyframes flashIn {
+  from { opacity: 0; letter-spacing: 20px; }
+  to   { opacity: 1; letter-spacing: 8px; }
+}
+
+// ─────────────────────────────── Buttons ────────────────────────────────────
+.crt-btn {
+  padding: 0.55rem 1.4rem;
+  background: transparent;
+  border: 1px solid $green;
+  color: $green;
+  font-family: $font;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  text-transform: uppercase;
+  transition: background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: $green-dark;
+    box-shadow: 0 0 12px $green-glow;
+  }
+
+  &.primary {
+    border-color: $green;
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+
+    &:hover { box-shadow: 0 0 20px $green-glow; }
+  }
+
+  &.danger {
+    border-color: $red;
+    color: $red;
+
+    &:hover {
+      background: rgba(255, 45, 45, 0.1);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.4);
+    }
+  }
+
+  &.sm {
+    padding: 0.35rem 0.9rem;
+    font-size: 0.72rem;
+  }
+
+  &.help-btn {
+    border-color: #00e5ff;
+    color: #00e5ff;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+
+    &:hover {
+      background: rgba(0, 229, 255, 0.08);
+      box-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
+    }
+  }
+}
+
+.btn-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid #00e5ff;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #00e5ff;
+  flex-shrink: 0;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.8);
+  box-shadow: 0 0 4px rgba(0, 229, 255, 0.4);
+}
+
+// ─────────────────────────────── Bottom bar ─────────────────────────────────
+.bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.5rem;
+  border-top: 1px solid $border;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  gap: 1rem;
+}
+
+.status-text {
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  color: rgba(0, 255, 65, 0.5);
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bottom-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+// ─────────────────────────────── D-pad (mobile controls) ────────────────────
+.dpad {
+  display: none; // hidden on desktop by default
+  grid-template-areas:
+    '.    up   .'
+    'left .    right'
+    '.    down .';
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 42px);
+  gap: 3px;
+  justify-content: center;
+  margin-top: 0.35rem;
+}
+
+.dpad-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 255, 65, 0.08);
+  border: 1px solid rgba(0, 255, 65, 0.35);
+  border-radius: 6px;
+  color: $green;
+  font-size: 1rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s ease;
+  user-select: none;
+
+  &:active {
+    background: rgba(0, 255, 65, 0.22);
+    box-shadow: 0 0 12px $green-glow;
+  }
+}
+
+.dpad-up    { grid-area: up; }
+.dpad-down  { grid-area: down; }
+.dpad-left  { grid-area: left; }
+.dpad-right { grid-area: right; }
+
+// Desktop hint — hidden on mobile
+.hint--desktop {
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  color: rgba(0, 255, 65, 0.4);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+// ─────────────────────────────── Responsive ─────────────────────────────────
+@media (max-width: 600px) {
+  // ── Overlay: hard-lock to screen, no scroll at all ──
+  .crt-overlay {
+    overflow: hidden;
+  }
+
+  // ── HUD: single compact row ──
+  .hud {
+    display: flex;
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .hud-cell {
+    padding: 0.2rem 0;
+    border-right: 1px solid $border;
+    &:last-child { border-right: none; }
+  }
+  .hud-label  { font-size: 0.42rem; letter-spacing: 0.5px; }
+  .hud-value  { font-size: 0.72rem; letter-spacing: 0.5px; margin-top: 0; }
+
+  // ── Game area: fill remaining space, NO scroll ──
+  .game-area {
+    flex: 1;
+    min-height: 0;
+    padding: 0.25rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // ── Board wrapper: fill parent exactly ──
+  .board-wrapper {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    overflow: hidden;
+  }
+
+  // ── Grid: square, constrained by BOTH width and height ──
+  // Use min(width, height) via max-width + max-height + aspect-ratio
+  .grid {
+    box-sizing: border-box;
+    aspect-ratio: 1;
+    // Can't be wider than viewport minus small padding
+    width: min(calc(100vw - 0.5rem), calc(100vh - 12rem));
+    max-width: 100%;
+    max-height: calc(100% - 3.5rem); // leave room for d-pad row
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(12, 1fr);
+    border: 1px solid $border;
+  }
+  .cell {
+    font-size: clamp(0.5rem, 1.8vw, 0.7rem);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  // ── Hide desktop-only elements ──
+  .how-to-play { display: none; }
+  .hint--desktop { display: none; }
+
+  // ── D-pad: horizontal row of 4 buttons (saves vertical space) ──
+  .dpad {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+  }
+  .dpad-btn {
+    width: 48px;
+    height: 36px;
+    font-size: 0.85rem;
+    border-radius: 4px;
+  }
+  .dpad-up, .dpad-down, .dpad-left, .dpad-right {
+    grid-area: unset;
+  }
+
+  // ── Bottom bar: compact single row ──
+  .bottom-bar {
+    padding: 0.2rem 0.5rem;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+  .status-text {
+    font-size: 0.55rem;
+    letter-spacing: 0.5px;
+  }
+
+  // ── Buttons ──
+  .crt-btn {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.6rem;
+    min-height: 32px;
+    letter-spacing: 1px;
+  }
+
+  // ── Screens ──
+  .ascii-art     { display: none; }
+  .screen-card   { padding: 0.5rem; gap: 0.4rem; max-width: 100%; }
+  .screen-title  { font-size: 1.2rem; letter-spacing: 2px; }
+  .screen-subtitle { font-size: 0.65rem; letter-spacing: 0.5px; }
+  .score-summary { padding: 0.5rem 0.75rem; max-width: 100%; box-sizing: border-box; }
+  .summary-row   { font-size: 0.68rem; padding: 0.15rem 0; }
+
+  // ── FAB ──
+  .fab       { bottom: 0.75rem; right: 0.75rem; min-width: 44px; min-height: 44px; justify-content: center; padding: 0.5rem; }
+  .fab-label { display: none; }
+
+  // ── Level flash ──
+  .level-flash { font-size: 1.2rem; letter-spacing: 2px; }
+}
+
+// ─────────────────────────────── How To Play Modal ──────────────────────────
+.htp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.htp-modal-box {
+  width: min(480px, 96vw);
+  background: #020e02;
+  border: 1px solid $border;
+  border-radius: 4px;
+  box-shadow: 0 0 40px $green-glow, 0 0 80px rgba(0, 255, 65, 0.06);
+  padding: 1.5rem 1.75rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  font-family: $font;
+  color: $green;
+}
+
+.htp-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid $border;
+  padding-bottom: 0.75rem;
+}
+
+.htp-modal-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: $green;
+  text-shadow: 0 0 8px $green-glow;
+}
+
+.htp-close-x {
+  background: transparent;
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  border-radius: 2px;
+  color: rgba(0, 255, 65, 0.55);
+  font-family: $font;
+  font-size: 0.8rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover {
+    color: $green;
+    border-color: $green;
+  }
+}
+
+.htp-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.htp-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.htp-step-icon {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  width: 1.5rem;
+  text-align: center;
+  margin-top: 1px;
+}
+
+.htp-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.htp-step-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: $green;
+  text-transform: uppercase;
+}
+
+.htp-step-text {
+  font-size: 0.78rem;
+  color: rgba(0, 255, 65, 0.62);
+  line-height: 1.5;
+}
+
+.htp-modal-cta {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+// How To Play modal transition
+.htp-modal-enter-active,
+.htp-modal-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.htp-modal-enter-from,
+.htp-modal-leave-to {
+  opacity: 0;
+  transform: scale(0.96) translateY(6px);
+}

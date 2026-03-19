@@ -1,6 +1,11 @@
 import axios, { type AxiosInstance, type AxiosResponse, type AxiosError } from 'axios'
 import { appConfig } from '../config'
 
+/** Only emit diagnostic logs in non-production environments. */
+const devLog = (...args: unknown[]) => {
+  if (appConfig.isDev) { console.error(...args) }
+}
+
 /**
  * API Client
  *
@@ -37,13 +42,13 @@ class ApiClient {
       (response: AxiosResponse) => response,
       (error: AxiosError) => {
         if (error.response?.status === 401) {
-          console.error('Unauthorized - redirect to login')
+          devLog('[api] 401 Unauthorized')
         }
         if (error.response?.status === 403) {
-          console.error('Forbidden - access denied')
+          devLog('[api] 403 Forbidden')
         }
         if (error.response?.status === 500) {
-          console.error('Server error')
+          devLog('[api] 500 Server error')
         }
         return Promise.reject(error)
       },

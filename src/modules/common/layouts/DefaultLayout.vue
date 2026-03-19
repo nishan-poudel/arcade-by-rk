@@ -4,36 +4,72 @@
     <header class="header">
       <nav class="nav">
         <div class="nav-brand">
-          <span class="brand-text">{{ locale.brand.name }}</span>
+          <RouterLink :to="{ name: 'home' }" class="brand-link">
+            <span class="brand-text">{{ locale.brand.name }}</span>
+          </RouterLink>
         </div>
-        <ul class="nav-links">
+
+        <!-- Mobile hamburger toggle -->
+        <button
+          class="nav-toggle"
+          :class="{ open: menuOpen }"
+          aria-label="Toggle navigation"
+          @click="menuOpen = !menuOpen"
+        >
+          <span class="nav-toggle-bar" />
+          <span class="nav-toggle-bar" />
+          <span class="nav-toggle-bar" />
+        </button>
+
+        <!-- Backdrop for mobile menu -->
+        <div
+          v-if="menuOpen"
+          class="nav-backdrop"
+          @click="menuOpen = false"
+        />
+
+        <ul class="nav-links" :class="{ open: menuOpen }">
           <li class="nav-item">
-            <RouterLink 
-              :to="{ name: 'home' }" 
+            <RouterLink
+              :to="{ name: 'home' }"
               :class="{ active: isHome }"
-              class="nav-link"
+              class="nav-link nav-link--home"
+              @click="menuOpen = false"
             >
               <span class="link-text">{{ locale.nav.home }}</span>
-              <span class="link-indicator" />
             </RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink 
-              :to="{ name: 'about' }" 
-              :class="{ active: isAbout }"
-              class="nav-link"
+            <RouterLink
+              :to="{ name: 'game' }"
+              :class="{ active: isGame }"
+              class="nav-link nav-link--game"
+              @click="menuOpen = false"
             >
-              <span class="link-text">{{ locale.nav.about }}</span>
-              <span class="link-indicator" />
+              <span class="link-text">{{ locale.nav.game }}</span>
+            </RouterLink>
+          </li>
+          <li class="nav-item">
+            <RouterLink
+              :to="{ name: 'puzzle' }"
+              :class="{ active: isPuzzle }"
+              class="nav-link nav-link--puzzle"
+              @click="menuOpen = false"
+            >
+              <span class="link-text">{{ locale.nav.mathPuzzle }}</span>
             </RouterLink>
           </li>
         </ul>
       </nav>
     </header>
 
-    <!-- Main Content -->
+    <!-- Main Content with page transitions -->
     <main class="main">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <Transition name="page-fade" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
     </main>
 
     <!-- Footer -->
@@ -45,13 +81,14 @@
 
 <script setup lang="ts">
 import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { en as locale } from '@/locales/en'
 
-const route = useRoute()
-
-const isHome = computed(() => route.name === 'home')
-const isAbout = computed(() => route.name === 'about')
+const route    = useRoute()
+const isHome   = computed(() => route.name === 'home')
+const isGame   = computed(() => route.name === 'game')
+const isPuzzle = computed(() => route.name === 'puzzle')
+const menuOpen = ref(false)
 </script>
 
 <style scoped src="./DefaultLayout.scss"></style>

@@ -1,11 +1,31 @@
 export const en = {
   nav: {
-    home: 'Home',
-    about: 'About'
+    home:       'HOME',
+    game:        '>_ Hack',
+    mathPuzzle:  '± Chain',
   },
   brand: {
     name: 'Nishan',
     copyright: '2026 Nishan. All rights reserved.'
+  },
+  homePage: {
+    eyebrow: 'GAME ARCADE',
+    headline: 'Pick Your Challenge',
+    sub: 'Two original browser games. No installs, no accounts — just play.',
+    cards: {
+      hack: {
+        tags: ['ROGUELIKE', 'GRID', 'KEYBOARD'],
+        title: 'Terminal Hack',
+        desc: 'Infiltrate a neon-lit network grid. Collect every data packet while dodging firewall tiles — one touch ends your run. Each level spawns more chaos. BFS-guaranteed solvable.',
+        cta: 'INITIATE HACK',
+      },
+      puzzle: {
+        tags: ['MATH', 'LOGIC', 'LEVELS'],
+        title: 'Math Chain',
+        desc: 'Fill a 3×3 grid so every row, column and diagonal balances as a left-to-right equation. Progressive levels ramp from 2 blanks to 7. Score is based on speed and difficulty.',
+        cta: 'START PUZZLE',
+      },
+    },
   },
   home: {
     greeting: 'Hello, I\'m',
@@ -22,5 +42,128 @@ export const en = {
     stack: ['Vue 3', 'TypeScript', 'Vite', 'SCSS', 'Vuex', 'Vue Router'],
     badge: 'Open to work ✨',
     cta: '← Back home'
-  }
+  },
+  game: {
+    pageTitle: 'Terminal Hack',
+    page: {
+      tags: ['ROGUELIKE', 'GRID', 'KEYBOARD'],
+      headline: 'TERMINAL HACK',
+      sub: 'A roguelike grid-infiltration game. Collect all packets. Avoid the firewalls.',
+      desc: 'Navigate a procedurally generated terminal grid with W·A·S·D or Arrow keys. Each level spawns more firewall tiles and more data packets. One touch on a ◓ firewall ends your run instantly. Every level is BFS-guaranteed solvable.',
+      launchBtn: '[ INITIATE HACK ]',
+      htpTitle: 'HOW TO PLAY',
+    },
+    fabLabel: 'RUN SYSTEM_DIAGNOSTICS >_',
+    fabAriaLabel: 'Open Terminal Hack game',
+    overlayAriaLabel: 'Terminal Hack game',
+    hud: {
+      level: 'LEVEL',
+      score: 'SCORE',
+      packets: 'PACKETS',
+      hiScore: 'HI-SCORE',
+    },
+    idle: {
+      subtitle: 'Infiltrate the network. Collect all data packets.',
+      avoidHint: 'Avoid firewalls',
+      collectHint: 'Collect packets',
+      moveHint: 'Move with',
+      startBtn: '[ INITIATE HACK ]',
+    },
+    htp: {
+      goalLabel: 'Goal:',
+      goalText: 'Collect all ◈ packets to advance the level',
+      moveLabel: 'Move:',
+      moveKeys: 'W A S D or ↑ ← ↓ →',
+      avoidLabel: 'Avoid:',
+      avoidText: 'firewalls — one hit ends your run',
+    },
+    board: {
+      cursorLabel: 'CURSOR',
+      packetLabel: 'PACKET',
+      firewallLabel: 'FIREWALL',
+    },
+    levelFlashUnlocked: 'UNLOCKED',
+    closeBtn: '[ CLOSE ]',
+    gameover: {
+      title: 'ACCESS DENIED',
+      subtitle: 'Firewall breach detected. System integrity compromised.',
+      labelLevel: 'Level reached',
+      labelData: 'Data collected',
+      labelHiScore: 'High score',
+      retryBtn: '[ RETRY ]',
+    },
+    status: {
+      idle: 'AWAITING OPERATOR INPUT...',
+      gameover: '>>> CONNECTION TERMINATED',
+      playing: '>>> SYSTEM ACCESS GRANTED — MOVE TO EXTRACT DATA',
+      scanning: (lvl: number, sc: string) => `>>> SCANNING NETWORK SECTOR ${lvl}-${sc}...`,
+    },
+    share: {
+      btn: '[ SHARE ]',
+      copied: '[ COPIED! ✓ ]',
+      failed: '[ FAILED ]',
+      text: (lvl: number, sc: number, hi: number) =>
+        `🖥️ Terminal Hack — Level ${lvl} reached! 💾 Score: ${sc} | Hi: ${hi}`,
+    },
+    howToPlay: {
+      btn: 'HOW TO PLAY',
+      title: 'OPERATOR MANUAL',
+      closeBtn: '[ GOT IT ]',
+      steps: [
+        { icon: '🎯', label: 'Goal',      text: 'Collect all ◈ Data Packets on the grid to advance to the next level.' },
+        { icon: '⌨️', label: 'Move',      text: 'Use W · A · S · D or Arrow Keys to move your cursor around the grid.' },
+        { icon: '▓',  label: 'Firewalls', text: 'Avoid ▓ firewall tiles — one touch immediately ends your run.' },
+        { icon: '📈', label: 'Levels',    text: 'Each new level spawns more firewalls AND more packets to collect. Stay sharp.' },
+        { icon: '🏆', label: 'Score',     text: 'Every packet collected is +1 point. Your best score is auto-saved.' },
+        { icon: '📋', label: 'Share',     text: 'Hit SHARE to copy a run summary to your clipboard.' },
+      ],
+    },
+  },
+  mathPuzzle: {
+    pageTitle: 'Math Chain',
+    gridLabel: 'Math chain puzzle grid',
+    diagLabel: 'Diagonal equations',
+    numpadLabel: 'Number input pad',
+    startBtn: 'START PUZZLE',
+    newBtn: 'NEW PUZZLE',
+    revealBtn: 'REVEAL',
+    backBtn: '← BACK',
+    idle: {
+      tags: ['MATH', 'LOGIC', 'LEVELS'],
+      title: 'MATH CHAIN',
+      sub: 'Fill every blank \u00b7 satisfy every equation',
+      desc: 'A logic puzzle where every row, column and diagonal must balance as a left-to-right equation. Progressive levels increase the number of hidden cells. Score big by solving fast.',
+      rules: [
+        { icon: '➜',  text: 'Each row, column and diagonal is a left-to-right equation' },
+        { icon: '✏️', text: 'Click a blank cell then type 1–9, or use the numpad below' },
+        { icon: '✅', text: 'Equations glow green the moment they balance — instant feedback' },
+        { icon: '↘↗', text: 'Both diagonals must balance too — that\'s the cross-check twist' },
+      ],
+    },
+    difficulty: {
+      easy:       'EASY',
+      easyHint:   'from level 1',
+      medium:     'MEDIUM',
+      mediumHint: 'from level 3',
+      hard:       'HARD',
+      hardHint:   'from level 5',
+    },
+    stats: {
+      time:       'TIME',
+      level:      'LEVEL',
+      score:      'SCORE',
+      mode:       'MODE',
+      blanks:     'BLANKS',
+    },
+    solved: {
+      title:   'SOLVED!',
+      sub:     'All equations balance. Well done.',
+      nextBtn: 'NEXT LEVEL',
+      newBtn:  'TRY AGAIN',
+      scored:  'EARNED',
+      total:   'RUN TOTAL',
+      hiScore: 'BEST',
+      newHi:   '🏆 NEW BEST!',
+    },
+  },
 }
