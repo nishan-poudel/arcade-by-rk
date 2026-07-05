@@ -17,7 +17,15 @@ const connected = shallowRef(false)
 /** Create / return the singleton socket connected to the server */
 export function useSocket() {
   if (!socket) {
-    socket = io({
+    // In dev, the Vite proxy forwards '/socket.io' to localhost:3001 (same origin
+    // from the browser's point of view). In production, the client and server
+    // are often deployed to DIFFERENT domains (e.g. client on Vercel/Netlify,
+    // server on Render/Railway) — in that case VITE_SOCKET_URL must be set to
+    // the server's public URL, otherwise the socket would try to connect to the
+    // static host and silently fail. Empty string = same-origin (dev default).
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || undefined
+
+    socket = io(socketUrl, {
       // When running through Vite dev proxy the path is relative
       path: '/socket.io',
       autoConnect: false,

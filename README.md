@@ -44,8 +44,8 @@ npm run preview
 2. Everyone else taps **Join Room** and enters the 6-character code.
 3. Host presses **Start Game**. Each person privately checks their phone to see their role and the secret word.
 4. Players take turns saying **one word** out loud that relates to the secret word. Imposters must bluff.
-5. After everyone has had a turn, the group discusses and votes. Host records the result.
-6. The app reveals the secret word and imposters to everyone.
+5. After everyone has had a turn, the group discusses out loud, then everyone votes **in the app** for who they think the imposter is. The round auto-reveals the moment everyone has voted (or the host can force it early).
+6. The app reveals the secret word, the imposter(s), and the vote breakdown to everyone.
 7. Host can start another round or end the game.
 
 ## Available Scripts
@@ -134,6 +134,7 @@ const routes = [{
 Client (`.env`):
 ```env
 VITE_API_BASE_URL=http://localhost:3001/api
+VITE_SOCKET_URL=
 VITE_APP_ENV=development
 ```
 
@@ -142,6 +143,29 @@ Server (`server/.env`):
 PORT=3001
 NODE_ENV=development
 CORS_ORIGINS=http://localhost:5100
+```
+
+## Deployment
+
+The client (static Vite build) and server (Node/Express/Socket.IO) can be deployed
+together or to two separate hosts. **If they're on different domains** (e.g. client
+on Vercel/Netlify, server on Render/Railway/Fly), you MUST set:
+
+- `VITE_SOCKET_URL` (client) — the server's public HTTPS URL. Without this, the
+  Socket.IO client connects to the client's own origin and every socket call
+  (create room, join room, votes, etc.) will silently fail.
+- `CORS_ORIGINS` (server) — the client's exact public origin. This must match
+  exactly (scheme + host, no trailing slash) or both the REST health check and
+  the Socket.IO handshake will be rejected.
+- `PORT` (server) — most hosts inject this automatically; the server already
+  reads `process.env.PORT`.
+
+Build + run commands for the server in production:
+```bash
+cd server
+npm install
+npm run build   # tsc → dist/
+npm start       # node dist/index.js
 ```
 
 ---

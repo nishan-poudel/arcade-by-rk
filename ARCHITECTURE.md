@@ -290,6 +290,12 @@ lobby  →  playing  →  discussion  →  ended                   │
 
 - **lobby** / **playing** / **discussion** / **ended** are authoritative server-side `GamePhase` values.
 - **reveal** is a client-side UI state triggered by the `round_reveal` socket event. It is never part of the `GameState.phase`; incoming `game_state` broadcasts do not override it.
+- During **discussion**, players vote in-app for who they think the imposter is
+  (`submit_vote`). The round auto-tallies the moment every *connected* player has
+  voted; the host can also `force_reveal_votes` early (e.g. an AFK player is
+  blocking the auto-tally). Majority vote → that player is ejected and scored;
+  a tie (or zero votes) means nobody is ejected, which counts as the imposter(s)
+  surviving. Votes are cleared at the start of every round.
 
 ### Real-time Communication (Socket.IO events)
 
@@ -301,17 +307,17 @@ lobby  →  playing  →  discussion  →  ended                   │
 | client → server | `start_game`         | Host starts first round (host only)                  |
 | client → server | `player_done`        | Current-turn player presses Done                     |
 | client → server | `skip_turn`          | Host skips the current player's turn (AFK)           |
-| client → server | `record_result`      | Host records voting outcome (idempotent per round)   |
+| client → server | `submit_vote`        | Cast/change my vote for the suspected imposter (discussion phase) |
+| client → server | `force_reveal_votes` | Host tallies votes early, even if not everyone voted (host only) |
 | client → server | `next_round`         | Host advances to next round                          |
 | client → server | `end_game`           | Host ends session                                    |
 | client → server | `reset_scores`       | Host resets all scores to 0                          |
 | client → server | `set_difficulty`     | Host changes word difficulty (lobby only)            |
 | client → server | `set_imposter_count` | Host changes imposter count (lobby only)             |
-| server → client | `game_state`         | Broadcast: public state for all players              |
+| server → client | `game_state`         | Broadcast: public state for all players (includes each player's `hasVoted`) |
 | server → client | `player_assignment`  | Private: role + word sent **before** game_state broadcast; host gets imposterIds |
 | server → client | `discussion_time`    | All players (or host skip) have finished their turn  |
-| server → client | `result_recorded`    | Voting recorded (scores updated)                     |
-| server → client | `round_reveal`       | Public reveal: word + imposter names + result        |
+| server → client | `round_reveal`       | Public reveal: word + imposter names + ejected player + full vote tally/breakdown |
 | server → client | `game_ended`         | Session over                                         |
 | server → client | `error`              | Structured error for the receiving socket            |
 
