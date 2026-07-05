@@ -129,6 +129,19 @@ export function useGame() {
     socket.on('error', (payload: { message: string }) => {
       errorMessage.value = payload.message
     })
+
+    // Surface connection failures to the user instead of failing silently.
+    // Without this, a misconfigured VITE_SOCKET_URL / CORS_ORIGINS in prod
+    // means clicking "Create Room" or "Join Room" appears to do nothing.
+    socket.on('connect_error', (err: Error) => {
+      errorMessage.value = 'Cannot reach the game server. Please check your connection and try again.'
+      // eslint-disable-next-line no-console
+      console.error('Socket connect_error:', err.message)
+    })
+
+    socket.on('reconnect_failed', () => {
+      errorMessage.value = 'Lost connection to the game server. Please refresh the page.'
+    })
   }
 
   function teardownListeners() {
@@ -141,6 +154,8 @@ export function useGame() {
     socket.off('round_reveal')
     socket.off('game_ended')
     socket.off('error')
+    socket.off('connect_error')
+    socket.off('reconnect_failed')
   }
 
   // ── Actions (emit to server) ──────────────────────────────────────────────

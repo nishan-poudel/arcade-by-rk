@@ -4,14 +4,19 @@
  * Words are loaded once at startup and cached.
  */
 import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'path'
 import type { Difficulty } from '../../../shared/types/index.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-
-// Path to the root-level config/ directory (three levels up: src/config → src → server → web)
-const CONFIG_DIR = join(__dirname, '../../../config')
+// Path to the root-level config/ directory.
+// IMPORTANT: derived from process.cwd(), NOT __dirname/import.meta.url.
+// The server is always launched with cwd = server/ (both `npm run dev` via tsx
+// and `npm start` via node, since these scripts run from server/package.json).
+// A __dirname-relative path would break because tsc's compiled output is
+// nested under dist/server/src/... (TypeScript infers rootDir as the common
+// ancestor of server/src AND ../shared, which are both compiled together),
+// while tsx runs directly against src/ — two different nesting depths that a
+// single hardcoded "../../../config" cannot satisfy correctly for both.
+const CONFIG_DIR = join(process.cwd(), '../config')
 
 /** Load word list for a given difficulty from the corresponding JSON file */
 function loadWords(difficulty: Difficulty): string[] {

@@ -1,0 +1,64 @@
+# Render Blueprint – deploys both the frontend (static site) and the
+# Express + Socket.IO backend (web service) on Render's free tier.
+#
+# Usage:
+#   1. Push this repo to GitHub (already done).
+#   2. In Render: New -> Blueprint -> select this repo -> Render reads this file
+#      and provisions both services in one go.
+#   3. Render assigns URLs based on the `name` fields below, e.g.:
+#        https://imposter-by-rk.onrender.com           (frontend)
+#        https://imposter-game-server.onrender.com    (backend)
+#      If either name is already taken, Render appends a random suffix instead —
+#      check the actual assigned URLs in the dashboard after first deploy and
+#      update CORS_ORIGINS / VITE_SOCKET_URL / VITE_API_BASE_URL below to match,
+#      then trigger a manual redeploy of both services.
+#
+# Free tier notes:
+#   - Static sites (frontend) are free with NO sleep and NO time limit.
+#   - Web services (backend) sleep after 15 min of inactivity and take
+#     ~30-50s to wake up on the next request. This is normal on the free plan.
+services:
+  # ── Backend: Express + Socket.IO ──────────────────────────────────────────
+  - type: web
+    name: imposter-game-server
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: server
+    # --include=dev ensures TypeScript (a devDependency) still gets installed
+    # even though NODE_ENV=production would otherwise make npm skip devDeps.
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGINS
+        # Comma-separated, no trailing slashes. Includes both the new Render
+        # static site and the existing Vercel deployment during transition —
+        # remove whichever one you stop using once the switch is confirmed.
+        value: https://imposter-by-rk.onrender.com,https://arcade-by-rk.vercel.app
+
+  # ── Frontend: Vite/Vue static build ───────────────────────────────────────
+  - type: web
+    name: imposter-by-rk
+    runtime: static
+    plan: free
+    rootDir: .
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    autoDeploy: true
+    routes:
+      # SPA fallback so client-side routes (e.g. /about, /imposter) don't 404
+      # on a hard refresh or direct link.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SOCKET_URL
+        value: https://imposter-game-server.onrender.com
+      - key: VITE_API_BASE_URL
+        value: https://imposter-game-server.onrender.com/api
+      - key: VITE_APP_ENV
+        value: production
