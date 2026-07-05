@@ -34,6 +34,8 @@
         v-if="screen === 'landing'"
         :pending-action="pendingAction"
         :is-slow-connection="isSlowConnection"
+        :initial-room-code="initialRoomCode"
+        :initial-player-name="initialPlayerName"
         @create="onCreateRoom"
         @join="onJoinRoom"
       />
@@ -106,8 +108,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { en as locale } from '@/locales/en'
+import { ROUTE_PATHS } from '@/router'
 import { useGame } from '../composables/useGame.js'
 import { useSocket } from '../composables/useSocket.js'
 import type { Difficulty } from '../types/index.js'
@@ -125,6 +129,7 @@ const {
   myId,
   screen,
   errorMessage,
+  roomCode,
   myVote,
   currentReveal,
   pendingAction,
@@ -148,16 +153,47 @@ const {
   setImposterCount,
   skipTurn,
   leaveGame,
+  setPendingRoomCodeFromUrl,
+  getSavedPlayerNameForRoom,
 } = useGame()
 
 const { connected } = useSocket()
+const route = useRoute()
+const router = useRouter()
+
+// Seed values for the LandingScreen Join form when the app is opened via a
+// shared room link (or a page refresh) and no matching session was found
+// (or the auto-rejoin attempt is still in flight).
+const initialRoomCode = ref<string | undefined>(undefined)
+const initialPlayerName = ref<string | undefined>(undefined)
 
 // Auto-dismiss errors after 4 s
 watch(errorMessage, (msg) => {
   if (msg) {setTimeout(() => { errorMessage.value = '' }, 4000)}
 })
 
+// Keep the URL in sync with the room we're actually in. Using `replace`
+// (not `push`) so the browser back button never lands the user on a URL
+// that says "not in a room" while the socket session is still active —
+// "Leave Room" is the one intentional way to exit.
+watch(roomCode, (code) => {
+  const target = code ? `${ROUTE_PATHS.IMPOSTER}/${code}` : ROUTE_PATHS.IMPOSTER
+  if (route.path.toLowerCase() !== target.toLowerCase()) {
+    router.replace(target)
+  }
+})
+
 onMounted(() => {
+  const routeRoomCode = typeof route.params.roomCode === 'string' ? route.params.roomCode.toUpperCase() : undefined
+
+  if (routeRoomCode) {
+    // Tell useGame which room the URL points to, so its `connect` handler
+    // can attempt an auto-rejoin if a matching saved session exists.
+    setPendingRoomCodeFromUrl(routeRoomCode)
+    initialRoomCode.value = routeRoomCode
+    initialPlayerName.value = getSavedPlayerNameForRoom(routeRoomCode) ?? undefined
+  }
+
   setupListeners()
   connect()
 })

@@ -53,9 +53,11 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-  // Imposter game – full-screen, no shared nav/footer
+  // Imposter game – full-screen, no shared nav/footer.
+  // :roomCode is optional so /imposter (fresh landing) and /imposter/ABC123
+  // (shareable room link / reload while in a room) both resolve here.
   {
-    path: ROUTE_PATHS.IMPOSTER,
+    path: `${ROUTE_PATHS.IMPOSTER}/:roomCode?`,
     component: ImposterGame,
     name: ROUTE_NAMES.IMPOSTER,
     meta: { title: 'Imposter by RK' },

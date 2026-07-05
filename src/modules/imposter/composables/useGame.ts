@@ -44,6 +44,15 @@ const pendingAction: Ref<'create' | 'join' | null> = ref(null)
 const isSlowConnection: Ref<boolean> = ref(false)
 let slowConnectionTimer: ReturnType<typeof setTimeout> | null = null
 
+/**
+ * Room code read from the current URL (e.g. /imposter/ABC123) at mount time.
+ * Set by ImposterGame.vue so the socket `connect` handler below can decide
+ * whether a saved reconnect session matches the room the user actually
+ * navigated to — this is what makes "refresh the page while in a room" and
+ * "open a shared room link" both attempt to reconnect automatically.
+ */
+const pendingRoomCodeFromUrl: Ref<string | null> = ref(null)
+
 const SLOW_CONNECTION_THRESHOLD_MS = 4000
 
 export function useGame() {
@@ -78,11 +87,20 @@ export function useGame() {
     socket.on('connect', () => {
       myId.value = socket.id ?? ''
 
-      // Only attempt to restore session if the user was actively in a game
-      // (screen is not 'landing'). Firing rejoin on every fresh connection
-      // from stale sessionStorage caused a race with create_room/join_room.
+      // Attempt to restore a session in two cases:
+      //  1. The current URL contains a room code that matches our saved
+      //     session (page refresh, or a shared room link opened by the same
+      //     browser that created/joined it).
+      //  2. No room code in the URL, but we're mid-session on this page load
+      //     already (e.g. a brief network blip reconnected the socket — the
+      //     Vue app never unmounted, so `screen` is still past 'landing').
       const saved = getReconnectInfo()
-      if (saved && screen.value !== 'landing' && !gameState.value) {
+      const urlCode = pendingRoomCodeFromUrl.value
+      const urlMatchesSaved = !!saved && !!urlCode && saved.roomCode.toUpperCase() === urlCode.toUpperCase()
+      const sameSessionReconnect = !!saved && !urlCode && screen.value !== 'landing'
+
+      if (saved && !gameState.value && (urlMatchesSaved || sameSessionReconnect)) {
+        startPendingAction('join')
         socket.emit('rejoin_room', { roomCode: saved.roomCode, playerName: saved.playerName })
       }
     })
@@ -290,6 +308,26 @@ export function useGame() {
     sessionStorage.removeItem(RECONNECT_KEY)
   }
 
+  /**
+   * Called by ImposterGame.vue on mount with the room code parsed from the
+   * URL (if any), so the `connect` handler above knows which saved session
+   * (if any) it should attempt to restore.
+   */
+  function setPendingRoomCodeFromUrl(code: string | null) {
+    pendingRoomCodeFromUrl.value = code ? code.toUpperCase() : null
+  }
+
+  /**
+   * If a saved reconnect session exists for the given room code, return the
+   * player name that was saved — used to pre-fill the Join form when a
+   * shared room link is opened but the auto-rejoin hasn't (yet) succeeded.
+   */
+  function getSavedPlayerNameForRoom(code: string): string | null {
+    const saved = getReconnectInfo()
+    if (saved && saved.roomCode.toUpperCase() === code.toUpperCase()) {return saved.playerName}
+    return null
+  }
+
   function getMyName(state: GameState): string {
     const player = state.players.find((p) => p.id === myId.value)
     return player?.name ?? ''
@@ -352,5 +390,7 @@ export function useGame() {
     setImposterCount,
     skipTurn,
     leaveGame,
+    setPendingRoomCodeFromUrl,
+    getSavedPlayerNameForRoom,
   }
 }

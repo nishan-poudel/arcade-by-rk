@@ -21,6 +21,9 @@ export const en = {
       reconnecting: 'Reconnecting…',
       loading: 'Loading…',
       dismiss: 'Dismiss',
+      keepAliveOn: '✅ Keeping Server Awake',
+      keepAliveOff: '🔋 Keep Server Awake',
+      keepAliveHint: 'Free server sleeps after 15 min idle — keep this on during long games.',
     },
     difficulty: {
       easy: '🟢 Easy',
@@ -52,6 +55,8 @@ export const en = {
       copied: '✅ Copied!',
       tapToCopy: 'Tap to copy',
       shareCode: 'Share this code with others',
+      copyInviteLink: '🔗 Copy invite link',
+      linkCopied: '✅ Link copied!',
       playersHeading: 'Players',
       playersCount: (count: number) => `${count}/12`,
       hostBadge: 'Host',

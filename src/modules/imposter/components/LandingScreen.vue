@@ -180,9 +180,13 @@ import { reactive, ref } from 'vue'
 import { en as locale } from '@/locales/en'
 import type { Difficulty } from '../types/index.js'
 
-defineProps<{
+const props = defineProps<{
   pendingAction: 'create' | 'join' | null
   isSlowConnection: boolean
+  /** Pre-fills the Join form when opened via a shared room link (e.g. /imposter/ABC123). */
+  initialRoomCode?: string
+  /** Pre-fills the name field too, if a saved session for that room exists. */
+  initialPlayerName?: string
 }>()
 
 const emit = defineEmits<{
@@ -190,7 +194,8 @@ const emit = defineEmits<{
   join: [payload: { roomCode: string; playerName: string }]
 }>()
 
-const tab = ref<'create' | 'join'>('create')
+// Land straight on the Join tab, pre-filled, when a room code arrived via the URL.
+const tab = ref<'create' | 'join'>(props.initialRoomCode ? 'join' : 'create')
 
 const createForm = reactive({
   hostName: '',
@@ -199,8 +204,8 @@ const createForm = reactive({
 })
 
 const joinForm = reactive({
-  roomCode: '',
-  playerName: '',
+  roomCode: props.initialRoomCode ?? '',
+  playerName: props.initialPlayerName ?? '',
 })
 
 function submitCreate() {

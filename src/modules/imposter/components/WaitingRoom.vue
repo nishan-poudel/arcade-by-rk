@@ -19,6 +19,12 @@
           </span>
         </button>
         <p class="text-white/40 text-sm">{{ locale.imposter.waitingRoom.shareCode }}</p>
+        <button
+          class="mt-3 inline-flex items-center gap-1.5 text-xs text-white/50 active:text-white/80 transition-colors"
+          @click="copyInviteLink"
+        >
+          {{ linkCopied ? locale.imposter.waitingRoom.linkCopied : locale.imposter.waitingRoom.copyInviteLink }}
+        </button>
       </div>
 
       <!-- Player list -->
@@ -146,6 +152,21 @@ async function copyCode() {
     setTimeout(() => { copied.value = false }, 2000)
   } catch {
     // Clipboard API not available (non-HTTPS) — code is still visible on screen
+  }
+}
+
+// ── Copy shareable invite link (full URL, so opening it lands directly on
+//    the Join form with the room code pre-filled) ───────────────────────────
+const linkCopied = ref(false)
+
+async function copyInviteLink() {
+  try {
+    const url = `${location.origin}/imposter/${props.gameState.roomCode}`
+    await navigator.clipboard.writeText(url)
+    linkCopied.value = true
+    setTimeout(() => { linkCopied.value = false }, 2000)
+  } catch {
+    // Clipboard API not available (non-HTTPS) — room code is still visible on screen
   }
 }
 </script>
