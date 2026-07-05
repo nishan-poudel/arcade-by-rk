@@ -8,6 +8,7 @@
  */
 import { ref, computed, type Ref } from 'vue'
 import { useSocket } from './useSocket.js'
+import { useKeepAlive } from './useKeepAlive.js'
 import { en as locale } from '@/locales/en'
 import type {
   GameState,
@@ -282,6 +283,7 @@ export function useGame() {
     clearReconnectInfo()
     clearPendingAction()
     socketDisconnect()
+    useKeepAlive().disable()
     gameState.value = null
     myAssignment.value = null
     myId.value = ''

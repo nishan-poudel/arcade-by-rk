@@ -83,6 +83,31 @@
         </Transition>
       </div>
 
+      <!-- Keep-alive toggle: prevents a free-tier backend (e.g. Render) from
+           spinning down mid-game due to 15 min of no inbound HTTP traffic. -->
+      <button
+        class="w-full card mb-3 flex items-center justify-between text-left py-3"
+        :class="keepAliveEnabled ? 'border-green-500/30 bg-green-500/5' : ''"
+        @click="toggleKeepAlive"
+      >
+        <span class="text-sm font-semibold" :class="keepAliveEnabled ? 'text-green-400' : 'text-white/70'">
+          {{ keepAliveEnabled ? locale.imposter.common.keepAliveOn : locale.imposter.common.keepAliveOff }}
+        </span>
+        <span
+          :class="[
+            'relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0',
+            keepAliveEnabled ? 'bg-green-500' : 'bg-white/15',
+          ]"
+        >
+          <span
+            :class="[
+              'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
+              keepAliveEnabled ? 'translate-x-4' : 'translate-x-1',
+            ]"
+          />
+        </span>
+      </button>
+
       <!-- Player list -->
       <div class="card mb-3">
         <p class="text-xs text-white/40 uppercase tracking-widest mb-3">{{ locale.imposter.hostScreen.allPlayersHeading }}</p>
@@ -203,6 +228,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { en as locale } from '@/locales/en'
+import { useKeepAlive } from '../composables/useKeepAlive.js'
 import type { GameState, PlayerAssignment, AppScreen } from '../types/index.js'
 
 const props = defineProps<{
@@ -270,6 +296,9 @@ const votedName = computed(
 function getPlayerName(id: string): string {
   return props.gameState.players.find((p) => p.id === id)?.name ?? id
 }
+
+// ── Keep-alive toggle (prevents free-tier backend spin-down mid-game) ────────
+const { enabled: keepAliveEnabled, toggle: toggleKeepAlive } = useKeepAlive()
 </script>
 
 <style scoped>

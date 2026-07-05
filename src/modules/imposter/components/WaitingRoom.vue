@@ -97,6 +97,34 @@
             </button>
           </div>
         </div>
+
+        <!-- Keep-alive toggle: prevents a free-tier backend (e.g. Render)
+             from spinning down while the group lingers in the lobby. -->
+        <button
+          class="w-full flex items-center justify-between text-left rounded-xl px-3 py-3 border transition-colors"
+          :class="keepAliveEnabled ? 'border-green-500/30 bg-green-500/5' : 'border-white/10 bg-white/5'"
+          @click="toggleKeepAlive"
+        >
+          <span>
+            <span class="block text-sm font-semibold" :class="keepAliveEnabled ? 'text-green-400' : 'text-white/70'">
+              {{ keepAliveEnabled ? locale.imposter.common.keepAliveOn : locale.imposter.common.keepAliveOff }}
+            </span>
+            <span class="block text-xs text-white/30 mt-0.5">{{ locale.imposter.common.keepAliveHint }}</span>
+          </span>
+          <span
+            :class="[
+              'relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ml-3',
+              keepAliveEnabled ? 'bg-green-500' : 'bg-white/15',
+            ]"
+          >
+            <span
+              :class="[
+                'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
+                keepAliveEnabled ? 'translate-x-4' : 'translate-x-1',
+              ]"
+            />
+          </span>
+        </button>
       </div>
 
       <!-- Non-host waiting message -->
@@ -128,6 +156,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { en as locale } from '@/locales/en'
+import { useKeepAlive } from '../composables/useKeepAlive.js'
 import type { GameState, Difficulty } from '../types/index.js'
 
 const props = defineProps<{
@@ -141,7 +170,8 @@ defineEmits<{
   'set-difficulty': [difficulty: Difficulty]
   'set-imposter-count': [count: number]
 }>()
-
+// ── Keep-alive toggle (prevents free-tier backend spin-down mid-lobby) ────────
+const { enabled: keepAliveEnabled, toggle: toggleKeepAlive } = useKeepAlive()
 // ── Copy room code ────────────────────────────────────────────────────────────
 const copied = ref(false)
 
