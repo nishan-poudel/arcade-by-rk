@@ -5,13 +5,14 @@
 #   1. Push this repo to GitHub (already done).
 #   2. In Render: New -> Blueprint -> select this repo -> Render reads this file
 #      and provisions both services in one go.
-#   3. Render assigns URLs based on the `name` fields below, e.g.:
-#        https://imposter-by-rk.onrender.com           (frontend)
-#        https://imposter-game-server.onrender.com    (backend)
-#      If either name is already taken, Render appends a random suffix instead —
-#      check the actual assigned URLs in the dashboard after first deploy and
-#      update CORS_ORIGINS / VITE_SOCKET_URL / VITE_API_BASE_URL below to match,
-#      then trigger a manual redeploy of both services.
+#   3. Actual assigned URLs (confirmed in the Render dashboard):
+#        https://imposter-by-rk.onrender.com              (frontend)
+#        https://imposter-game-server-ugq5.onrender.com   (backend — got a
+#        random suffix because "imposter-game-server" was already taken by
+#        another Render user; this is normal, just use the actual URL below)
+#      If you ever recreate the backend service and it's assigned a different
+#      suffix, update CORS_ORIGINS / VITE_SOCKET_URL / VITE_API_BASE_URL below
+#      to match, then push — autoDeploy will redeploy both services.
 #
 # Free tier notes:
 #   - Static sites (frontend) are free with NO sleep and NO time limit.
@@ -56,8 +57,8 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_SOCKET_URL
-        value: https://imposter-game-server.onrender.com
+        value: https://imposter-game-server-ugq5.onrender.com
       - key: VITE_API_BASE_URL
-        value: https://imposter-game-server.onrender.com/api
+        value: https://imposter-game-server-ugq5.onrender.com/api
       - key: VITE_APP_ENV
         value: production
