@@ -12,11 +12,11 @@
       <!-- Player header: name + score -->
       <div class="flex items-center justify-between mb-4 animate-fade-in">
         <div>
-          <p class="text-white/40 text-xs uppercase tracking-wider">Player</p>
+          <p class="text-white/40 text-xs uppercase tracking-wider">{{ locale.imposter.playerScreen.playerLabel }}</p>
           <h2 class="text-xl font-bold leading-tight">{{ me?.name ?? '—' }}</h2>
         </div>
         <div class="text-right">
-          <p class="text-white/40 text-xs uppercase tracking-wider">Score</p>
+          <p class="text-white/40 text-xs uppercase tracking-wider">{{ locale.imposter.playerScreen.scoreLabel }}</p>
           <p class="text-3xl font-extrabold text-green-400">{{ me?.score ?? 0 }}</p>
         </div>
       </div>
@@ -34,10 +34,13 @@
           <div
             v-if="myAssignment.role === 'crewmate'" key="crew"
             class="py-2">
-            <p class="text-xs text-white/40 uppercase tracking-widest mb-1">Your Role</p>
-            <p class="text-2xl font-bold text-green-400 mb-4">🧑‍🚀 Crewmate</p>
+            <p class="text-xs text-white/40 uppercase tracking-widest mb-1">{{ locale.imposter.playerScreen.yourRoleLabel }}</p>
+            <p class="text-2xl font-bold mb-4">
+              <span class="font-extrabold text-green-400">{{ locale.imposter.playerScreen.notImposterPrefix }}</span>
+              <span class="text-white"> {{ locale.imposter.playerScreen.notImposterSuffix }}</span>
+            </p>
             <div class="border-t border-white/10 pt-4">
-              <p class="text-xs text-white/40 uppercase tracking-widest mb-2">Secret Word</p>
+              <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.playerScreen.secretWordLabel }}</p>
               <!-- Word is very large so it's easy to remember at a glance -->
               <p class="text-5xl font-extrabold tracking-tight leading-tight break-words">
                 {{ myAssignment.word }}
@@ -47,12 +50,12 @@
           <div
             v-else key="imp"
             class="py-2">
-            <p class="text-xs text-white/40 uppercase tracking-widest mb-1">Your Role</p>
-            <p class="text-2xl font-bold text-red-400 mb-4">👾 IMPOSTER</p>
+            <p class="text-xs text-white/40 uppercase tracking-widest mb-1">{{ locale.imposter.playerScreen.yourRoleLabel }}</p>
+            <p class="text-2xl font-bold text-red-400 mb-4">{{ locale.imposter.playerScreen.imposterLabel }}</p>
             <div class="border-t border-white/10 pt-4">
-              <p class="text-xs text-white/40 uppercase tracking-widest mb-2">Secret Word</p>
+              <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.playerScreen.secretWordLabel }}</p>
               <p class="text-5xl font-extrabold text-white/20">？？？</p>
-              <p class="text-xs text-red-400/70 mt-3">Blend in. Don’t get caught.</p>
+              <p class="text-xs text-red-400/70 mt-3">{{ locale.imposter.playerScreen.blendIn }}</p>
             </div>
           </div>
         </Transition>
@@ -60,13 +63,13 @@
 
       <!-- Current turn indicator -->
       <div class="card mb-4">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">Current Turn</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.playerScreen.currentTurnLabel }}</p>
         <Transition name="turn" mode="out-in">
           <div
             v-if="screen === 'discussion'" key="disc"
             class="text-center py-2">
-            <p class="text-2xl font-bold text-yellow-400">💬 Discussion Time!</p>
-            <p class="text-sm text-white/50 mt-1">Talk it out, then vote</p>
+            <p class="text-2xl font-bold text-yellow-400">{{ locale.imposter.playerScreen.discussionTitle }}</p>
+            <p class="text-sm text-white/50 mt-1">{{ locale.imposter.playerScreen.discussionSub }}</p>
           </div>
           <div
             v-else
@@ -85,7 +88,7 @@
                 isMyTurn ? 'text-green-400' : 'text-white',
               ]"
             >
-              {{ isMyTurn ? 'Your turn!' : gameState.currentTurnName }}
+              {{ isMyTurn ? locale.imposter.playerScreen.yourTurn : gameState.currentTurnName }}
             </span>
           </div>
         </Transition>
@@ -95,8 +98,8 @@
       <Transition name="panel">
         <div v-if="screen === 'discussion'" class="card mb-4 border-yellow-500/20">
           <div class="flex items-center justify-between mb-3">
-            <p class="text-xs text-white/40 uppercase tracking-widest">Vote the Imposter</p>
-            <span class="badge bg-white/10 text-white/60">{{ votedCount }}/{{ totalVoters }} voted</span>
+            <p class="text-xs text-white/40 uppercase tracking-widest">{{ locale.imposter.playerScreen.voteHeading }}</p>
+            <span class="badge bg-white/10 text-white/60">{{ locale.imposter.playerScreen.votedOf(votedCount, totalVoters) }}</span>
           </div>
           <div class="grid grid-cols-2 gap-2">
             <button
@@ -111,15 +114,15 @@
             </button>
           </div>
           <p class="text-xs text-white/30 mt-3 text-center">
-            <template v-if="myVote">Voted for {{ votedName }} — tap another to change</template>
-            <template v-else>Tap a name to cast your vote</template>
+            <template v-if="myVote">{{ locale.imposter.playerScreen.votedForChange(votedName) }}</template>
+            <template v-else>{{ locale.imposter.playerScreen.tapToVote }}</template>
           </p>
         </div>
       </Transition>
 
       <!-- Compact scoreboard -->
       <div class="card">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">Scores</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">{{ locale.imposter.playerScreen.scoresLabel }}</p>
         <ul class="space-y-1">
           <li
             v-for="(player, idx) in sortedPlayers"
@@ -157,20 +160,21 @@
           :disabled="!isMyTurn || me?.hasDone"
           @click="$emit('player-done')"
         >
-          {{ isMyTurn && !me?.hasDone ? '✅ Done' : '⏳ Wait…' }}
+          {{ isMyTurn && !me?.hasDone ? locale.imposter.playerScreen.doneButton : locale.imposter.playerScreen.waitButton }}
         </button>
       </Transition>
     </div>
 
     <!-- Discussion phase bottom message -->
     <div v-else-if="screen === 'discussion'" class="action-bar text-center">
-      <p class="text-yellow-400 font-semibold">�️ {{ votedCount }}/{{ totalVoters }} voted</p>
+      <p class="text-yellow-400 font-semibold">{{ locale.imposter.playerScreen.votedBottomBar(votedCount, totalVoters) }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { en as locale } from '@/locales/en'
 import type { GameState, PlayerAssignment, AppScreen } from '../types/index.js'
 
 const props = defineProps<{

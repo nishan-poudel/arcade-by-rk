@@ -74,7 +74,6 @@ web/
 │   │   │   ├── composables/  # useGame.ts, useSocket.ts
 │   │   │   └── types/        # Client type re-exports
 │   │   ├── home/           # Home page
-│   │   ├── about/          # About page
 │   │   ├── common/         # Shared layouts
 │   │   └── shared/         # Global stores, services, composables, types
 │   └── router/           # All client routes
@@ -120,7 +119,6 @@ const routes = [{
 ## Folder Structure Explanation
 
 - **modules/home** - Home page and home-specific components
-- **modules/about** - About page and about-specific components  
 - **modules/common/layouts** - Shared layout components
 - **modules/shared/stores** - Vuex state management
 - **modules/shared/services** - API and external integrations

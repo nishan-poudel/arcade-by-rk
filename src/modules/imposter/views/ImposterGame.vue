@@ -10,7 +10,7 @@
       <span
         :class="['w-1.5 h-1.5 rounded-full', connected ? 'bg-green-400' : 'bg-red-400 animate-pulse-slow']"
       />
-      <span class="text-white/60">{{ connected ? 'Online' : 'Reconnecting…' }}</span>
+      <span class="text-white/60">{{ connected ? locale.imposter.common.online : locale.imposter.common.reconnecting }}</span>
     </div>
 
     <!-- Error Toast -->
@@ -23,7 +23,7 @@
       >
         {{ errorMessage }}
         <button class="ml-3 underline opacity-75 hover:opacity-100" @click="errorMessage = ''">
-          Dismiss
+          {{ locale.imposter.common.dismiss }}
         </button>
       </div>
     </Transition>
@@ -98,7 +98,7 @@
       <div v-else class="min-h-dvh flex items-center justify-center">
         <div class="flex flex-col items-center gap-3 text-white/40">
           <div class="w-8 h-8 border-2 border-white/20 border-t-green-400 rounded-full animate-spin" />
-          <p class="text-sm">Loading…</p>
+          <p class="text-sm">{{ locale.imposter.common.loading }}</p>
         </div>
       </div>
     </div>
@@ -107,6 +107,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, watch } from 'vue'
+import { en as locale } from '@/locales/en'
 import { useGame } from '../composables/useGame.js'
 import { useSocket } from '../composables/useSocket.js'
 import type { Difficulty } from '../types/index.js'

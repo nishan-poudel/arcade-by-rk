@@ -19,20 +19,10 @@
           </li>
           <li class="nav-item">
             <RouterLink 
-              :to="{ name: 'about' }" 
-              :class="{ active: isAbout }"
-              class="nav-link"
-            >
-              <span class="link-text">{{ locale.nav.about }}</span>
-              <span class="link-indicator" />
-            </RouterLink>
-          </li>
-          <li class="nav-item">
-            <RouterLink 
               :to="{ name: 'imposter' }" 
               class="nav-link imposter-link"
             >
-              <span class="link-text">🕵️ Imposter</span>
+              <span class="link-text">{{ locale.nav.imposterLink }}</span>
               <span class="link-indicator" />
             </RouterLink>
           </li>
@@ -60,7 +50,6 @@ import { en as locale } from '@/locales/en'
 const route = useRoute()
 
 const isHome = computed(() => route.name === 'home')
-const isAbout = computed(() => route.name === 'about')
 </script>
 
 <style scoped src="./DefaultLayout.scss"></style>

@@ -5,7 +5,7 @@
       <!-- Room code: BIG, easy to read from across the table.
            Tap anywhere on the badge to copy it to clipboard. -->
       <div class="text-center mb-6 animate-fade-in">
-        <p class="text-white/40 text-xs uppercase tracking-widest mb-3">Waiting Room</p>
+        <p class="text-white/40 text-xs uppercase tracking-widest mb-3">{{ locale.imposter.waitingRoom.title }}</p>
         <button
           class="inline-flex flex-col items-center justify-center bg-white/10 border border-white/20
                  rounded-2xl px-6 py-4 mb-2 active:bg-white/20 transition-colors w-full max-w-xs"
@@ -15,18 +15,18 @@
             {{ gameState.roomCode }}
           </span>
           <span class="text-xs mt-2 transition-colors" :class="copied ? 'text-green-400' : 'text-white/40'">
-            {{ copied ? '✅ Copied!' : 'Tap to copy' }}
+            {{ copied ? locale.imposter.waitingRoom.copied : locale.imposter.waitingRoom.tapToCopy }}
           </span>
         </button>
-        <p class="text-white/40 text-sm">Share this code with others</p>
+        <p class="text-white/40 text-sm">{{ locale.imposter.waitingRoom.shareCode }}</p>
       </div>
 
       <!-- Player list -->
       <div class="card mb-4">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="font-semibold text-base">Players</h2>
+          <h2 class="font-semibold text-base">{{ locale.imposter.waitingRoom.playersHeading }}</h2>
           <span class="badge bg-white/10 text-white/60 text-sm">
-            {{ gameState.players.length }}/12
+            {{ locale.imposter.waitingRoom.playersCount(gameState.players.length) }}
           </span>
         </div>
 
@@ -45,35 +45,35 @@
               ]"
             />
             <span class="flex-1 font-medium text-base">{{ player.name }}</span>
-            <span v-if="player.isHost" class="badge bg-yellow-500/20 text-yellow-400">Host</span>
+            <span v-if="player.isHost" class="badge bg-yellow-500/20 text-yellow-400">{{ locale.imposter.waitingRoom.hostBadge }}</span>
           </li>
         </TransitionGroup>
 
         <p v-if="gameState.players.length < 3" class="text-white/30 text-xs mt-3 text-center">
-          Need at least 3 players to start
+          {{ locale.imposter.waitingRoom.needMorePlayers }}
         </p>
       </div>
 
       <!-- Host settings -->
       <div v-if="isHost" class="card mb-4 space-y-4">
-        <h2 class="font-semibold text-base">Settings</h2>
+        <h2 class="font-semibold text-base">{{ locale.imposter.waitingRoom.settingsHeading }}</h2>
 
         <div>
-          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Difficulty</label>
+          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">{{ locale.imposter.waitingRoom.difficultyLabel }}</label>
           <select
             :value="gameState.difficulty"
             class="input"
             @change="$emit('set-difficulty', ($event.target as HTMLSelectElement).value as Difficulty)"
           >
-            <option value="easy">🟢 Easy</option>
-            <option value="medium">🟡 Medium</option>
-            <option value="hard">🔴 Hard</option>
+            <option value="easy">{{ locale.imposter.difficulty.easy }}</option>
+            <option value="medium">{{ locale.imposter.difficulty.medium }}</option>
+            <option value="hard">{{ locale.imposter.difficulty.hard }}</option>
           </select>
         </div>
 
         <div>
           <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">
-            Imposters
+            {{ locale.imposter.waitingRoom.impostersLabel }}
           </label>
           <div class="flex gap-2">
             <button
@@ -97,7 +97,7 @@
       <div v-else class="text-center text-white/40 text-sm py-3">
         <div class="flex items-center gap-2 justify-center">
           <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse-slow" />
-          Waiting for host to start…
+          {{ locale.imposter.waitingRoom.waitingForHost }}
         </div>
       </div>
     </div>
@@ -110,10 +110,10 @@
         :disabled="gameState.players.length < 3"
         @click="$emit('start')"
       >
-        🚀 Start Game
+        {{ locale.imposter.waitingRoom.startGame }}
       </button>
       <button class="btn-secondary w-full text-sm" @click="$emit('leave')">
-        Leave Room
+        {{ locale.imposter.waitingRoom.leaveRoom }}
       </button>
     </div>
   </div>
@@ -121,6 +121,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { en as locale } from '@/locales/en'
 import type { GameState, Difficulty } from '../types/index.js'
 
 const props = defineProps<{

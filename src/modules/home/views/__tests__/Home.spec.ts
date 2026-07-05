@@ -9,7 +9,7 @@ const createWrapper = () => {
     history: createMemoryHistory(),
     routes: [
       { path: '/', name: 'home', component: Home },
-      { path: '/about', name: 'about', component: { template: '<div />' } },
+      { path: '/imposter', name: 'imposter', component: { template: '<div />' } },
     ],
   })
   return mount(Home, {
@@ -47,16 +47,8 @@ describe('Home.vue', () => {
     expect(createWrapper().find('[data-test="name"]').text()).to.equal(locale.home.name)
   })
 
-  it('tagline matches locale', () => {
-    expect(createWrapper().find('[data-test="tagline"]').text()).to.equal(locale.home.tagline)
-  })
-
   it('sub line matches locale', () => {
     expect(createWrapper().find('[data-test="sub"]').text()).to.equal(locale.home.sub)
-  })
-
-  it('CTA text matches locale', () => {
-    expect(createWrapper().find('[data-test="cta"]').text()).to.equal(locale.home.cta)
   })
 
   it('renders hero image with alt text', () => {

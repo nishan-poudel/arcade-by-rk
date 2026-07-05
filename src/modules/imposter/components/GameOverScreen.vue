@@ -8,9 +8,9 @@
       <!-- Header -->
       <div class="text-center pt-4 mb-6 animate-bounce-once">
         <div class="text-6xl mb-3">🏆</div>
-        <h1 class="text-3xl font-extrabold mb-1">Game Over!</h1>
+        <h1 class="text-3xl font-extrabold mb-1">{{ locale.imposter.gameOver.title }}</h1>
         <p class="text-white/40 text-sm">
-          {{ gameState.round }} round{{ gameState.round !== 1 ? 's' : '' }} played
+          {{ locale.imposter.gameOver.roundsPlayed(gameState.round) }}
         </p>
       </div>
 
@@ -30,7 +30,7 @@
             <span class="text-xl font-extrabold text-white/60">{{ sortedPlayers[1].score }}</span>
           </div>
           <div class="w-full bg-white/10 text-center text-xs text-white/40 py-1.5 rounded-b">
-            2nd 🥈
+            {{ locale.imposter.gameOver.second }}
           </div>
         </div>
 
@@ -49,7 +49,7 @@
             class="w-full bg-yellow-500/20 border border-yellow-500/30
                    text-center text-xs text-yellow-400 py-1.5 rounded-b"
           >
-            1st 🥇
+            {{ locale.imposter.gameOver.first }}
           </div>
         </div>
 
@@ -64,14 +64,14 @@
             <span class="text-lg font-extrabold text-white/50">{{ sortedPlayers[2].score }}</span>
           </div>
           <div class="w-full bg-white/5 text-center text-xs text-white/30 py-1.5 rounded-b">
-            3rd 🥉
+            {{ locale.imposter.gameOver.third }}
           </div>
         </div>
       </div>
 
       <!-- Full scoreboard -->
       <div class="card mb-4">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">All Scores</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">{{ locale.imposter.gameOver.allScoresHeading }}</p>
         <ul class="space-y-2">
           <li
             v-for="(player, idx) in sortedPlayers"
@@ -81,7 +81,7 @@
             <span class="text-xs text-white/30 w-5 shrink-0">{{ idx + 1 }}</span>
             <span class="flex-1 font-medium truncate">{{ player.name }}</span>
             <span v-if="player.isHost" class="badge bg-yellow-500/20 text-yellow-400 shrink-0">
-              Host
+              {{ locale.imposter.gameOver.hostBadge }}
             </span>
             <span class="font-extrabold text-green-400 text-lg shrink-0">{{ player.score }}</span>
           </li>
@@ -92,13 +92,14 @@
     <!-- Sticky back button -->
     <div class="action-bar">
       <button class="btn-primary w-full text-base py-4" @click="$emit('leave')">
-        🏠 Back to Home
+        {{ locale.imposter.gameOver.backHome }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { en as locale } from '@/locales/en'
 import type { GameState, PublicPlayer } from '../types/index.js'
 
 defineProps<{

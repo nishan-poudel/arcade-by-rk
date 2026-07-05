@@ -16,14 +16,14 @@
           {{ reveal.imposterCaught ? '✅' : '😈' }}
         </div>
         <h1 class="text-2xl font-extrabold mb-1">
-          {{ reveal.imposterCaught ? 'Imposter Caught!' : 'Imposter Survived!' }}
+          {{ reveal.imposterCaught ? locale.imposter.roundReveal.imposterCaughtTitle : locale.imposter.roundReveal.imposterSurvivedTitle }}
         </h1>
         <p class="text-white/50 text-sm mb-1">
-          <template v-if="reveal.ejectedPlayerName">{{ reveal.ejectedPlayerName }} was voted out</template>
-          <template v-else>No majority — nobody was voted out</template>
+          <template v-if="reveal.ejectedPlayerName">{{ locale.imposter.roundReveal.ejected(reveal.ejectedPlayerName) }}</template>
+          <template v-else>{{ locale.imposter.roundReveal.noMajority }}</template>
         </p>
         <p class="text-white/40 text-sm">
-          {{ reveal.imposterCaught ? 'Crewmates score +1 each' : 'Imposters score +2 each' }}
+          {{ reveal.imposterCaught ? locale.imposter.roundReveal.crewmatesScored : locale.imposter.roundReveal.impostersScored }}
         </p>
       </div>
 
@@ -32,14 +32,14 @@
         class="card text-center mb-4 animate-fade-in border-white/20"
         :class="reveal.imposterCaught ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'"
       >
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">The Secret Word Was</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.roundReveal.secretWordLabel }}</p>
         <p class="text-5xl font-extrabold tracking-tight">{{ reveal.word }}</p>
       </div>
 
       <!-- Imposters reveal -->
       <div class="card mb-4 animate-fade-in border-red-500/20 bg-red-500/5">
         <p class="text-xs text-white/40 uppercase tracking-widest mb-3">
-          {{ reveal.imposterNames.length === 1 ? 'The Imposter Was' : 'The Imposters Were' }}
+          {{ reveal.imposterNames.length === 1 ? locale.imposter.roundReveal.imposterWasSingular : locale.imposter.roundReveal.imposterWasPlural }}
         </p>
         <div class="flex flex-wrap gap-2">
           <span
@@ -56,7 +56,7 @@
 
       <!-- Vote breakdown -->
       <div v-if="gameState" class="card mb-4 animate-fade-in">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">Vote Results</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">{{ locale.imposter.roundReveal.voteResultsHeading }}</p>
         <ul class="space-y-2 mb-1">
           <li
             v-for="player in gameState.players"
@@ -81,10 +81,10 @@
         </ul>
 
         <div v-if="voteEntries.length" class="border-t border-white/10 pt-3 mt-3">
-          <p class="text-xs text-white/30 mb-2">Who voted for who</p>
+          <p class="text-xs text-white/30 mb-2">{{ locale.imposter.roundReveal.whoVotedFor }}</p>
           <ul class="space-y-1 text-xs text-white/50">
             <li v-for="entry in voteEntries" :key="entry.voterId">
-              {{ entry.voterName }} → {{ entry.votedName }}
+              {{ locale.imposter.roundReveal.voteLine(entry.voterName, entry.votedName) }}
             </li>
           </ul>
         </div>
@@ -92,7 +92,7 @@
 
       <!-- Round scores snapshot -->
       <div v-if="gameState" class="card animate-fade-in">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">Scores After Round {{ reveal.round }}</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">{{ locale.imposter.roundReveal.scoresAfterRound(reveal.round) }}</p>
         <ul class="space-y-2">
           <li
             v-for="(player, idx) in sortedPlayers"
@@ -119,17 +119,17 @@
       <!-- Host: next round or end game -->
       <div v-if="isHost" class="space-y-2">
         <button class="btn-primary w-full text-base py-4" @click="$emit('next-round')">
-          🔄 Next Round
+          {{ locale.imposter.roundReveal.nextRound }}
         </button>
         <button class="btn-danger w-full text-sm py-3" @click="$emit('end-game')">
-          End Game
+          {{ locale.imposter.roundReveal.endGame }}
         </button>
       </div>
       <!-- Players: waiting message -->
       <div v-else class="text-center py-3">
         <div class="flex items-center gap-2 justify-center text-white/50 text-sm">
           <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse-slow" />
-          Waiting for host to start next round…
+          {{ locale.imposter.roundReveal.waitingForHost }}
         </div>
       </div>
     </div>
@@ -138,6 +138,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { en as locale } from '@/locales/en'
 import type { GameReveal, GameState, PublicPlayer } from '../types/index.js'
 
 const props = defineProps<{

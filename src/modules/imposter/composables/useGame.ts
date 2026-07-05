@@ -8,6 +8,7 @@
  */
 import { ref, computed, type Ref } from 'vue'
 import { useSocket } from './useSocket.js'
+import { en as locale } from '@/locales/en'
 import type {
   GameState,
   PlayerAssignment,
@@ -159,7 +160,7 @@ export function useGame() {
     })
 
     socket.on('reconnect_failed', () => {
-      errorMessage.value = 'Lost connection to the game server. Please refresh the page.'
+      errorMessage.value = locale.imposter.errors.reconnectFailed
       clearPendingAction()
     })
   }

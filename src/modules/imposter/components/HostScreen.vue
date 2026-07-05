@@ -8,11 +8,11 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-4 animate-fade-in">
         <div>
-          <span class="badge bg-yellow-500/20 text-yellow-400 mb-1 inline-block">👑 Host</span>
-          <h2 class="text-xl font-bold leading-tight">{{ hostPlayer?.name ?? 'Host' }}</h2>
+          <span class="badge bg-yellow-500/20 text-yellow-400 mb-1 inline-block">{{ locale.imposter.hostScreen.hostBadge }}</span>
+          <h2 class="text-xl font-bold leading-tight">{{ hostPlayer?.name ?? locale.imposter.hostScreen.hostFallback }}</h2>
         </div>
         <div class="text-right">
-          <p class="text-white/40 text-xs uppercase tracking-wider">Round</p>
+          <p class="text-white/40 text-xs uppercase tracking-wider">{{ locale.imposter.hostScreen.roundLabel }}</p>
           <p class="text-3xl font-extrabold">{{ gameState.round }}</p>
         </div>
       </div>
@@ -29,21 +29,21 @@
           : 'border-yellow-500/30 bg-yellow-500/5'"
       >
         <p class="text-xs text-white/40 uppercase tracking-widest mb-1">
-          {{ isHostImposter ? 'Your Role' : 'Secret Word' }}
+          {{ isHostImposter ? locale.imposter.hostScreen.yourRoleLabel : locale.imposter.hostScreen.secretWordLabel }}
         </p>
         <p v-if="isHostImposter" class="text-2xl font-bold text-red-400 mb-1">
-          👾 IMPOSTER
+          {{ locale.imposter.hostScreen.imposterLabel }}
         </p>
         <p v-if="isHostImposter" class="text-5xl font-extrabold text-white/20">？？？</p>
         <p v-else class="text-4xl font-extrabold tracking-tight break-words">
           {{ myAssignment.word ?? '???' }}
         </p>
-        <p class="text-xs text-white/30 mt-1">{{ gameState.difficulty }} difficulty</p>
+        <p class="text-xs text-white/30 mt-1">{{ gameState.difficulty }} {{ locale.imposter.hostScreen.difficultySuffix }}</p>
       </div>
 
       <!-- Imposters (only shown if host is NOT imposter — already knows if they are) -->
       <div v-if="!isHostImposter" class="card mb-3 border-red-500/30 bg-red-500/5">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">Imposters 👾</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.hostScreen.impostersHeading }}</p>
         <div class="flex flex-wrap gap-2">
           <span
             v-for="imposterId in myAssignment.imposterIds"
@@ -57,18 +57,18 @@
 
       <!-- Turn status + progress -->
       <div class="card mb-3">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">Status</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.hostScreen.statusLabel }}</p>
         <Transition name="turn" mode="out-in">
           <div
             v-if="screen === 'discussion'" key="disc"
             class="text-center py-1">
-            <p class="text-xl font-bold text-yellow-400">💬 Discussion Time!</p>
-            <p class="text-sm text-white/50 mt-1">Cast your vote below.</p>
+            <p class="text-xl font-bold text-yellow-400">{{ locale.imposter.hostScreen.discussionTitle }}</p>
+            <p class="text-sm text-white/50 mt-1">{{ locale.imposter.hostScreen.discussionSub }}</p>
           </div>
           <div v-else :key="gameState.currentTurnPlayerId">
             <div class="flex items-center gap-2 mb-3">
               <span class="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse-slow" />
-              <span class="font-semibold">{{ gameState.currentTurnName }}'s turn</span>
+              <span class="font-semibold">{{ locale.imposter.hostScreen.turnSuffix(gameState.currentTurnName) }}</span>
             </div>
             <div class="w-full bg-white/5 rounded-full h-2">
               <div
@@ -77,7 +77,7 @@
               />
             </div>
             <p class="text-xs text-white/30 mt-1.5">
-              {{ donePlayers }} / {{ gameState.players.length }} done
+              {{ locale.imposter.hostScreen.doneProgress(donePlayers, gameState.players.length) }}
             </p>
           </div>
         </Transition>
@@ -85,7 +85,7 @@
 
       <!-- Player list -->
       <div class="card mb-3">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">All Players</p>
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">{{ locale.imposter.hostScreen.allPlayersHeading }}</p>
         <ul class="space-y-2">
           <li
             v-for="(player, idx) in sortedPlayers"
@@ -118,8 +118,8 @@
       <Transition name="panel">
         <div v-if="screen === 'discussion'" class="card mb-3 border-yellow-500/20">
           <div class="flex items-center justify-between mb-3">
-            <p class="text-xs text-white/40 uppercase tracking-widest">Vote the Imposter</p>
-            <span class="badge bg-white/10 text-white/60">{{ votedCount }}/{{ totalVoters }} voted</span>
+            <p class="text-xs text-white/40 uppercase tracking-widest">{{ locale.imposter.hostScreen.voteHeading }}</p>
+            <span class="badge bg-white/10 text-white/60">{{ locale.imposter.hostScreen.votedOf(votedCount, totalVoters) }}</span>
           </div>
           <div class="grid grid-cols-2 gap-2 mb-3">
             <button
@@ -134,11 +134,11 @@
             </button>
           </div>
           <p class="text-xs text-white/30 mb-3 text-center">
-            <template v-if="myVote">Voted for {{ votedName }} — tap another to change</template>
-            <template v-else>Tap a name to cast your vote</template>
+            <template v-if="myVote">{{ locale.imposter.hostScreen.votedForChange(votedName) }}</template>
+            <template v-else>{{ locale.imposter.hostScreen.tapToVote }}</template>
           </p>
           <button class="btn-secondary w-full text-sm py-3" @click="$emit('force-reveal')">
-            ⚡ Force Reveal Now
+            {{ locale.imposter.hostScreen.forceReveal }}
           </button>
         </div>
       </Transition>
@@ -151,7 +151,7 @@
           :disabled="hostPlayer?.hasDone"
           @click="$emit('player-done')"
         >
-          ✅ Done (Your Turn)
+          {{ locale.imposter.hostScreen.hostDoneButton }}
         </button>
       </div>
     </div>
@@ -164,25 +164,25 @@
         class="btn-secondary w-full text-sm py-3"
         @click="$emit('skip-turn')"
       >
-        ⏭ Skip {{ gameState.currentTurnName }}'s Turn
+        {{ locale.imposter.hostScreen.skipTurn(gameState.currentTurnName) }}
       </button>
 
       <!-- Confirm overlay for destructive actions -->
       <Transition name="panel">
         <div v-if="confirmAction" class="card border-yellow-500/40 bg-yellow-500/10 text-center space-y-3">
           <p class="font-semibold text-sm">
-            {{ confirmAction === 'reset' ? 'Reset all scores to zero?' : 'End the game for everyone?' }}
+            {{ confirmAction === 'reset' ? locale.imposter.hostScreen.confirmReset : locale.imposter.hostScreen.confirmEnd }}
           </p>
           <div class="flex gap-2">
             <button class="btn-secondary flex-1 text-sm py-2.5" @click="confirmAction = null">
-              Cancel
+              {{ locale.imposter.hostScreen.cancel }}
             </button>
             <button
               :class="confirmAction === 'end' ? 'btn-danger' : 'btn-primary'"
               class="flex-1 text-sm py-2.5"
               @click="confirmAndExecute"
             >
-              {{ confirmAction === 'reset' ? 'Reset' : 'End Game' }}
+              {{ confirmAction === 'reset' ? locale.imposter.hostScreen.confirmResetButton : locale.imposter.hostScreen.confirmEndButton }}
             </button>
           </div>
         </div>
@@ -190,10 +190,10 @@
 
       <div v-if="!confirmAction" class="grid grid-cols-2 gap-3">
         <button class="btn-secondary text-sm py-3" @click="confirmAction = 'reset'">
-          🔄 Reset Scores
+          {{ locale.imposter.hostScreen.resetScoresButton }}
         </button>
         <button class="btn-danger text-sm py-3" @click="confirmAction = 'end'">
-          🛑 End Game
+          {{ locale.imposter.hostScreen.endGameButton }}
         </button>
       </div>
     </div>
@@ -202,6 +202,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { en as locale } from '@/locales/en'
 import type { GameState, PlayerAssignment, AppScreen } from '../types/index.js'
 
 const props = defineProps<{

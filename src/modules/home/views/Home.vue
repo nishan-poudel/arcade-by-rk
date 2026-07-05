@@ -6,17 +6,11 @@
       <div class="hero-text" data-test="hero-text">
         <p class="greeting" data-test="greeting">{{ locale.home.greeting }}</p>
         <h1 class="name" data-test="name">{{ locale.home.name }}</h1>
-        <p class="tagline" data-test="tagline">{{ locale.home.tagline }}</p>
         <p class="sub" data-test="sub">{{ locale.home.sub }}</p>
-        <RouterLink
-          :to="{ name: 'about' }" class="btn"
-          data-test="cta">
-          {{ locale.home.cta }}
-        </RouterLink>
         <RouterLink
           :to="{ name: 'imposter' }" class="btn btn-game"
           data-test="cta-imposter">
-          🕵️ Play Imposter
+          {{ locale.home.playImposter }}
         </RouterLink>
       </div>
       <div class="hero-visual" data-test="hero-visual">
@@ -38,7 +32,7 @@ import { RouterLink } from 'vue-router'
 import { en as locale } from '@/locales/en'
 import { usePageTitle } from '@/modules/shared/composables/usePageTitle'
 
-usePageTitle('Home')
+usePageTitle(locale.nav.home)
 </script>
 
 <style scoped src="./Home.scss"></style>

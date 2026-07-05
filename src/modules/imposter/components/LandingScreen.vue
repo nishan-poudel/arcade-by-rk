@@ -8,8 +8,8 @@
     <!-- Brand header -->
     <div class="text-center pt-4 pb-6 animate-fade-in">
       <div class="text-5xl mb-3">🕵️</div>
-      <h1 class="text-3xl font-extrabold tracking-tight">Imposter</h1>
-      <p class="text-white/50 mt-1 text-sm">The in-person party game</p>
+      <h1 class="text-3xl font-extrabold tracking-tight">{{ locale.imposter.common.brandTitle }}</h1>
+      <p class="text-white/50 mt-1 text-sm">{{ locale.imposter.common.brandTagline }}</p>
     </div>
 
     <!-- Tab selector: big enough to tap comfortably -->
@@ -21,7 +21,7 @@
         ]"
         @click="tab = 'create'"
       >
-        Create Room
+        {{ locale.imposter.landing.createTab }}
       </button>
       <button
         :class="[
@@ -30,7 +30,7 @@
         ]"
         @click="tab = 'join'"
       >
-        Join Room
+        {{ locale.imposter.landing.joinTab }}
       </button>
     </div>
 
@@ -40,14 +40,14 @@
       <div
         v-if="tab === 'create'" key="create"
         class="card space-y-5 animate-slide-up">
-        <h2 class="font-bold text-lg">New Game</h2>
+        <h2 class="font-bold text-lg">{{ locale.imposter.landing.createHeading }}</h2>
 
         <div>
-          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Your Name (Host)</label>
+          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">{{ locale.imposter.landing.hostNameLabel }}</label>
           <input
             v-model="createForm.hostName"
             class="input text-base"
-            placeholder="Enter your name"
+            :placeholder="locale.imposter.landing.namePlaceholder"
             maxlength="24"
             autocomplete="off"
             autocapitalize="words"
@@ -56,18 +56,18 @@
         </div>
 
         <div>
-          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Difficulty</label>
+          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">{{ locale.imposter.landing.difficultyLabel }}</label>
           <select v-model="createForm.difficulty" class="input">
-            <option value="easy">🟢 Easy</option>
-            <option value="medium">🟡 Medium</option>
-            <option value="hard">🔴 Hard</option>
+            <option value="easy">{{ locale.imposter.difficulty.easy }}</option>
+            <option value="medium">{{ locale.imposter.difficulty.medium }}</option>
+            <option value="hard">{{ locale.imposter.difficulty.hard }}</option>
           </select>
         </div>
 
         <!-- Imposter count with big visual buttons instead of range slider -->
         <div>
           <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">
-            Imposters
+            {{ locale.imposter.landing.impostersLabel }}
           </label>
           <div class="flex gap-2">
             <button
@@ -95,14 +95,14 @@
             v-if="pendingAction === 'create'"
             class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
           />
-          {{ pendingAction === 'create' ? 'Creating room…' : 'Create Room' }}
+          {{ pendingAction === 'create' ? locale.imposter.landing.creatingButton : locale.imposter.landing.createButton }}
         </button>
 
         <p
           v-if="pendingAction === 'create' && isSlowConnection"
           class="text-center text-xs text-white/40 -mt-2 animate-fade-in"
         >
-          Waking up the server… this can take up to a minute on first use.
+          {{ locale.imposter.landing.slowConnectionHint }}
         </p>
       </div>
 
@@ -110,10 +110,10 @@
       <div
         v-else key="join"
         class="card space-y-5 animate-slide-up">
-        <h2 class="font-bold text-lg">Join Game</h2>
+        <h2 class="font-bold text-lg">{{ locale.imposter.landing.joinHeading }}</h2>
 
         <div>
-          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Room Code</label>
+          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">{{ locale.imposter.landing.roomCodeLabel }}</label>
           <!--
             autocorrect=off + spellcheck=false prevents iOS suggesting corrections
             on the 6-char room code
@@ -121,7 +121,7 @@
           <input
             v-model="joinForm.roomCode"
             class="input font-mono tracking-[0.4em] text-2xl text-center uppercase"
-            placeholder="ABC123"
+            :placeholder="locale.imposter.landing.roomCodePlaceholder"
             maxlength="6"
             autocomplete="off"
             autocorrect="off"
@@ -134,11 +134,11 @@
         </div>
 
         <div>
-          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Your Name</label>
+          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">{{ locale.imposter.landing.yourNameLabel }}</label>
           <input
             v-model="joinForm.playerName"
             class="input text-base"
-            placeholder="Enter your name"
+            :placeholder="locale.imposter.landing.namePlaceholder"
             maxlength="24"
             autocomplete="off"
             autocapitalize="words"
@@ -155,28 +155,29 @@
             v-if="pendingAction === 'join'"
             class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
           />
-          {{ pendingAction === 'join' ? 'Joining room…' : 'Join Room' }}
+          {{ pendingAction === 'join' ? locale.imposter.landing.joiningButton : locale.imposter.landing.joinButton }}
         </button>
 
         <p
           v-if="pendingAction === 'join' && isSlowConnection"
           class="text-center text-xs text-white/40 -mt-2 animate-fade-in"
         >
-          Waking up the server… this can take up to a minute on first use.
+          {{ locale.imposter.landing.slowConnectionHint }}
         </p>
       </div>
     </Transition>
 
     <!-- Rules at bottom -->
     <div class="mt-auto py-6 text-center text-white/25 text-xs space-y-1">
-      <p>3–12 players • Talk in person • Vote the imposter out</p>
-      <p>Crewmates +1 if imposter caught • Imposters +2 if they survive</p>
+      <p>{{ locale.imposter.landing.rulesLine1 }}</p>
+      <p>{{ locale.imposter.landing.rulesLine2 }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
+import { en as locale } from '@/locales/en'
 import type { Difficulty } from '../types/index.js'
 
 defineProps<{
