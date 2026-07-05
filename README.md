@@ -1,68 +1,99 @@
-# Vue 3 + Vite Application
+# Imposter Party Game
 
-A production-ready Vue 3 application with Vuex state management and modular architecture.
+A real-time in-person party game built with Vue 3 + TypeScript + Socket.IO. Players sit together, take turns saying a secret word out loud, and try to figure out who the imposter is.
 
 ## Prerequisites
 
-- **Node.js 16.14+** - [Download](https://nodejs.org/)
-- **npm 6.14+**
+- **Node.js 18+** — [Download](https://nodejs.org/)
+- **npm 9+**
 
 ## Installation & Setup
 
 ```bash
-# 1. Install dependencies
+# 1. Install client dependencies
 npm install
 
-# 2. Create .env file (optional, defaults are provided)
+# 2. Install server dependencies
+npm run server:install
+
+# 3. Create environment files (optional — sensible defaults are provided)
 cp .env.example .env
+cp server/.env.example server/.env
 ```
 
 ## Running the App
 
 ```bash
-# Start development server (opens http://localhost:5100)
+# Start BOTH client + server together (recommended)
 npm run dev
 
-# Build for production
+# Or start them separately:
+npm run dev:client   # Vue client on http://localhost:5100
+npm run dev:server   # Express + Socket.IO on http://localhost:3001
+
+# Build client for production
 npm run build
 
 # Preview production build
 npm run preview
 ```
 
+## Playing the Game
+
+1. One player opens the app and taps **Create Room** — they become the **Host**.
+2. Everyone else taps **Join Room** and enters the 6-character code.
+3. Host presses **Start Game**. Each person privately checks their phone to see their role and the secret word.
+4. Players take turns saying **one word** out loud that relates to the secret word. Imposters must bluff.
+5. After everyone has had a turn, the group discusses and votes. Host records the result.
+6. The app reveals the secret word and imposters to everyone.
+7. Host can start another round or end the game.
+
 ## Available Scripts
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
+| `npm run dev` | Start client **and** server together (uses concurrently) |
+| `npm run dev:client` | Start Vite client only |
+| `npm run dev:server` | Start Express/Socket.IO server only |
+| `npm run build` | Build client for production |
 | `npm run preview` | Preview production build |
-| `npm run local` | Build and run production build locally |
-| `npm run type-check` | Check TypeScript types |
-| `npm run lint` | Lint and fix code |
+| `npm run type-check` | TypeScript type check (client) |
+| `npm run lint` | Lint and auto-fix |
+| `npm run server:install` | Install server-side dependencies |
 
 ## Project Structure
 
 ```
-src/
-├── modules/
-│   ├── home/              # Home feature
-│   ├── about/             # About feature
-│   ├── common/            # Shared layouts
-│   └── shared/            # Global state, services, composables
-├── router/                # All routes defined here
-└── App.vue
+web/
+├── src/
+│   ├── modules/
+│   │   ├── imposter/       # Imposter party game
+│   │   │   ├── views/        # ImposterGame.vue (screen router)
+│   │   │   ├── components/   # LandingScreen, WaitingRoom, PlayerScreen,
+│   │   │   │              #   HostScreen, RoundReveal, GameOverScreen
+│   │   │   ├── composables/  # useGame.ts, useSocket.ts
+│   │   │   └── types/        # Client type re-exports
+│   │   ├── home/           # Home page
+│   │   ├── about/          # About page
+│   │   ├── common/         # Shared layouts
+│   │   └── shared/         # Global stores, services, composables, types
+│   └── router/           # All client routes
+├── server/               # Node.js + Express + Socket.IO backend
+├── shared/types/         # TypeScript interfaces shared by client + server
+└── config/               # Word lists (easy / medium / hard JSON)
 ```
 
 ## Key Technologies
 
-- **Vue 3** - Progressive JavaScript framework
-- **Vite** - Fast build tool
-- **TypeScript** - Type safety
-- **Vuex** - State management
-- **Vue Router** - Client-side routing
-- **Axios** - HTTP client
-- **ESLint + Prettier** - Code quality
+| Layer | Technology |
+|-------|------------|
+| Client UI | Vue 3 + TypeScript + Vite |
+| Styling | Tailwind CSS v3 (mobile-first, dark theme) |
+| Real-time | Socket.IO (client + server) |
+| Server | Node.js + Express |
+| State | Vue `ref`/`computed` composables (no Vuex for game state) |
+| Security | helmet, runtime validators, per-socket rate limiter |
+| Shared types | TypeScript interfaces in `shared/types/` |
 
 ## Adding Routes
 
@@ -100,11 +131,17 @@ const routes = [{
 
 ## Environment Variables
 
-Create a `.env` file (based on `.env.example`):
-
+Client (`.env`):
 ```env
-VITE_API_BASE_URL=http://localhost:3000/api
+VITE_API_BASE_URL=http://localhost:3001/api
 VITE_APP_ENV=development
+```
+
+Server (`server/.env`):
+```env
+PORT=3001
+NODE_ENV=development
+CORS_ORIGINS=http://localhost:5100
 ```
 
 ---

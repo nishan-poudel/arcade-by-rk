@@ -1,0 +1,117 @@
+/* Tailwind CSS directives – imported in main.ts */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base overrides ──────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    height: 100%;
+    /* dvh = dynamic viewport height: accounts for browser chrome on mobile */
+    min-height: 100dvh;
+    background-color: #0d0d0d;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+      sans-serif;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+
+  #app {
+    min-height: 100dvh;
+  }
+
+  /* iOS fix: inputs must be ≥ 16px to prevent auto-zoom */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+    touch-action: manipulation;
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+}
+
+/* ─── Reusable component classes ──────────────────────────────────────────── */
+@layer components {
+  /* Primary action button — min 48px tall for touch targets */
+  .btn-primary {
+    @apply bg-green-500 hover:bg-green-600 active:scale-95 text-white font-semibold
+           px-6 py-3 rounded-xl transition-all duration-150 disabled:opacity-40
+           disabled:cursor-not-allowed disabled:scale-100
+           min-h-[48px] flex items-center justify-center;
+  }
+
+  /* Danger / end-game button */
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 active:scale-95 text-white font-semibold
+           px-6 py-3 rounded-xl transition-all duration-150 disabled:opacity-40
+           disabled:cursor-not-allowed disabled:scale-100
+           min-h-[48px] flex items-center justify-center;
+  }
+
+  /* Secondary / outline button */
+  .btn-secondary {
+    @apply bg-white/10 hover:bg-white/20 active:scale-95 text-white font-semibold
+           px-6 py-3 rounded-xl border border-white/20 transition-all duration-150
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100
+           min-h-[48px] flex items-center justify-center;
+  }
+
+  /* Card / panel surface */
+  .card {
+    @apply bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm;
+  }
+
+  /* Text input — 16px prevents iOS zoom; py-3.5 gives comfortable touch height */
+  .input {
+    @apply bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-white
+           placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-green-500
+           focus:border-transparent transition-all w-full min-h-[48px];
+    font-size: 16px; /* critical: prevents iOS zoom on focus */
+  }
+
+  /* Badge */
+  .badge {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full;
+  }
+
+  /* Safe-area aware bottom padding (iPhone home indicator) */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Full-height screen with safe area support */
+  .screen {
+    @apply min-h-dvh flex flex-col;
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Sticky bottom bar — stays above the home indicator */
+  .action-bar {
+    @apply sticky bottom-0 bg-[#0d0d0d] border-t border-white/10 px-4 pt-3;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* ─── Utility: dynamic viewport height ────────────────────────────────────── */
+@layer utilities {
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
+  .h-dvh {
+    height: 100dvh;
+  }
+}

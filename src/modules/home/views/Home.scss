@@ -102,6 +102,17 @@
   transform: translateY(-2px);
 }
 
+.btn-game {
+  background: #22c55e;
+  color: #fff;
+  margin-left: 0.75rem;
+}
+
+.btn-game:hover {
+  background: #16a34a;
+  transform: translateY(-2px);
+}
+
 .hero-visual {
   flex-shrink: 0;
 }

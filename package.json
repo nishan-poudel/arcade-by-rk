@@ -1,20 +1,23 @@
 {
-  "name": "vue3-vite-app",
+  "name": "imposter-game",
   "version": "1.0.0",
   "author": "Nishan",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -n SERVER,CLIENT -c cyan,magenta \"cd server && npm run dev\" \"vite\"",
+    "dev:client": "vite",
+    "dev:server": "cd server && npm run dev",
     "build": "vite build",
     "preview": "vite preview",
-    "local": "npm run build && npm run preview",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "test": "mocha",
-    "test:watch": "mocha --watch --watch-extensions ts"
+    "test:watch": "mocha --watch --watch-extensions ts",
+    "server:install": "cd server && npm install"
   },
   "dependencies": {
     "axios": "^1.6.2",
+    "socket.io-client": "^4.7.5",
     "vue": "^3.4.19",
     "vue-router": "^4.2.5",
     "vuex": "^4.1.0"
@@ -27,7 +30,9 @@
     "@vitejs/plugin-vue": "^5.0.4",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.5.0",
+    "autoprefixer": "^10.4.19",
     "chai": "^6.2.2",
+    "concurrently": "^8.2.2",
     "eslint": "^8.56.0",
     "eslint-plugin-vue": "^9.20.0",
     "happy-dom": "^17.6.1",
@@ -36,6 +41,7 @@
     "prettier": "^3.1.1",
     "sass": "^1.97.3",
     "sass-embedded": "^1.97.3",
+    "tailwindcss": "^3.4.4",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.3.3",

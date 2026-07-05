@@ -105,6 +105,17 @@ $text-dim: rgba(255, 255, 255, 0.45);
   outline: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+// Special styling for the Imposter game nav link
+.imposter-link {
+  color: #86efac;
+  font-weight: 600;
+
+  &:hover {
+    color: white;
+    background: rgba(34, 197, 94, 0.12);
+  }
+}
+
 .main {
   flex: 1;
   display: flex;

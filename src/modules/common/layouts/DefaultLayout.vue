@@ -27,6 +27,15 @@
               <span class="link-indicator" />
             </RouterLink>
           </li>
+          <li class="nav-item">
+            <RouterLink 
+              :to="{ name: 'imposter' }" 
+              class="nav-link imposter-link"
+            >
+              <span class="link-text">🕵️ Imposter</span>
+              <span class="link-indicator" />
+            </RouterLink>
+          </li>
         </ul>
       </nav>
     </header>

@@ -1,0 +1,162 @@
+<template>
+  <div class="min-h-dvh flex flex-col bg-[#0d0d0d]" style="padding-top: max(1rem, env(safe-area-inset-top))">
+
+    <!-- Scrollable body -->
+    <div class="flex-1 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
+
+      <!-- Room code: BIG, easy to read from across the table.
+           Tap anywhere on the badge to copy it to clipboard. -->
+      <div class="text-center mb-6 animate-fade-in">
+        <p class="text-white/40 text-xs uppercase tracking-widest mb-3">Waiting Room</p>
+        <button
+          class="inline-flex flex-col items-center justify-center bg-white/10 border border-white/20
+                 rounded-2xl px-6 py-4 mb-2 active:bg-white/20 transition-colors w-full max-w-xs"
+          @click="copyCode"
+        >
+          <span class="font-mono font-extrabold text-4xl tracking-[0.25em] text-white">
+            {{ gameState.roomCode }}
+          </span>
+          <span class="text-xs mt-2 transition-colors" :class="copied ? 'text-green-400' : 'text-white/40'">
+            {{ copied ? '✅ Copied!' : 'Tap to copy' }}
+          </span>
+        </button>
+        <p class="text-white/40 text-sm">Share this code with others</p>
+      </div>
+
+      <!-- Player list -->
+      <div class="card mb-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold text-base">Players</h2>
+          <span class="badge bg-white/10 text-white/60 text-sm">
+            {{ gameState.players.length }}/12
+          </span>
+        </div>
+
+        <TransitionGroup name="player-list" tag="ul" class="space-y-2">
+          <li
+            v-for="player in gameState.players"
+            :key="player.id"
+            class="flex items-center gap-3 py-3 px-3 rounded-xl bg-white/5 border border-white/10"
+          >
+            <span
+              :class="[
+                'w-2.5 h-2.5 rounded-full flex-shrink-0',
+                player.connected ? 'bg-green-400' : 'bg-white/20',
+              ]"
+            />
+            <span class="flex-1 font-medium text-base">{{ player.name }}</span>
+            <span v-if="player.isHost" class="badge bg-yellow-500/20 text-yellow-400">Host</span>
+          </li>
+        </TransitionGroup>
+
+        <p v-if="gameState.players.length < 3" class="text-white/30 text-xs mt-3 text-center">
+          Need at least 3 players to start
+        </p>
+      </div>
+
+      <!-- Host settings -->
+      <div v-if="isHost" class="card mb-4 space-y-4">
+        <h2 class="font-semibold text-base">Settings</h2>
+
+        <div>
+          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Difficulty</label>
+          <select
+            :value="gameState.difficulty"
+            class="input"
+            @change="$emit('set-difficulty', ($event.target as HTMLSelectElement).value as Difficulty)"
+          >
+            <option value="easy">🟢 Easy</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="hard">🔴 Hard</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">
+            Imposters
+          </label>
+          <div class="flex gap-2">
+            <button
+              v-for="n in Math.min(4, Math.max(1, gameState.players.length - 1))"
+              :key="n"
+              :class="[
+                'flex-1 min-h-[52px] rounded-xl font-bold text-lg border transition-all active:scale-95',
+                gameState.imposterCount === n
+                  ? 'bg-green-500 border-green-500 text-white'
+                  : 'bg-white/5 border-white/10 text-white/60',
+              ]"
+              @click="$emit('set-imposter-count', n)"
+            >
+              {{ n }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Non-host waiting message -->
+      <div v-else class="text-center text-white/40 text-sm py-3">
+        <div class="flex items-center gap-2 justify-center">
+          <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse-slow" />
+          Waiting for host to start…
+        </div>
+      </div>
+    </div>
+
+    <!-- Sticky action bar at bottom -->
+    <div class="action-bar space-y-2">
+      <button
+        v-if="isHost"
+        class="btn-primary w-full text-base py-4"
+        :disabled="gameState.players.length < 3"
+        @click="$emit('start')"
+      >
+        🚀 Start Game
+      </button>
+      <button class="btn-secondary w-full text-sm" @click="$emit('leave')">
+        Leave Room
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { GameState, Difficulty } from '../types/index.js'
+
+const props = defineProps<{
+  gameState: GameState
+  isHost: boolean
+}>()
+
+defineEmits<{
+  start: []
+  leave: []
+  'set-difficulty': [difficulty: Difficulty]
+  'set-imposter-count': [count: number]
+}>()
+
+// ── Copy room code ────────────────────────────────────────────────────────────
+const copied = ref(false)
+
+async function copyCode() {
+  try {
+    await navigator.clipboard.writeText(props.gameState.roomCode)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
+  } catch {
+    // Clipboard API not available (non-HTTPS) — code is still visible on screen
+  }
+}
+</script>
+
+<style scoped>
+.player-list-enter-active,
+.player-list-leave-active {
+  transition: all 0.25s ease;
+}
+.player-list-enter-from,
+.player-list-leave-to {
+  opacity: 0;
+  transform: translateX(-12px);
+}
+</style>

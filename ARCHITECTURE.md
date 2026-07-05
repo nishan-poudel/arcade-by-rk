@@ -243,3 +243,186 @@ const fetchUsers = async () => {
 ---
 
 **Created**: March 2, 2026
+
+---
+
+## Imposter Party Game
+
+The `/imposter` route mounts a full-featured, real-time in-person party game.
+
+### Full-Stack Overview
+
+```
+web/
+├── client (Vue 3 + Vite + Tailwind)   → http://localhost:5100
+│   └── src/modules/imposter/
+│       ├── views/           ImposterGame.vue  – root screen router
+│       ├── components/      LandingScreen · WaitingRoom · PlayerScreen
+│       │                    HostScreen · RoundReveal · GameOverScreen
+│       ├── composables/     useGame.ts  – all reactive state + socket actions
+│       │                    useSocket.ts – singleton Socket.IO connection
+│       └── types/           index.ts    – re-exports shared types
+│
+├── server/ (Node.js + Express + Socket.IO)  → http://localhost:3001
+│   └── src/
+│       ├── index.ts          entry, helmet, CORS, graceful shutdown
+│       ├── config/           word-list loader, env config
+│       ├── game/             GameService.ts – all game logic
+│       ├── socket/           handlers.ts – validated event handlers
+│       ├── security/         validator.ts · rateLimiter.ts
+│       └── utils/            logger.ts
+│
+├── shared/types/index.ts     TypeScript interfaces used by both sides
+└── config/                   easy.json · medium.json · hard.json (word lists)
+```
+
+### Game State Machine
+
+```
+                       ┌─────────────────────────────────────┐
+                       │          SERVER PHASES               │
+lobby  →  playing  →  discussion  →  ended                   │
+                         │                                    │
+                         ▼          CLIENT-ONLY UI STATES     │
+                       reveal  →  (next round → playing)      │
+                                └──────────────────────────────┘
+```
+
+- **lobby** / **playing** / **discussion** / **ended** are authoritative server-side `GamePhase` values.
+- **reveal** is a client-side UI state triggered by the `round_reveal` socket event. It is never part of the `GameState.phase`; incoming `game_state` broadcasts do not override it.
+
+### Real-time Communication (Socket.IO events)
+
+| Direction       | Event                | Description                                          |
+|-----------------|----------------------|------------------------------------------------------|
+| client → server | `create_room`        | Host creates a room                                  |
+| client → server | `join_room`          | Player joins by code                                 |
+| client → server | `rejoin_room`        | Reconnecting player restores session                 |
+| client → server | `start_game`         | Host starts first round (host only)                  |
+| client → server | `player_done`        | Current-turn player presses Done                     |
+| client → server | `skip_turn`          | Host skips the current player's turn (AFK)           |
+| client → server | `record_result`      | Host records voting outcome (idempotent per round)   |
+| client → server | `next_round`         | Host advances to next round                          |
+| client → server | `end_game`           | Host ends session                                    |
+| client → server | `reset_scores`       | Host resets all scores to 0                          |
+| client → server | `set_difficulty`     | Host changes word difficulty (lobby only)            |
+| client → server | `set_imposter_count` | Host changes imposter count (lobby only)             |
+| server → client | `game_state`         | Broadcast: public state for all players              |
+| server → client | `player_assignment`  | Private: role + word sent **before** game_state broadcast; host gets imposterIds |
+| server → client | `discussion_time`    | All players (or host skip) have finished their turn  |
+| server → client | `result_recorded`    | Voting recorded (scores updated)                     |
+| server → client | `round_reveal`       | Public reveal: word + imposter names + result        |
+| server → client | `game_ended`         | Session over                                         |
+| server → client | `error`              | Structured error for the receiving socket            |
+
+---
+
+## Security Architecture
+
+### CRITICAL: Imposter Identity Isolation
+
+The most important security property of this game is that **no player can learn who the imposters are by intercepting network traffic**.
+
+**Threat model**: A player opens DevTools → Network → WebSocket and reads all incoming socket messages.
+
+**Mitigation** (enforced server-side in `handlers.ts`):
+- The `player_assignment` event is sent **individually** to each socket (not broadcast).
+- The `imposterIds` array is **only populated in the copy sent to the host socket**.
+- Every other player – crewmate or imposter – receives `imposterIds: []`.
+- The server _never_ relies on the client to hide this field.
+
+```
+Host socket       → { role, word, imposterIds: ['socket-abc', 'socket-xyz'] }
+Crewmate socket   → { role, word, imposterIds: [] }
+Imposter socket   → { role: 'imposter', word: null, imposterIds: [] }
+```
+
+### Input Validation Layer (`security/validator.ts`)
+
+Every socket event payload is validated **before** the game logic runs:
+
+| Field            | Validation                                           |
+|------------------|------------------------------------------------------|
+| `playerName`     | string, 1–24 chars, no control characters            |
+| `roomCode`       | string, exactly 6 uppercase alphanumeric chars       |
+| `difficulty`     | one of: `'easy'`, `'medium'`, `'hard'`               |
+| `imposterCount`  | integer, 1–4                                         |
+| `imposterCaught` | boolean                                              |
+| any payload      | must be a plain object (not null / array)            |
+
+TypeScript types provide compile-time safety; this layer provides _runtime_ safety.
+
+### Rate Limiting (`security/rateLimiter.ts`)
+
+Per-socket sliding-window rate limiter (no external dependency):
+
+- **Global**: max 30 events per 5-second window per socket
+- **Per-event**: max 5 rapid-fire calls for any single event name
+- On disconnect: all buckets for that socket are freed immediately
+- Periodic purge loop prevents unbounded memory growth
+
+### HTTP Security Headers (helmet)
+
+`helmet` is applied to all Express routes:
+- `X-Frame-Options: DENY` – prevents clickjacking
+- `X-Content-Type-Options: nosniff`
+- `Strict-Transport-Security` – active in prod with HTTPS
+- `Content-Security-Policy` – locked down (API server only)
+
+### CORS Policy
+
+- `CORS_ORIGINS` env var controls the allowlist (comma-separated).
+- Requests from unlisted origins are rejected with a log warning.
+- **Never** set `CORS_ORIGINS=*` in production.
+
+### Request Body Limit
+
+`express.json({ limit: '10kb' })` – prevents payload bomb attacks.
+
+### Socket.IO Max Buffer
+
+`maxHttpBufferSize: 1e6` (1 MB) – limits max single WS frame size.
+
+### Information Disclosure Prevention
+
+- Health endpoint returns only `{ status: 'ok' }` in production.
+- Secret word is **never logged** on the server.
+- `x-powered-by` header is disabled.
+- Undefined routes return `{ error: 'Not found' }` – no stack traces exposed.
+- Structured JSON logging in production; errors route to `stderr`.
+
+### Memory / Resource Limits
+
+- Max 500 concurrent rooms (`MAX_ROOMS` in `GameService.ts`).
+- Rooms inactive > 2 hours are automatically evicted by the janitor.
+- Rate-limit buckets cleaned up on disconnect and via periodic purge.
+
+### Reconnection Security
+
+Reconnection matches only on **name + disconnected status**. A currently-connected player cannot be hijacked by reusing their name from a different socket.
+
+---
+
+## Deploying to Production
+
+### Checklist
+
+- [ ] Set `NODE_ENV=production` on the server process
+- [ ] Set `CORS_ORIGINS` to your exact front-end URL (e.g. `https://game.yourdomain.com`)
+- [ ] Place the server behind a TLS-terminating reverse proxy (nginx / Caddy / ALB)
+- [ ] Ensure `PORT` matches the proxy's upstream target
+- [ ] Run the server as a non-root user
+- [ ] Set resource limits (memory, CPU) on the container / process
+- [ ] Monitor `/api/health` with an uptime checker
+- [ ] Stream server logs to a log aggregator (JSON output is Datadog / CloudWatch ready)
+
+### Scaling Beyond One Instance
+
+The current in-memory `Map` in `GameService` does not survive restarts or scale across multiple Node processes. To scale horizontally:
+1. Replace the `rooms` Map with a Redis hash (use `ioredis`).
+2. Replace the in-process rate-limiter with a Redis-backed one (`rate-limiter-flexible`).
+3. Configure Socket.IO with the `socket.io-redis` adapter so events broadcast across instances.
+
+---
+
+**Last updated**: July 2026

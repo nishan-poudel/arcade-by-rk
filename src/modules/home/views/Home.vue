@@ -9,6 +9,7 @@
         <p class="tagline" data-test="tagline">{{ locale.home.tagline }}</p>
         <p class="sub" data-test="sub">{{ locale.home.sub }}</p>
         <RouterLink :to="{ name: 'about' }" class="btn" data-test="cta">{{ locale.home.cta }}</RouterLink>
+        <RouterLink :to="{ name: 'imposter' }" class="btn btn-game" data-test="cta-imposter">🕵️ Play Imposter</RouterLink>
       </div>
       <div class="hero-visual" data-test="hero-visual">
         <div class="img-frame">

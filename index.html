@@ -3,13 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>APP</title>
+
+    <!-- Mobile-first viewport: cover fills notch/punch-hole areas -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Prevent iOS double-tap zoom -->
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- PWA / home-screen meta -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Imposter" />
+
+    <!-- Browser chrome colour (Android + Safari 15+) -->
+    <meta name="theme-color" content="#0d0d0d" />
+
+    <title>Imposter Game</title>
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
+        /* Remove blue tap highlight on Android/iOS */
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html {
+        /* Prevent iOS Safari font-size boosting when device rotates */
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
       }
 
       body {
@@ -18,11 +41,24 @@
         line-height: 1.5;
         color: white;
         background: #0d0d0d;
+        /* Prevent elastic over-scroll bounce revealing white behind the app */
+        overscroll-behavior: none;
       }
 
       input,
-      button {
+      select,
+      button,
+      textarea {
         font-family: inherit;
+        /* Prevent iOS from zooming into inputs: keep font-size ≥ 16px */
+        font-size: 16px;
+        /* Remove 300ms tap delay everywhere */
+        touch-action: manipulation;
+      }
+
+      /* Allow momentum scrolling in scrollable areas on iOS */
+      .scroll-area {
+        -webkit-overflow-scrolling: touch;
       }
     </style>
   </head>
