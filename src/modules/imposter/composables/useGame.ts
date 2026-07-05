@@ -63,9 +63,11 @@ export function useGame() {
     socket.on('connect', () => {
       myId.value = socket.id ?? ''
 
-      // Attempt to restore session after disconnect
+      // Only attempt to restore session if the user was actively in a game
+      // (screen is not 'landing'). Firing rejoin on every fresh connection
+      // from stale sessionStorage caused a race with create_room/join_room.
       const saved = getReconnectInfo()
-      if (saved && !gameState.value) {
+      if (saved && screen.value !== 'landing' && !gameState.value) {
         socket.emit('rejoin_room', { roomCode: saved.roomCode, playerName: saved.playerName })
       }
     })
@@ -148,11 +150,13 @@ export function useGame() {
 
   function createRoom(hostName: string, difficulty: Difficulty, imposterCount: number) {
     errorMessage.value = ''
+    connect()  // reconnect if the user is returning from a previous game
     socket.emit('create_room', { hostName, difficulty, imposterCount })
   }
 
   function joinRoom(code: string, playerName: string) {
     errorMessage.value = ''
+    connect()  // reconnect if the user is returning from a previous game
     socket.emit('join_room', { roomCode: code.toUpperCase(), playerName })
   }
 

@@ -44,7 +44,8 @@ export function useSocket() {
   function disconnect() {
     if (socket) {
       socket.disconnect()
-      socket = null
+      // Do NOT null the module singleton — connect() must be able to
+      // call socket.connect() again if the user starts a new game.
       connected.value = false
     }
   }

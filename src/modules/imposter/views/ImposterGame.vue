@@ -29,7 +29,7 @@
     </Transition>
 
     <!-- Screen router -->
-    <Transition name="screen" mode="out-in">
+    <div>
       <LandingScreen
         v-if="screen === 'landing'"
         @create="onCreateRoom"
@@ -37,8 +37,8 @@
       />
 
       <WaitingRoom
-        v-else-if="screen === 'waiting'"
-        :game-state="gameState!"
+        v-else-if="screen === 'waiting' && gameState"
+        :game-state="gameState"
         :is-host="isHost"
         @start="startGame"
         @leave="leaveGame"
@@ -47,11 +47,11 @@
       />
 
       <!-- In-game: host or player -->
-      <template v-else-if="screen === 'game' || screen === 'discussion'">
+      <template v-else-if="(screen === 'game' || screen === 'discussion') && gameState && myAssignment">
         <HostScreen
           v-if="isHost"
-          :game-state="gameState!"
-          :my-assignment="myAssignment!"
+          :game-state="gameState"
+          :my-assignment="myAssignment"
           :screen="screen"
           @end-game="endGame"
           @reset-scores="resetScores"
@@ -61,9 +61,9 @@
         />
         <PlayerScreen
           v-else
-          :game-state="gameState!"
+          :game-state="gameState"
           :my-id="myId"
-          :my-assignment="myAssignment!"
+          :my-assignment="myAssignment"
           :is-my-turn="isMyTurn"
           :screen="screen"
           @player-done="playerDone"
@@ -71,8 +71,8 @@
       </template>
 
       <RoundReveal
-        v-else-if="screen === 'reveal'"
-        :reveal="currentReveal!"
+        v-else-if="screen === 'reveal' && currentReveal && gameState"
+        :reveal="currentReveal"
         :game-state="gameState"
         :my-id="myId"
         :is-host="isHost"
@@ -81,12 +81,20 @@
       />
 
       <GameOverScreen
-        v-else-if="screen === 'over'"
-        :game-state="gameState!"
+        v-else-if="screen === 'over' && gameState"
+        :game-state="gameState"
         :sorted-players="sortedPlayers"
         @leave="leaveGame"
       />
-    </Transition>
+
+      <!-- Fallback: screen changed but data not yet ready -->
+      <div v-else-if="screen !== 'landing'" class="min-h-dvh flex items-center justify-center">
+        <div class="flex flex-col items-center gap-3 text-white/40">
+          <div class="w-8 h-8 border-2 border-white/20 border-t-green-400 rounded-full animate-spin" />
+          <p class="text-sm">Loading…</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
