@@ -1,9 +1,7 @@
 <template>
   <div class="min-h-dvh flex flex-col bg-[#0d0d0d]" style="padding-top: max(1rem, env(safe-area-inset-top))">
-
     <!-- Scrollable body -->
     <div class="flex-1 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
-
       <!-- Room code: BIG, easy to read from across the table.
            Tap anywhere on the badge to copy it to clipboard. -->
       <div class="text-center mb-6 animate-fade-in">
@@ -32,7 +30,9 @@
           </span>
         </div>
 
-        <TransitionGroup name="player-list" tag="ul" class="space-y-2">
+        <TransitionGroup
+          name="player-list" tag="ul"
+          class="space-y-2">
           <li
             v-for="player in gameState.players"
             :key="player.id"

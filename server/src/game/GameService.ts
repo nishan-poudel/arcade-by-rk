@@ -130,7 +130,7 @@ export class GameService {
 
     // Ensure unique room code
     let code = generateRoomCode()
-    while (this.rooms.has(code)) code = generateRoomCode()
+    while (this.rooms.has(code)) {code = generateRoomCode()}
 
     const host: Player = {
       id: hostId,
@@ -166,9 +166,9 @@ export class GameService {
   /** Add a player to an existing room. Returns error string or null on success. */
   joinRoom(roomCode: string, playerId: string, playerName: string): string | null {
     const room = this.rooms.get(roomCode.toUpperCase())
-    if (!room) return 'Room not found. Check the code and try again.'
-    if (room.phase !== 'lobby') return 'Game has already started.'
-    if (room.players.size >= 12) return 'Room is full (max 12 players).'
+    if (!room) {return 'Room not found. Check the code and try again.'}
+    if (room.phase !== 'lobby') {return 'Game has already started.'}
+    if (room.players.size >= 12) {return 'Room is full (max 12 players).'}
 
     // Check for duplicate names (case-insensitive)
     const nameLower = playerName.trim().toLowerCase()
@@ -202,7 +202,7 @@ export class GameService {
         // Purge any vote cast by this player, and any votes cast FOR this player
         room.votes.delete(playerId)
         for (const [voterId, votedId] of room.votes) {
-          if (votedId === playerId) room.votes.delete(voterId)
+          if (votedId === playerId) {room.votes.delete(voterId)}
         }
         // Adjust currentTurnIndex if needed
         if (room.currentTurnIndex >= room.playerOrder.length && room.playerOrder.length > 0) {
@@ -246,7 +246,7 @@ export class GameService {
     playerName: string,
   ): { room: Room; assignment: PlayerAssignment } | null {
     const room = this.rooms.get(roomCode.toUpperCase())
-    if (!room) return null
+    if (!room) {return null}
 
     const nameLower = playerName.trim().toLowerCase()
     let foundPlayer: Player | undefined
@@ -261,7 +261,7 @@ export class GameService {
         room.players.set(newSocketId, foundPlayer)
         // Update playerOrder reference
         room.playerOrder = room.playerOrder.map((oid) => (oid === id ? newSocketId : oid))
-        if (room.hostId === id) room.hostId = newSocketId
+        if (room.hostId === id) {room.hostId = newSocketId}
         // Remap votes: this player's own vote (key) and any votes cast FOR them (value)
         const remappedVotes = new Map<string, string>()
         for (const [voterId, votedId] of room.votes) {
@@ -274,7 +274,7 @@ export class GameService {
       }
     }
 
-    if (!foundPlayer) return null
+    if (!foundPlayer) {return null}
 
     return {
       room,
@@ -291,8 +291,8 @@ export class GameService {
    */
   startRound(roomCode: string): Map<string, PlayerAssignment> | null {
     const room = this.rooms.get(roomCode)
-    if (!room) return null
-    if (room.players.size < 3) return null
+    if (!room) {return null}
+    if (room.players.size < 3) {return null}
 
     room.phase = 'playing'
     room.round += 1
@@ -316,7 +316,7 @@ export class GameService {
 
     for (const id of imposterIds) {
       const p = room.players.get(id)
-      if (p) p.role = 'imposter'
+      if (p) {p.role = 'imposter'}
     }
 
     // Build random turn order starting at index 0
@@ -351,14 +351,14 @@ export class GameService {
     playerId: string,
   ): { allDone: boolean; nextPlayerId: string } | null {
     const room = this.rooms.get(roomCode)
-    if (!room || room.phase !== 'playing') return null
+    if (!room || room.phase !== 'playing') {return null}
 
     const player = room.players.get(playerId)
-    if (!player) return null
+    if (!player) {return null}
 
     // Only the current turn player can press Done
     const currentId = room.playerOrder[room.currentTurnIndex]
-    if (currentId !== playerId) return null
+    if (currentId !== playerId) {return null}
 
     player.hasDone = true
     room.currentTurnIndex++
@@ -389,8 +389,8 @@ export class GameService {
    */
   recordResult(roomCode: string, imposterCaught: boolean): boolean {
     const room = this.rooms.get(roomCode)
-    if (!room) return false
-    if (room.resultRecordedThisRound) return false
+    if (!room) {return false}
+    if (room.resultRecordedThisRound) {return false}
 
     room.resultRecordedThisRound = true
     for (const player of room.players.values()) {
@@ -418,16 +418,16 @@ export class GameService {
     votedPlayerId: string,
   ): { ok: true } | { ok: false; error: string } {
     const room = this.rooms.get(roomCode.toUpperCase())
-    if (!room) return { ok: false, error: 'Room not found.' }
-    if (room.phase !== 'discussion') return { ok: false, error: 'Voting is not open right now.' }
+    if (!room) {return { ok: false, error: 'Room not found.' }}
+    if (room.phase !== 'discussion') {return { ok: false, error: 'Voting is not open right now.' }}
     if (room.resultRecordedThisRound) {
       return { ok: false, error: 'Voting has already ended for this round.' }
     }
-    if (!room.players.has(voterId)) return { ok: false, error: 'You are not part of this room.' }
+    if (!room.players.has(voterId)) {return { ok: false, error: 'You are not part of this room.' }}
     if (!room.players.has(votedPlayerId)) {
       return { ok: false, error: 'That player is not in this room.' }
     }
-    if (voterId === votedPlayerId) return { ok: false, error: 'You cannot vote for yourself.' }
+    if (voterId === votedPlayerId) {return { ok: false, error: 'You cannot vote for yourself.' }}
 
     room.votes.set(voterId, votedPlayerId)
     room.lastActivityAt = Date.now()
@@ -437,7 +437,7 @@ export class GameService {
   /** True once every currently-connected player has cast a vote this round. */
   allVotesIn(room: Room): boolean {
     for (const player of room.players.values()) {
-      if (player.connected && !room.votes.has(player.id)) return false
+      if (player.connected && !room.votes.has(player.id)) {return false}
     }
     return true
   }
@@ -463,15 +463,15 @@ export class GameService {
     votes: Record<string, string>
   } | null {
     const room = this.rooms.get(roomCode.toUpperCase())
-    if (!room) return null
-    if (room.resultRecordedThisRound) return null
+    if (!room) {return null}
+    if (room.resultRecordedThisRound) {return null}
 
     // Initialize every player at 0 so the client can render a full bar chart,
     // even for players nobody voted for.
     const voteCounts: Record<string, number> = {}
-    for (const id of room.players.keys()) voteCounts[id] = 0
+    for (const id of room.players.keys()) {voteCounts[id] = 0}
     for (const votedId of room.votes.values()) {
-      if (voteCounts[votedId] !== undefined) voteCounts[votedId] += 1
+      if (voteCounts[votedId] !== undefined) {voteCounts[votedId] += 1}
     }
 
     let maxVotes = 0
@@ -514,8 +514,8 @@ export class GameService {
   /** Reset all scores to 0. */
   resetScores(roomCode: string): void {
     const room = this.rooms.get(roomCode)
-    if (!room) return
-    for (const p of room.players.values()) p.score = 0
+    if (!room) {return}
+    for (const p of room.players.values()) {p.score = 0}
     room.lastActivityAt = Date.now()
   }
 
@@ -582,7 +582,7 @@ export class GameService {
     roomCode: string,
   ): { word: string; imposterNames: string[]; round: number } | null {
     const room = this.rooms.get(roomCode.toUpperCase())
-    if (!room) return null
+    if (!room) {return null}
     const imposterNames = Array.from(room.players.values())
       .filter((p) => p.role === 'imposter')
       .map((p) => p.name)
@@ -600,14 +600,14 @@ export class GameService {
    */
   skipTurn(roomCode: string): { allDone: boolean; nextPlayerId: string } | null {
     const room = this.rooms.get(roomCode)
-    if (!room || room.phase !== 'playing') return null
-    if (room.playerOrder.length === 0) return null
+    if (!room || room.phase !== 'playing') {return null}
+    if (room.playerOrder.length === 0) {return null}
 
     room.currentTurnIndex++
     room.lastActivityAt = Date.now()
 
     const allDone = room.currentTurnIndex >= room.playerOrder.length
-    if (allDone) room.phase = 'discussion'
+    if (allDone) {room.phase = 'discussion'}
 
     const nextPlayerId =
       !allDone && room.currentTurnIndex < room.playerOrder.length
@@ -625,7 +625,7 @@ export class GameService {
   /** Find which room a socket ID belongs to. */
   getRoomByPlayerId(playerId: string): Room | null {
     for (const room of this.rooms.values()) {
-      if (room.players.has(playerId)) return room
+      if (room.players.has(playerId)) {return room}
     }
     return null
   }

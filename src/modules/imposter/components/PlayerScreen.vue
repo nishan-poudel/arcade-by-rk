@@ -9,7 +9,6 @@
   >
     <!-- Scrollable content area -->
     <div class="flex-1 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
-
       <!-- Player header: name + score -->
       <div class="flex items-center justify-between mb-4 animate-fade-in">
         <div>
@@ -32,7 +31,9 @@
         ]"
       >
         <Transition name="role" mode="out-in">
-          <div v-if="myAssignment.role === 'crewmate'" key="crew" class="py-2">
+          <div
+            v-if="myAssignment.role === 'crewmate'" key="crew"
+            class="py-2">
             <p class="text-xs text-white/40 uppercase tracking-widest mb-1">Your Role</p>
             <p class="text-2xl font-bold text-green-400 mb-4">🧑‍🚀 Crewmate</p>
             <div class="border-t border-white/10 pt-4">
@@ -43,7 +44,9 @@
               </p>
             </div>
           </div>
-          <div v-else key="imp" class="py-2">
+          <div
+            v-else key="imp"
+            class="py-2">
             <p class="text-xs text-white/40 uppercase tracking-widest mb-1">Your Role</p>
             <p class="text-2xl font-bold text-red-400 mb-4">👾 IMPOSTER</p>
             <div class="border-t border-white/10 pt-4">
@@ -59,7 +62,9 @@
       <div class="card mb-4">
         <p class="text-xs text-white/40 uppercase tracking-widest mb-2">Current Turn</p>
         <Transition name="turn" mode="out-in">
-          <div v-if="screen === 'discussion'" key="disc" class="text-center py-2">
+          <div
+            v-if="screen === 'discussion'" key="disc"
+            class="text-center py-2">
             <p class="text-2xl font-bold text-yellow-400">💬 Discussion Time!</p>
             <p class="text-sm text-white/50 mt-1">Talk it out, then vote</p>
           </div>

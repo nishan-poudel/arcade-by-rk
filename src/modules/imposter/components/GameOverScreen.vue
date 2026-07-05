@@ -5,7 +5,6 @@
   >
     <!-- Scrollable body -->
     <div class="flex-1 overflow-y-auto px-4 pb-4 scroll-area">
-
       <!-- Header -->
       <div class="text-center pt-4 mb-6 animate-bounce-once">
         <div class="text-6xl mb-3">🏆</div>

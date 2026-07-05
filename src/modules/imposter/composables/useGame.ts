@@ -38,22 +38,22 @@ export function useGame() {
   // ── Computed helpers ──────────────────────────────────────────────────────
 
   const isHost = computed(() => {
-    if (!gameState.value || !myId.value) return false
+    if (!gameState.value || !myId.value) {return false}
     return gameState.value.hostId === myId.value
   })
 
   const me = computed(() => {
-    if (!gameState.value || !myId.value) return null
+    if (!gameState.value || !myId.value) {return null}
     return gameState.value.players.find((p) => p.id === myId.value) ?? null
   })
 
   const isMyTurn = computed(() => {
-    if (!gameState.value || !myId.value) return false
+    if (!gameState.value || !myId.value) {return false}
     return gameState.value.currentTurnPlayerId === myId.value
   })
 
   const sortedPlayers = computed(() => {
-    if (!gameState.value) return []
+    if (!gameState.value) {return []}
     return [...gameState.value.players].sort((a, b) => b.score - a.score)
   })
 
@@ -104,7 +104,7 @@ export function useGame() {
       gameState.value = state
       // Keep screen in sync with phase when it advances
       const resolved = resolveScreen(state)
-      if (resolved !== screen.value) screen.value = resolved
+      if (resolved !== screen.value) {screen.value = resolved}
     })
 
     socket.on('player_assignment', (assignment: PlayerAssignment) => {
@@ -223,7 +223,7 @@ export function useGame() {
 
   function getReconnectInfo(): ReconnectInfo | null {
     const raw = sessionStorage.getItem(RECONNECT_KEY)
-    if (!raw) return null
+    if (!raw) {return null}
     try { return JSON.parse(raw) } catch { return null }
   }
 
@@ -246,8 +246,8 @@ export function useGame() {
    */
   function resolveScreen(state: GameState): AppScreen {
     // Never step backward from a more-advanced client screen
-    if (screen.value === 'reveal' && state.phase === 'discussion') return 'reveal'
-    if (screen.value === 'over') return 'over'
+    if (screen.value === 'reveal' && state.phase === 'discussion') {return 'reveal'}
+    if (screen.value === 'over') {return 'over'}
 
     switch (state.phase) {
       case 'lobby':      return 'waiting'

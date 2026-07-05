@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Imposter party game – Express + Socket.IO backend",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",

@@ -10,7 +10,6 @@
   >
     <!-- Scrollable body -->
     <div class="flex-1 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
-
       <!-- Result banner -->
       <div class="text-center mb-6 animate-bounce-once">
         <div class="text-6xl mb-3">
@@ -154,7 +153,7 @@ defineEmits<{
 }>()
 
 const sortedPlayers = computed<PublicPlayer[]>(() => {
-  if (!props.gameState) return []
+  if (!props.gameState) {return []}
   return [...props.gameState.players].sort((a, b) => b.score - a.score)
 })
 
@@ -169,7 +168,7 @@ function nameOf(id: string): string {
 
 function votePercent(playerId: string): number {
   const total = Object.values(props.reveal.voteCounts).reduce((sum, n) => sum + n, 0)
-  if (total === 0) return 0
+  if (total === 0) {return 0}
   return Math.round(((props.reveal.voteCounts[playerId] ?? 0) / total) * 100)
 }
 

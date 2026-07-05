@@ -55,13 +55,13 @@ export function checkRateLimit(socketId: string, eventName: string): boolean {
   // --- Global per-socket limit ------------------------------------------
   const global = getBucket(globalBuckets, socketId)
   global.tokens++
-  if (global.tokens > GLOBAL_LIMIT) return false
+  if (global.tokens > GLOBAL_LIMIT) {return false}
 
   // --- Per-event limit --------------------------------------------------
   const eventKey = `${socketId}:${eventName}`
   const evBucket = getBucket(eventBuckets, eventKey)
   evBucket.tokens++
-  if (evBucket.tokens > BURST_PER_EVENT) return false
+  if (evBucket.tokens > BURST_PER_EVENT) {return false}
 
   return true
 }
@@ -90,7 +90,7 @@ export function startBucketPurge(): void {
     const now = Date.now()
     const stale = (b: Bucket) => now - b.windowStart >= WINDOW_MS * 2
 
-    for (const [k, v] of globalBuckets) if (stale(v)) globalBuckets.delete(k)
-    for (const [k, v] of eventBuckets)  if (stale(v)) eventBuckets.delete(k)
+    for (const [k, v] of globalBuckets) {if (stale(v)) {globalBuckets.delete(k)}}
+    for (const [k, v] of eventBuckets)  {if (stale(v)) {eventBuckets.delete(k)}}
   }, WINDOW_MS * 4) // purge every 4 windows
 }

@@ -36,17 +36,17 @@ type ValidationResult<T> = ValidationOk<T> | ValidationErr
  * too long or contain control characters.
  */
 export function validateName(raw: unknown): ValidationResult<string> {
-  if (typeof raw !== 'string') return { ok: false, error: 'Name must be a string.' }
+  if (typeof raw !== 'string') {return { ok: false, error: 'Name must be a string.' }}
 
   const name = raw.trim()
-  if (name.length < NAME_MIN_LEN) return { ok: false, error: 'Name cannot be empty.' }
+  if (name.length < NAME_MIN_LEN) {return { ok: false, error: 'Name cannot be empty.' }}
   if (name.length > NAME_MAX_LEN)
-    return { ok: false, error: `Name must be ${NAME_MAX_LEN} characters or fewer.` }
+    {return { ok: false, error: `Name must be ${NAME_MAX_LEN} characters or fewer.` }}
 
   // Reject control characters (tab, newline, etc.)
   // eslint-disable-next-line no-control-regex
   if (/[\x00-\x1F\x7F]/.test(name))
-    return { ok: false, error: 'Name contains invalid characters.' }
+    {return { ok: false, error: 'Name contains invalid characters.' }}
 
   return { ok: true, value: name }
 }
@@ -56,11 +56,11 @@ export function validateName(raw: unknown): ValidationResult<string> {
  * Must be exactly 6 uppercase alphanumeric characters.
  */
 export function validateRoomCode(raw: unknown): ValidationResult<string> {
-  if (typeof raw !== 'string') return { ok: false, error: 'Room code must be a string.' }
+  if (typeof raw !== 'string') {return { ok: false, error: 'Room code must be a string.' }}
 
   const code = raw.trim().toUpperCase()
   if (!ROOM_CODE_PATTERN.test(code))
-    return { ok: false, error: 'Room code must be 6 characters (letters and numbers).' }
+    {return { ok: false, error: 'Room code must be 6 characters (letters and numbers).' }}
 
   return { ok: true, value: code }
 }
@@ -71,7 +71,7 @@ export function validateRoomCode(raw: unknown): ValidationResult<string> {
  */
 export function validateDifficulty(raw: unknown): ValidationResult<Difficulty> {
   if (typeof raw !== 'string' || !VALID_DIFFICULTIES.has(raw))
-    return { ok: false, error: 'Difficulty must be "easy", "medium", or "hard".' }
+    {return { ok: false, error: 'Difficulty must be "easy", "medium", or "hard".' }}
 
   return { ok: true, value: raw as Difficulty }
 }
@@ -83,10 +83,10 @@ export function validateDifficulty(raw: unknown): ValidationResult<Difficulty> {
 export function validateImposterCount(raw: unknown): ValidationResult<number> {
   const n = Number(raw)
   if (!Number.isInteger(n) || n < IMPOSTER_COUNT_MIN || n > IMPOSTER_COUNT_MAX)
-    return {
+    {return {
       ok: false,
       error: `Imposter count must be an integer between ${IMPOSTER_COUNT_MIN} and ${IMPOSTER_COUNT_MAX}.`,
-    }
+    }}
 
   return { ok: true, value: n }
 }

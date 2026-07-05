@@ -5,7 +5,7 @@
  * (first time useSocket() is called) and shared across all callers in
  * the same Vue app instance.
  */
-import { io, Socket } from 'socket.io-client'
+import { io, type Socket } from 'socket.io-client'
 import { shallowRef } from 'vue'
 
 /** Singleton socket (null until connect() is called) */
@@ -45,7 +45,7 @@ export function useSocket() {
 
   /** Connect if not already connected */
   function connect() {
-    if (socket && !socket.connected) socket.connect()
+    if (socket && !socket.connected) {socket.connect()}
   }
 
   /** Disconnect and destroy the socket (call on game leave / page unload) */

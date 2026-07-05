@@ -5,7 +5,6 @@
   >
     <!-- Scrollable content -->
     <div class="flex-1 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
-
       <!-- Header -->
       <div class="flex items-center justify-between mb-4 animate-fade-in">
         <div>
@@ -60,7 +59,9 @@
       <div class="card mb-3">
         <p class="text-xs text-white/40 uppercase tracking-widest mb-2">Status</p>
         <Transition name="turn" mode="out-in">
-          <div v-if="screen === 'discussion'" key="disc" class="text-center py-1">
+          <div
+            v-if="screen === 'discussion'" key="disc"
+            class="text-center py-1">
             <p class="text-xl font-bold text-yellow-400">💬 Discussion Time!</p>
             <p class="text-sm text-white/50 mt-1">Cast your vote below.</p>
           </div>
@@ -224,8 +225,8 @@ const emit = defineEmits<{
 const confirmAction = ref<'reset' | 'end' | null>(null)
 
 function confirmAndExecute() {
-  if (confirmAction.value === 'reset') emit('reset-scores')
-  else if (confirmAction.value === 'end') emit('end-game')
+  if (confirmAction.value === 'reset') {emit('reset-scores')}
+  else if (confirmAction.value === 'end') {emit('end-game')}
   confirmAction.value = null
 }
 
@@ -251,7 +252,7 @@ const donePlayers = computed(() => props.gameState.players.filter((p) => p.hasDo
 
 const turnProgress = computed(() => {
   const total = props.gameState.players.length
-  if (total === 0) return 0
+  if (total === 0) {return 0}
   return Math.round((donePlayers.value / total) * 100)
 })
 

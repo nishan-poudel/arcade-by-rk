@@ -5,7 +5,6 @@
     pb-safe pads the bottom above the iOS home indicator.
   -->
   <div class="min-h-dvh flex flex-col bg-[#0d0d0d] px-5" style="padding-top: max(2.5rem, env(safe-area-inset-top))">
-
     <!-- Brand header -->
     <div class="text-center pt-4 pb-6 animate-fade-in">
       <div class="text-5xl mb-3">🕵️</div>
@@ -38,7 +37,9 @@
     <!-- Forms -->
     <Transition name="tab" mode="out-in">
       <!-- Create form -->
-      <div v-if="tab === 'create'" key="create" class="card space-y-5 animate-slide-up">
+      <div
+        v-if="tab === 'create'" key="create"
+        class="card space-y-5 animate-slide-up">
         <h2 class="font-bold text-lg">New Game</h2>
 
         <div>
@@ -51,7 +52,7 @@
             autocomplete="off"
             autocapitalize="words"
             @keyup.enter="submitCreate"
-          />
+          >
         </div>
 
         <div>
@@ -95,7 +96,9 @@
       </div>
 
       <!-- Join form -->
-      <div v-else key="join" class="card space-y-5 animate-slide-up">
+      <div
+        v-else key="join"
+        class="card space-y-5 animate-slide-up">
         <h2 class="font-bold text-lg">Join Game</h2>
 
         <div>
@@ -116,7 +119,7 @@
             inputmode="text"
             @input="joinForm.roomCode = ($event.target as HTMLInputElement).value.toUpperCase()"
             @keyup.enter="submitJoin"
-          />
+          >
         </div>
 
         <div>
@@ -129,7 +132,7 @@
             autocomplete="off"
             autocapitalize="words"
             @keyup.enter="submitJoin"
-          />
+          >
         </div>
 
         <button
@@ -173,7 +176,7 @@ const joinForm = reactive({
 })
 
 function submitCreate() {
-  if (!createForm.hostName.trim()) return
+  if (!createForm.hostName.trim()) {return}
   emit('create', {
     hostName: createForm.hostName.trim(),
     difficulty: createForm.difficulty,
@@ -182,7 +185,7 @@ function submitCreate() {
 }
 
 function submitJoin() {
-  if (!joinForm.roomCode.trim() || !joinForm.playerName.trim()) return
+  if (!joinForm.roomCode.trim() || !joinForm.playerName.trim()) {return}
   emit('join', {
     roomCode: joinForm.roomCode.trim().toUpperCase(),
     playerName: joinForm.playerName.trim(),

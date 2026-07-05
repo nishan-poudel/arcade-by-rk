@@ -20,7 +20,8 @@
     "jsxImportSource": "vue",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "vuex": ["./node_modules/vuex/types/index.d.ts"]
     },
     "types": ["vite/client", "mocha", "node"],
     "module": "ESNext"

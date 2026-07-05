@@ -28,13 +28,15 @@ process.removeAllListeners('warning')
 // Here we add .vue support using @vue/compiler-sfc + ts.transpileModule.
 const srcDir = path.resolve(process.cwd(), 'src')
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { parse, compileScript, compileTemplate } = require('@vue/compiler-sfc')
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const ts = require('typescript')
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const extensions = (Module as any)._extensions
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 extensions['.vue'] = function (mod: any, filename: string) {
   const source = readFileSync(filename, 'utf-8')
   const { descriptor } = parse(source, { filename })

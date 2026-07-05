@@ -149,7 +149,7 @@ const { connected } = useSocket()
 
 // Auto-dismiss errors after 4 s
 watch(errorMessage, (msg) => {
-  if (msg) setTimeout(() => { errorMessage.value = '' }, 4000)
+  if (msg) {setTimeout(() => { errorMessage.value = '' }, 4000)}
 })
 
 onMounted(() => {
