@@ -25,6 +25,8 @@ export interface PublicPlayer {
   connected: boolean
   /** Whether this player has pressed "Done" this round */
   hasDone: boolean
+  /** Whether this player has cast their vote during the discussion phase */
+  hasVoted: boolean
 }
 
 /**
@@ -77,10 +79,11 @@ export interface JoinRoomPayload {
   playerName: string
 }
 
-export interface RecordResultPayload {
-  /** true  → imposters were caught → crewmates score  */
-  /** false → imposters survived   → imposters score   */
-  imposterCaught: boolean
+/** Cast (or change) a vote during the discussion phase */
+export interface SubmitVotePayload {
+  roomCode: string
+  /** Player ID being voted for as the imposter */
+  votedPlayerId: string
 }
 
 export interface SetDifficultyPayload {
@@ -114,7 +117,7 @@ export interface ErrorPayload {
 }
 
 /**
- * Broadcast to all players after a voting result is recorded.
+ * Broadcast to all players after in-app voting is tallied (or host force-reveals).
  * Safe to reveal publicly — the round is over at this point.
  */
 export interface GameReveal {
@@ -122,4 +125,12 @@ export interface GameReveal {
   imposterNames: string[]
   imposterCaught: boolean
   round: number
+  /** Player ID that received the most votes, or null if tied/no votes */
+  ejectedPlayerId: string | null
+  /** Convenience name for the ejected player, or null */
+  ejectedPlayerName: string | null
+  /** playerId → number of votes received */
+  voteCounts: Record<string, number>
+  /** voterId → votedForId, revealed to everyone after the round ends */
+  votes: Record<string, string>
 }

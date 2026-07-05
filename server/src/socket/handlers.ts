@@ -70,6 +70,26 @@ function dispatchAssignments(
   }
 }
 
+/**
+ * Tally votes for a room and broadcast the public round reveal.
+ * Used both when voting completes naturally (all connected players voted)
+ * and when the host force-reveals early. No-ops (returns false) if the
+ * round was already tallied (idempotency guard inside GameService).
+ */
+function tallyAndBroadcastReveal(io: Server, roomCode: string): boolean {
+  const tally = gameService.tallyVotes(roomCode)
+  if (!tally) return false
+
+  broadcastState(io, roomCode)
+
+  const base = gameService.buildReveal(roomCode)
+  if (base) {
+    const fullReveal: GameReveal = { ...base, ...tally }
+    io.to(roomCode).emit('round_reveal', fullReveal)
+  }
+  return true
+}
+
 // ─── Handler registration ─────────────────────────────────────────────────────
 
 export function registerSocketHandlers(io: Server): void {
@@ -207,35 +227,50 @@ export function registerSocketHandlers(io: Server): void {
       if (result.allDone) io.to(codeResult.value).emit('discussion_time')
     })
 
-    // ── record_result ────────────────────────────────────────────────────────
-    socket.on('record_result', (payload: unknown) => {
-      if (rateLimited(socket, 'record_result')) return
+    // ── submit_vote ──────────────────────────────────────────────────────────
+    socket.on('submit_vote', (payload: unknown) => {
+      if (rateLimited(socket, 'submit_vote')) return
 
       if (!isObject(payload)) return emitError(socket, 'Invalid payload.')
 
       const codeResult = validateRoomCode(payload.roomCode)
       if (!codeResult.ok) return emitError(socket, codeResult.error)
 
-      if (typeof payload.imposterCaught !== 'boolean')
-        return emitError(socket, 'imposterCaught must be a boolean.')
+      if (typeof payload.votedPlayerId !== 'string' || !payload.votedPlayerId) {
+        return emitError(socket, 'votedPlayerId must be a non-empty string.')
+      }
+
+      const result = gameService.submitVote(codeResult.value, socket.id, payload.votedPlayerId)
+      if (!result.ok) return emitError(socket, result.error)
+
+      broadcastState(io, codeResult.value)
+
+      // Auto-reveal the moment every connected player has voted
+      const room = gameService.getRoom(codeResult.value)
+      if (room && gameService.allVotesIn(room)) {
+        tallyAndBroadcastReveal(io, codeResult.value)
+        logger.info('Voting complete (auto)', { roomCode: codeResult.value })
+      }
+    })
+
+    // ── force_reveal_votes ───────────────────────────────────────────────────
+    // Host-only escape hatch: tally whatever votes have been cast so far,
+    // useful if an AFK/disconnected player is blocking the auto-reveal.
+    socket.on('force_reveal_votes', (rawCode: unknown) => {
+      if (rateLimited(socket, 'force_reveal_votes')) return
+
+      const codeResult = validateRoomCode(rawCode)
+      if (!codeResult.ok) return emitError(socket, codeResult.error)
 
       const room = gameService.getRoom(codeResult.value)
       if (!room) return emitError(socket, 'Room not found.')
-      if (room.hostId !== socket.id) return emitError(socket, 'Only the host can record results.')
+      if (room.hostId !== socket.id) return emitError(socket, 'Only the host can force a reveal.')
       if (room.phase !== 'discussion') return emitError(socket, 'Voting not in progress.')
 
-      const recorded = gameService.recordResult(codeResult.value, payload.imposterCaught)
-      if (!recorded) return emitError(socket, 'Result already recorded for this round.')
+      const revealed = tallyAndBroadcastReveal(io, codeResult.value)
+      if (!revealed) return emitError(socket, 'Result already recorded for this round.')
 
-      broadcastState(io, codeResult.value)
-      io.to(codeResult.value).emit('result_recorded', { imposterCaught: payload.imposterCaught })
-
-      // Broadcast public reveal to ALL players — the round is over, safe to show word + imposters
-      const reveal = gameService.buildReveal(codeResult.value)
-      if (reveal) {
-        const fullReveal: GameReveal = { ...reveal, imposterCaught: payload.imposterCaught }
-        io.to(codeResult.value).emit('round_reveal', fullReveal)
-      }
+      logger.info('Voting complete (host forced)', { roomCode: codeResult.value })
     })
 
     // ── next_round ───────────────────────────────────────────────────────────

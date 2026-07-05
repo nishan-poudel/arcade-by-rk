@@ -49,8 +49,10 @@ interface Room {
   round: number
   /** Unix ms timestamp of the last meaningful activity – used for TTL eviction */
   lastActivityAt: number
-  /** True once the host has recorded a voting result for this round (idempotency guard) */
+  /** True once voting has been tallied and scored for this round (idempotency guard) */
   resultRecordedThisRound: boolean
+  /** voterId → votedForId, cast during the discussion phase */
+  votes: Map<string, string>
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -86,7 +88,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /** Convert internal Player to PublicPlayer (strips role) */
-function toPublic(p: Player): PublicPlayer {
+function toPublic(p: Player, room: Room): PublicPlayer {
   return {
     id: p.id,
     name: p.name,
@@ -94,6 +96,7 @@ function toPublic(p: Player): PublicPlayer {
     isHost: p.isHost,
     connected: p.connected,
     hasDone: p.hasDone,
+    hasVoted: room.votes.has(p.id),
   }
 }
 
@@ -152,6 +155,7 @@ export class GameService {
       round: 0,
       lastActivityAt: Date.now(),
       resultRecordedThisRound: false,
+      votes: new Map(),
     }
 
     this.rooms.set(code, room)
@@ -195,6 +199,11 @@ export class GameService {
         room.players.delete(playerId)
         // Also remove from turn order
         room.playerOrder = room.playerOrder.filter((id) => id !== playerId)
+        // Purge any vote cast by this player, and any votes cast FOR this player
+        room.votes.delete(playerId)
+        for (const [voterId, votedId] of room.votes) {
+          if (votedId === playerId) room.votes.delete(voterId)
+        }
         // Adjust currentTurnIndex if needed
         if (room.currentTurnIndex >= room.playerOrder.length && room.playerOrder.length > 0) {
           room.currentTurnIndex = 0
@@ -253,6 +262,14 @@ export class GameService {
         // Update playerOrder reference
         room.playerOrder = room.playerOrder.map((oid) => (oid === id ? newSocketId : oid))
         if (room.hostId === id) room.hostId = newSocketId
+        // Remap votes: this player's own vote (key) and any votes cast FOR them (value)
+        const remappedVotes = new Map<string, string>()
+        for (const [voterId, votedId] of room.votes) {
+          const newVoter = voterId === id ? newSocketId : voterId
+          const newVoted = votedId === id ? newSocketId : votedId
+          remappedVotes.set(newVoter, newVoted)
+        }
+        room.votes = remappedVotes
         break
       }
     }
@@ -281,6 +298,7 @@ export class GameService {
     room.round += 1
     room.currentWord = pickWord(room.difficulty)
     room.resultRecordedThisRound = false
+    room.votes = new Map()
     room.lastActivityAt = Date.now()
 
     const playerIds = Array.from(room.players.keys())
@@ -367,6 +385,7 @@ export class GameService {
    * imposterCaught = false → imposters each get +2
    *
    * Idempotency: returns false if a result was already recorded this round.
+   * Normally invoked internally by `tallyVotes()`, never directly by a handler.
    */
   recordResult(roomCode: string, imposterCaught: boolean): boolean {
     const room = this.rooms.get(roomCode)
@@ -383,6 +402,104 @@ export class GameService {
     }
     room.lastActivityAt = Date.now()
     return true
+  }
+
+  // ── In-app voting ────────────────────────────────────────────────────────────
+
+  /**
+   * Cast (or change) a vote during the discussion phase.
+   * A player may vote for any other connected player as the suspected imposter.
+   * Re-submitting overwrites the previous vote (no error) so players can change
+   * their mind up until the round is tallied.
+   */
+  submitVote(
+    roomCode: string,
+    voterId: string,
+    votedPlayerId: string,
+  ): { ok: true } | { ok: false; error: string } {
+    const room = this.rooms.get(roomCode.toUpperCase())
+    if (!room) return { ok: false, error: 'Room not found.' }
+    if (room.phase !== 'discussion') return { ok: false, error: 'Voting is not open right now.' }
+    if (room.resultRecordedThisRound) {
+      return { ok: false, error: 'Voting has already ended for this round.' }
+    }
+    if (!room.players.has(voterId)) return { ok: false, error: 'You are not part of this room.' }
+    if (!room.players.has(votedPlayerId)) {
+      return { ok: false, error: 'That player is not in this room.' }
+    }
+    if (voterId === votedPlayerId) return { ok: false, error: 'You cannot vote for yourself.' }
+
+    room.votes.set(voterId, votedPlayerId)
+    room.lastActivityAt = Date.now()
+    return { ok: true }
+  }
+
+  /** True once every currently-connected player has cast a vote this round. */
+  allVotesIn(room: Room): boolean {
+    for (const player of room.players.values()) {
+      if (player.connected && !room.votes.has(player.id)) return false
+    }
+    return true
+  }
+
+  /**
+   * Tally votes cast so far, determine who (if anyone) gets ejected, score the
+   * round via `recordResult`, and return everything the client needs to render
+   * the reveal screen.
+   *
+   * Ejection rule: the player with the strict majority of votes is ejected.
+   * A tie for the top spot (or zero votes) means nobody is ejected, which
+   * counts as the imposter(s) surviving.
+   *
+   * Idempotency: returns null if the round has already been tallied/scored.
+   */
+  tallyVotes(
+    roomCode: string,
+  ): {
+    imposterCaught: boolean
+    ejectedPlayerId: string | null
+    ejectedPlayerName: string | null
+    voteCounts: Record<string, number>
+    votes: Record<string, string>
+  } | null {
+    const room = this.rooms.get(roomCode.toUpperCase())
+    if (!room) return null
+    if (room.resultRecordedThisRound) return null
+
+    // Initialize every player at 0 so the client can render a full bar chart,
+    // even for players nobody voted for.
+    const voteCounts: Record<string, number> = {}
+    for (const id of room.players.keys()) voteCounts[id] = 0
+    for (const votedId of room.votes.values()) {
+      if (voteCounts[votedId] !== undefined) voteCounts[votedId] += 1
+    }
+
+    let maxVotes = 0
+    let topCandidates: string[] = []
+    for (const [id, count] of Object.entries(voteCounts)) {
+      if (count > maxVotes) {
+        maxVotes = count
+        topCandidates = [id]
+      } else if (count === maxVotes && count > 0) {
+        topCandidates.push(id)
+      }
+    }
+
+    // Only eject when there's a single, unambiguous top vote-getter
+    const ejectedPlayerId = maxVotes > 0 && topCandidates.length === 1 ? topCandidates[0] : null
+    const ejectedPlayer = ejectedPlayerId ? room.players.get(ejectedPlayerId) : undefined
+    const imposterCaught = !!ejectedPlayer && ejectedPlayer.role === 'imposter'
+
+    // Apply scoring through the existing idempotent path
+    this.recordResult(roomCode, imposterCaught)
+
+    return {
+      imposterCaught,
+      ejectedPlayerId,
+      ejectedPlayerName: ejectedPlayer?.name ?? null,
+      voteCounts,
+      votes: Object.fromEntries(room.votes),
+    }
   }
 
   /** End the game – set phase to 'ended'. */
@@ -425,7 +542,7 @@ export class GameService {
 
   /** Build the public GameState to broadcast to all clients in the room. */
   buildGameState(room: Room): GameState {
-    const players = Array.from(room.players.values()).map(toPublic)
+    const players = Array.from(room.players.values()).map((p) => toPublic(p, room))
     const currentTurnId = room.playerOrder[room.currentTurnIndex] ?? ''
     const currentTurnPlayer = room.players.get(currentTurnId)
 
@@ -457,10 +574,13 @@ export class GameService {
   }
 
   /**
-   * Build the public round reveal payload.
-   * Safe to broadcast to all players once voting is recorded.
+   * Build the base public round reveal payload (word + imposter names + round).
+   * The caller (socket handler) merges this with the result of `tallyVotes()`
+   * to produce the full `GameReveal` sent to clients.
    */
-  buildReveal(roomCode: string): import('../../../shared/types/index.js').GameReveal | null {
+  buildReveal(
+    roomCode: string,
+  ): { word: string; imposterNames: string[]; round: number } | null {
     const room = this.rooms.get(roomCode.toUpperCase())
     if (!room) return null
     const imposterNames = Array.from(room.players.values())
@@ -469,8 +589,6 @@ export class GameService {
     return {
       word: room.currentWord ?? '',
       imposterNames,
-      // resultRecordedThisRound is true by the time this is called
-      imposterCaught: false, // caller patches this with the actual value
       round: room.round,
     }
   }

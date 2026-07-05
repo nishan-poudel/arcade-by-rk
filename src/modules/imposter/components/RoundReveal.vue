@@ -19,6 +19,10 @@
         <h1 class="text-2xl font-extrabold mb-1">
           {{ reveal.imposterCaught ? 'Imposter Caught!' : 'Imposter Survived!' }}
         </h1>
+        <p class="text-white/50 text-sm mb-1">
+          <template v-if="reveal.ejectedPlayerName">{{ reveal.ejectedPlayerName }} was voted out</template>
+          <template v-else>No majority — nobody was voted out</template>
+        </p>
         <p class="text-white/40 text-sm">
           {{ reveal.imposterCaught ? 'Crewmates score +1 each' : 'Imposters score +2 each' }}
         </p>
@@ -48,6 +52,42 @@
             <span class="text-lg">👾</span>
             {{ name }}
           </span>
+        </div>
+      </div>
+
+      <!-- Vote breakdown -->
+      <div v-if="gameState" class="card mb-4 animate-fade-in">
+        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">Vote Results</p>
+        <ul class="space-y-2 mb-1">
+          <li
+            v-for="player in gameState.players"
+            :key="player.id"
+            class="flex items-center gap-3"
+          >
+            <span
+              class="flex-1 text-sm truncate"
+              :class="player.id === reveal.ejectedPlayerId ? 'text-red-300 font-semibold' : 'text-white/70'"
+            >
+              {{ player.name }}
+              <span v-if="player.id === reveal.ejectedPlayerId">🚪</span>
+            </span>
+            <div class="flex-1 max-w-[100px] bg-white/5 rounded-full h-2 overflow-hidden">
+              <div
+                class="bg-red-500 h-2 rounded-full transition-all"
+                :style="{ width: votePercent(player.id) + '%' }"
+              />
+            </div>
+            <span class="text-xs text-white/40 w-4 text-right">{{ reveal.voteCounts[player.id] ?? 0 }}</span>
+          </li>
+        </ul>
+
+        <div v-if="voteEntries.length" class="border-t border-white/10 pt-3 mt-3">
+          <p class="text-xs text-white/30 mb-2">Who voted for who</p>
+          <ul class="space-y-1 text-xs text-white/50">
+            <li v-for="entry in voteEntries" :key="entry.voterId">
+              {{ entry.voterName }} → {{ entry.votedName }}
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -122,4 +162,22 @@ const sortedPlayers = computed<PublicPlayer[]>(() => {
 function isImposterName(name: string): boolean {
   return props.reveal.imposterNames.includes(name)
 }
+
+function nameOf(id: string): string {
+  return props.gameState?.players.find((p) => p.id === id)?.name ?? 'Unknown'
+}
+
+function votePercent(playerId: string): number {
+  const total = Object.values(props.reveal.voteCounts).reduce((sum, n) => sum + n, 0)
+  if (total === 0) return 0
+  return Math.round(((props.reveal.voteCounts[playerId] ?? 0) / total) * 100)
+}
+
+const voteEntries = computed(() =>
+  Object.entries(props.reveal.votes).map(([voterId, votedId]) => ({
+    voterId,
+    voterName: nameOf(voterId),
+    votedName: nameOf(votedId),
+  })),
+)
 </script>

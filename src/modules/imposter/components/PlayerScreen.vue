@@ -86,6 +86,32 @@
         </Transition>
       </div>
 
+      <!-- In-app voting (discussion phase) -->
+      <Transition name="panel">
+        <div v-if="screen === 'discussion'" class="card mb-4 border-yellow-500/20">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs text-white/40 uppercase tracking-widest">Vote the Imposter</p>
+            <span class="badge bg-white/10 text-white/60">{{ votedCount }}/{{ totalVoters }} voted</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              v-for="p in votablePlayers"
+              :key="p.id"
+              class="rounded-xl py-3 px-2 border text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 truncate"
+              :class="myVote === p.id ? 'bg-red-500/30 border-red-500/60 text-red-300' : 'bg-white/5 border-white/10 text-white/70'"
+              @click="$emit('submit-vote', p.id)"
+            >
+              <span v-if="myVote === p.id">🗳️</span>
+              <span class="truncate">{{ p.name }}</span>
+            </button>
+          </div>
+          <p class="text-xs text-white/30 mt-3 text-center">
+            <template v-if="myVote">Voted for {{ votedName }} — tap another to change</template>
+            <template v-else>Tap a name to cast your vote</template>
+          </p>
+        </div>
+      </Transition>
+
       <!-- Compact scoreboard -->
       <div class="card">
         <p class="text-xs text-white/40 uppercase tracking-widest mb-3">Scores</p>
@@ -133,7 +159,7 @@
 
     <!-- Discussion phase bottom message -->
     <div v-else-if="screen === 'discussion'" class="action-bar text-center">
-      <p class="text-yellow-400 font-semibold">💬 Vote in person, then wait for the host</p>
+      <p class="text-yellow-400 font-semibold">�️ {{ votedCount }}/{{ totalVoters }} voted</p>
     </div>
   </div>
 </template>
@@ -146,16 +172,27 @@ const props = defineProps<{
   gameState: GameState
   myId: string
   myAssignment: PlayerAssignment
+  myVote: string
   isMyTurn: boolean
   screen: AppScreen
 }>()
 
-defineEmits<{ 'player-done': [] }>()
+defineEmits<{ 'player-done': []; 'submit-vote': [playerId: string] }>()
 
 const me = computed(() => props.gameState.players.find((p) => p.id === props.myId))
 
 const sortedPlayers = computed(() =>
   [...props.gameState.players].sort((a, b) => b.score - a.score),
+)
+
+/** Everyone except me — valid vote targets */
+const votablePlayers = computed(() => props.gameState.players.filter((p) => p.id !== props.myId))
+
+const votedCount = computed(() => props.gameState.players.filter((p) => p.hasVoted).length)
+const totalVoters = computed(() => props.gameState.players.length)
+
+const votedName = computed(
+  () => props.gameState.players.find((p) => p.id === props.myVote)?.name ?? '',
 )
 </script>
 

@@ -12,7 +12,7 @@ export type {
   GameReveal,
   CreateRoomPayload,
   JoinRoomPayload,
-  RecordResultPayload,
+  SubmitVotePayload,
   SetDifficultyPayload,
   SetImposterCountPayload,
   RejoinPayload,

@@ -62,7 +62,7 @@
         <Transition name="turn" mode="out-in">
           <div v-if="screen === 'discussion'" key="disc" class="text-center py-1">
             <p class="text-xl font-bold text-yellow-400">💬 Discussion Time!</p>
-            <p class="text-sm text-white/50 mt-1">Record the voting result below.</p>
+            <p class="text-sm text-white/50 mt-1">Cast your vote below.</p>
           </div>
           <div v-else :key="gameState.currentTurnPlayerId">
             <div class="flex items-center gap-2 mb-3">
@@ -104,38 +104,41 @@
               v-if="player.hasDone && screen === 'game'"
               class="badge bg-green-500/20 text-green-400"
             >✓</span>
+            <span
+              v-if="player.hasVoted && screen === 'discussion'"
+              class="badge bg-yellow-500/20 text-yellow-400"
+            >🗳️</span>
             <span class="font-bold text-green-400 text-sm">{{ player.score }}</span>
           </li>
         </ul>
       </div>
 
-      <!-- Result recording (discussion phase) -->
+      <!-- In-app voting (discussion phase) — host votes too, plus can force-reveal early -->
       <Transition name="panel">
         <div v-if="screen === 'discussion'" class="card mb-3 border-yellow-500/20">
-          <p class="text-xs text-white/40 uppercase tracking-widest mb-3">Record Voting Result</p>
-          <p class="text-xs text-white/30 mb-3 text-center">
-            Did the group vote out an imposter?
-          </p>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs text-white/40 uppercase tracking-widest">Vote the Imposter</p>
+            <span class="badge bg-white/10 text-white/60">{{ votedCount }}/{{ totalVoters }} voted</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 mb-3">
             <button
-              class="bg-green-500/20 border border-green-500/40 active:scale-95 rounded-2xl
-                     py-5 flex flex-col items-center gap-1 transition-all"
-              @click="$emit('record-result', true)"
+              v-for="p in votablePlayers"
+              :key="p.id"
+              class="rounded-xl py-3 px-2 border text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 truncate"
+              :class="myVote === p.id ? 'bg-red-500/30 border-red-500/60 text-red-300' : 'bg-white/5 border-white/10 text-white/70'"
+              @click="$emit('submit-vote', p.id)"
             >
-              <span class="text-3xl">✅</span>
-              <span class="font-semibold text-green-400 text-sm">Caught</span>
-              <span class="text-xs text-white/40">Crewmates +1</span>
-            </button>
-            <button
-              class="bg-red-500/20 border border-red-500/40 active:scale-95 rounded-2xl
-                     py-5 flex flex-col items-center gap-1 transition-all"
-              @click="$emit('record-result', false)"
-            >
-              <span class="text-3xl">😈</span>
-              <span class="font-semibold text-red-400 text-sm">Survived</span>
-              <span class="text-xs text-white/40">Imposters +2</span>
+              <span v-if="myVote === p.id">🗳️</span>
+              <span class="truncate">{{ p.name }}</span>
             </button>
           </div>
+          <p class="text-xs text-white/30 mb-3 text-center">
+            <template v-if="myVote">Voted for {{ votedName }} — tap another to change</template>
+            <template v-else>Tap a name to cast your vote</template>
+          </p>
+          <button class="btn-secondary w-full text-sm py-3" @click="$emit('force-reveal')">
+            ⚡ Force Reveal Now
+          </button>
         </div>
       </Transition>
 
@@ -203,13 +206,16 @@ import type { GameState, PlayerAssignment, AppScreen } from '../types/index.js'
 const props = defineProps<{
   gameState: GameState
   myAssignment: PlayerAssignment
+  myId: string
+  myVote: string
   screen: AppScreen
 }>()
 
 const emit = defineEmits<{
   'end-game': []
   'reset-scores': []
-  'record-result': [imposterCaught: boolean]
+  'submit-vote': [playerId: string]
+  'force-reveal': []
   'player-done': []
   'skip-turn': []
 }>()
@@ -248,6 +254,16 @@ const turnProgress = computed(() => {
   if (total === 0) return 0
   return Math.round((donePlayers.value / total) * 100)
 })
+
+/** Everyone except me — valid vote targets (host is a player too) */
+const votablePlayers = computed(() => props.gameState.players.filter((p) => p.id !== props.myId))
+
+const votedCount = computed(() => props.gameState.players.filter((p) => p.hasVoted).length)
+const totalVoters = computed(() => props.gameState.players.length)
+
+const votedName = computed(
+  () => props.gameState.players.find((p) => p.id === props.myVote)?.name ?? '',
+)
 
 function getPlayerName(id: string): string {
   return props.gameState.players.find((p) => p.id === id)?.name ?? id

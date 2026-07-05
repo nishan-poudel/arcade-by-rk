@@ -52,10 +52,13 @@
           v-if="isHost"
           :game-state="gameState"
           :my-assignment="myAssignment"
+          :my-id="myId"
+          :my-vote="myVote"
           :screen="screen"
           @end-game="endGame"
           @reset-scores="resetScores"
-          @record-result="recordResult"
+          @submit-vote="submitVote"
+          @force-reveal="forceRevealVotes"
           @player-done="playerDone"
           @skip-turn="skipTurn"
         />
@@ -64,9 +67,11 @@
           :game-state="gameState"
           :my-id="myId"
           :my-assignment="myAssignment"
+          :my-vote="myVote"
           :is-my-turn="isMyTurn"
           :screen="screen"
           @player-done="playerDone"
+          @submit-vote="submitVote"
         />
       </template>
 
@@ -88,7 +93,7 @@
       />
 
       <!-- Fallback: screen changed but data not yet ready -->
-      <div v-else-if="screen !== 'landing'" class="min-h-dvh flex items-center justify-center">
+      <div v-else class="min-h-dvh flex items-center justify-center">
         <div class="flex flex-col items-center gap-3 text-white/40">
           <div class="w-8 h-8 border-2 border-white/20 border-t-green-400 rounded-full animate-spin" />
           <p class="text-sm">Loading…</p>
@@ -117,6 +122,7 @@ const {
   myId,
   screen,
   errorMessage,
+  myVote,
   currentReveal,
   isHost,
   isMyTurn,
@@ -128,7 +134,8 @@ const {
   joinRoom,
   startGame,
   playerDone,
-  recordResult,
+  submitVote,
+  forceRevealVotes,
   nextRound,
   endGame,
   resetScores,

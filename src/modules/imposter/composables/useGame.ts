@@ -28,7 +28,8 @@ const myId: Ref<string> = ref('')
 const screen: Ref<AppScreen> = ref('landing')
 const errorMessage: Ref<string> = ref('')
 const roomCode: Ref<string> = ref('')
-const lastResult: Ref<{ imposterCaught: boolean } | null> = ref(null)
+/** Locally remembers who *I* voted for this round (server also tracks hasVoted per player) */
+const myVote: Ref<string> = ref('')
 const currentReveal: Ref<GameReveal | null> = ref(null)
 
 export function useGame() {
@@ -112,10 +113,7 @@ export function useGame() {
 
     socket.on('discussion_time', () => {
       screen.value = 'discussion'
-    })
-
-    socket.on('result_recorded', (payload: { imposterCaught: boolean }) => {
-      lastResult.value = payload
+      myVote.value = ''
     })
 
     socket.on('round_reveal', (reveal: GameReveal) => {
@@ -140,7 +138,6 @@ export function useGame() {
     socket.off('game_state')
     socket.off('player_assignment')
     socket.off('discussion_time')
-    socket.off('result_recorded')
     socket.off('round_reveal')
     socket.off('game_ended')
     socket.off('error')
@@ -168,12 +165,19 @@ export function useGame() {
     socket.emit('player_done', roomCode.value)
   }
 
-  function recordResult(imposterCaught: boolean) {
-    socket.emit('record_result', { roomCode: roomCode.value, imposterCaught })
+  /** Cast (or change) my vote for who I think the imposter is. */
+  function submitVote(votedPlayerId: string) {
+    myVote.value = votedPlayerId
+    socket.emit('submit_vote', { roomCode: roomCode.value, votedPlayerId })
+  }
+
+  /** Host-only: tally votes now, even if not everyone has voted. */
+  function forceRevealVotes() {
+    socket.emit('force_reveal_votes', roomCode.value)
   }
 
   function nextRound() {
-    lastResult.value = null
+    myVote.value = ''
     currentReveal.value = null
     socket.emit('next_round', roomCode.value)
   }
@@ -207,7 +211,7 @@ export function useGame() {
     screen.value = 'landing'
     errorMessage.value = ''
     roomCode.value = ''
-    lastResult.value = null
+    myVote.value = ''
     currentReveal.value = null
   }
 
@@ -262,7 +266,7 @@ export function useGame() {
     screen,
     errorMessage,
     roomCode,
-    lastResult,
+    myVote,
     currentReveal,
     // Computed
     isHost,
@@ -278,7 +282,8 @@ export function useGame() {
     joinRoom,
     startGame,
     playerDone,
-    recordResult,
+    submitVote,
+    forceRevealVotes,
     nextRound,
     endGame,
     resetScores,
