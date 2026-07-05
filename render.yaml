@@ -41,8 +41,9 @@ services:
         value: https://imposter-by-rk.onrender.com,https://arcade-by-rk.vercel.app
 
   # ── Frontend: Vite/Vue static build ───────────────────────────────────────
-  - type: static
+  - type: web
     name: imposter-by-rk
+    runtime: static
     rootDir: .
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
