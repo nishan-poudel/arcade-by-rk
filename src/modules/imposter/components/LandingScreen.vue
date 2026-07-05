@@ -87,12 +87,23 @@
         </div>
 
         <button
-          class="btn-primary w-full text-base py-4"
-          :disabled="!createForm.hostName.trim()"
+          class="btn-primary w-full text-base py-4 flex items-center justify-center gap-2"
+          :disabled="!createForm.hostName.trim() || pendingAction !== null"
           @click="submitCreate"
         >
-          Create Room
+          <span
+            v-if="pendingAction === 'create'"
+            class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+          />
+          {{ pendingAction === 'create' ? 'Creating room…' : 'Create Room' }}
         </button>
+
+        <p
+          v-if="pendingAction === 'create' && isSlowConnection"
+          class="text-center text-xs text-white/40 -mt-2 animate-fade-in"
+        >
+          Waking up the server… this can take up to a minute on first use.
+        </p>
       </div>
 
       <!-- Join form -->
@@ -136,12 +147,23 @@
         </div>
 
         <button
-          class="btn-primary w-full text-base py-4"
-          :disabled="!joinForm.roomCode.trim() || !joinForm.playerName.trim()"
+          class="btn-primary w-full text-base py-4 flex items-center justify-center gap-2"
+          :disabled="!joinForm.roomCode.trim() || !joinForm.playerName.trim() || pendingAction !== null"
           @click="submitJoin"
         >
-          Join Room
+          <span
+            v-if="pendingAction === 'join'"
+            class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+          />
+          {{ pendingAction === 'join' ? 'Joining room…' : 'Join Room' }}
         </button>
+
+        <p
+          v-if="pendingAction === 'join' && isSlowConnection"
+          class="text-center text-xs text-white/40 -mt-2 animate-fade-in"
+        >
+          Waking up the server… this can take up to a minute on first use.
+        </p>
       </div>
     </Transition>
 
@@ -156,6 +178,11 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import type { Difficulty } from '../types/index.js'
+
+defineProps<{
+  pendingAction: 'create' | 'join' | null
+  isSlowConnection: boolean
+}>()
 
 const emit = defineEmits<{
   create: [payload: { hostName: string; difficulty: Difficulty; imposterCount: number }]

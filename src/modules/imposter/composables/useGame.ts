@@ -32,6 +32,19 @@ const roomCode: Ref<string> = ref('')
 const myVote: Ref<string> = ref('')
 const currentReveal: Ref<GameReveal | null> = ref(null)
 
+/**
+ * Tracks which action ('create' | 'join') is currently waiting on a server
+ * response, so the UI can show a loading state instead of appearing frozen.
+ * Most relevant on free-tier hosts (e.g. Render) where the backend may be
+ * asleep and take 30-50s to wake up on the first request.
+ */
+const pendingAction: Ref<'create' | 'join' | null> = ref(null)
+/** True once a pending action has taken long enough that it's likely a cold start. */
+const isSlowConnection: Ref<boolean> = ref(false)
+let slowConnectionTimer: ReturnType<typeof setTimeout> | null = null
+
+const SLOW_CONNECTION_THRESHOLD_MS = 4000
+
 export function useGame() {
   const { socket, connect, disconnect: socketDisconnect } = useSocket()
 
@@ -79,6 +92,7 @@ export function useGame() {
       myAssignment.value = payload.assignment
       screen.value = 'waiting'
       errorMessage.value = ''
+      clearPendingAction()
       saveReconnectInfo({
         roomCode: payload.roomCode,
         playerName: getMyName(payload.gameState),
@@ -93,6 +107,7 @@ export function useGame() {
       // Could be reconnecting mid-game
       screen.value = resolveScreen(payload.gameState)
       errorMessage.value = ''
+      clearPendingAction()
       saveReconnectInfo({
         roomCode: payload.gameState.roomCode,
         playerName: getMyName(payload.gameState),
@@ -128,19 +143,24 @@ export function useGame() {
 
     socket.on('error', (payload: { message: string }) => {
       errorMessage.value = payload.message
+      clearPendingAction()
     })
 
     // Surface connection failures to the user instead of failing silently.
     // Without this, a misconfigured VITE_SOCKET_URL / CORS_ORIGINS in prod
     // means clicking "Create Room" or "Join Room" appears to do nothing.
+    // NOTE: socket.io keeps auto-retrying after this (reconnection: true), so
+    // we deliberately do NOT clear pendingAction here — a cold-starting free
+    // host (e.g. Render) fires connect_error a few times before succeeding,
+    // and clearing the loading state here would flash "idle" between retries.
     socket.on('connect_error', (err: Error) => {
-      errorMessage.value = 'Cannot reach the game server. Please check your connection and try again.'
       // eslint-disable-next-line no-console
       console.error('Socket connect_error:', err.message)
     })
 
     socket.on('reconnect_failed', () => {
       errorMessage.value = 'Lost connection to the game server. Please refresh the page.'
+      clearPendingAction()
     })
   }
 
@@ -160,14 +180,36 @@ export function useGame() {
 
   // ── Actions (emit to server) ──────────────────────────────────────────────
 
+  /** Begin tracking a pending create/join action; flips isSlowConnection on after a delay. */
+  function startPendingAction(action: 'create' | 'join') {
+    pendingAction.value = action
+    isSlowConnection.value = false
+    if (slowConnectionTimer) {clearTimeout(slowConnectionTimer)}
+    slowConnectionTimer = setTimeout(() => {
+      if (pendingAction.value) {isSlowConnection.value = true}
+    }, SLOW_CONNECTION_THRESHOLD_MS)
+  }
+
+  /** Clear pending action state (on success, error, or reconnect failure). */
+  function clearPendingAction() {
+    pendingAction.value = null
+    isSlowConnection.value = false
+    if (slowConnectionTimer) {
+      clearTimeout(slowConnectionTimer)
+      slowConnectionTimer = null
+    }
+  }
+
   function createRoom(hostName: string, difficulty: Difficulty, imposterCount: number) {
     errorMessage.value = ''
+    startPendingAction('create')
     connect()  // reconnect if the user is returning from a previous game
     socket.emit('create_room', { hostName, difficulty, imposterCount })
   }
 
   function joinRoom(code: string, playerName: string) {
     errorMessage.value = ''
+    startPendingAction('join')
     connect()  // reconnect if the user is returning from a previous game
     socket.emit('join_room', { roomCode: code.toUpperCase(), playerName })
   }
@@ -219,6 +261,7 @@ export function useGame() {
 
   function leaveGame() {
     clearReconnectInfo()
+    clearPendingAction()
     socketDisconnect()
     gameState.value = null
     myAssignment.value = null
@@ -283,6 +326,8 @@ export function useGame() {
     roomCode,
     myVote,
     currentReveal,
+    pendingAction,
+    isSlowConnection,
     // Computed
     isHost,
     me,

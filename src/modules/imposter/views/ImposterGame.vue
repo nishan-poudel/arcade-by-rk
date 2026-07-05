@@ -32,6 +32,8 @@
     <div>
       <LandingScreen
         v-if="screen === 'landing'"
+        :pending-action="pendingAction"
+        :is-slow-connection="isSlowConnection"
         @create="onCreateRoom"
         @join="onJoinRoom"
       />
@@ -124,6 +126,8 @@ const {
   errorMessage,
   myVote,
   currentReveal,
+  pendingAction,
+  isSlowConnection,
   isHost,
   isMyTurn,
   sortedPlayers,
