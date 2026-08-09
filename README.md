@@ -90,7 +90,7 @@ web/
 | Styling | Tailwind CSS v3 (mobile-first, dark theme) |
 | Real-time | Socket.IO (client + server) |
 | Server | Node.js + Express |
-| State | Vue `ref`/`computed` composables (no Vuex for game state) |
+| State | Vue `ref`/`computed` composables (no global store needed) |
 | Security | helmet, runtime validators, per-socket rate limiter |
 | Shared types | TypeScript interfaces in `shared/types/` |
 
@@ -120,18 +120,13 @@ const routes = [{
 
 - **modules/home** - Home page and home-specific components
 - **modules/common/layouts** - Shared layout components
-- **modules/shared/stores** - Vuex state management
-- **modules/shared/services** - API and external integrations
 - **modules/shared/composables** - Reusable Vue logic
-- **modules/shared/config** - App configuration
-- **modules/shared/types** - TypeScript type definitions
 - **router** - All route definitions
 
 ## Environment Variables
 
 Client (`.env`):
 ```env
-VITE_API_BASE_URL=http://localhost:3001/api
 VITE_SOCKET_URL=
 VITE_APP_ENV=development
 ```
@@ -163,7 +158,7 @@ Build + run commands for the server in production:
 cd server
 npm install
 npm run build   # tsc → dist/
-npm start       # node dist/index.js
+npm start       # node dist/server/src/index.js
 ```
 
 ---

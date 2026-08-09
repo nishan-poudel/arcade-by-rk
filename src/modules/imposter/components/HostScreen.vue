@@ -41,46 +41,35 @@
         <p class="text-xs text-white/30 mt-1">{{ gameState.difficulty }} {{ locale.imposter.hostScreen.difficultySuffix }}</p>
       </div>
 
-      <!-- Imposters (only shown if host is NOT imposter — already knows if they are) -->
-      <div v-if="!isHostImposter" class="card mb-3 border-red-500/30 bg-red-500/5">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.hostScreen.impostersHeading }}</p>
-        <div class="flex flex-wrap gap-2">
-          <span
-            v-for="imposterId in myAssignment.imposterIds"
-            :key="imposterId"
-            class="badge bg-red-500/20 text-red-400 py-1.5 px-3 rounded-full text-sm font-semibold"
-          >
-            {{ getPlayerName(imposterId) }}
-          </span>
-        </div>
-      </div>
-
       <!-- Turn status + progress -->
       <div class="card mb-3">
         <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.hostScreen.statusLabel }}</p>
-        <Transition name="turn" mode="out-in">
-          <div
-            v-if="screen === 'discussion'" key="disc"
-            class="text-center py-1">
-            <p class="text-xl font-bold text-yellow-400">{{ locale.imposter.hostScreen.discussionTitle }}</p>
-            <p class="text-sm text-white/50 mt-1">{{ locale.imposter.hostScreen.discussionSub }}</p>
+        <!--
+          No enter/leave transition here on purpose: this text changes every
+          turn (frequently, mid-round) and must always reflect the current
+          server state immediately. A CSS/JS transition here would add
+          latency and — if the tab is ever backgrounded at the wrong instant —
+          can get stuck showing a stale player name until refocused.
+        -->
+        <div v-if="screen === 'discussion'" class="text-center py-1">
+          <p class="text-xl font-bold text-yellow-400">{{ locale.imposter.hostScreen.discussionTitle }}</p>
+          <p class="text-sm text-white/50 mt-1">{{ locale.imposter.hostScreen.discussionSub }}</p>
+        </div>
+        <div v-else>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse-slow" />
+            <span class="font-semibold">{{ locale.imposter.hostScreen.turnSuffix(gameState.currentTurnName) }}</span>
           </div>
-          <div v-else :key="gameState.currentTurnPlayerId">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse-slow" />
-              <span class="font-semibold">{{ locale.imposter.hostScreen.turnSuffix(gameState.currentTurnName) }}</span>
-            </div>
-            <div class="w-full bg-white/5 rounded-full h-2">
-              <div
-                class="bg-green-500 h-2 rounded-full transition-all duration-500"
-                :style="{ width: turnProgress + '%' }"
-              />
-            </div>
-            <p class="text-xs text-white/30 mt-1.5">
-              {{ locale.imposter.hostScreen.doneProgress(donePlayers, gameState.players.length) }}
-            </p>
+          <div class="w-full bg-white/5 rounded-full h-2">
+            <div
+              class="bg-green-500 h-2 rounded-full transition-all duration-500"
+              :style="{ width: turnProgress + '%' }"
+            />
           </div>
-        </Transition>
+          <p class="text-xs text-white/30 mt-1.5">
+            {{ locale.imposter.hostScreen.doneProgress(donePlayers, gameState.players.length) }}
+          </p>
+        </div>
       </div>
 
       <!-- Keep-alive toggle: prevents a free-tier backend (e.g. Render) from
@@ -122,10 +111,6 @@
               :class="['w-2 h-2 rounded-full shrink-0', player.connected ? 'bg-green-400' : 'bg-white/20']"
             />
             <span class="flex-1 font-medium truncate">{{ player.name }}</span>
-            <span
-              v-if="!isHostImposter && myAssignment.imposterIds.includes(player.id)"
-              class="badge bg-red-500/20 text-red-400"
-            >👾</span>
             <span
               v-if="player.hasDone && screen === 'game'"
               class="badge bg-green-500/20 text-green-400"
@@ -293,27 +278,19 @@ const votedName = computed(
   () => props.gameState.players.find((p) => p.id === props.myVote)?.name ?? '',
 )
 
-function getPlayerName(id: string): string {
-  return props.gameState.players.find((p) => p.id === id)?.name ?? id
-}
-
 // ── Keep-alive toggle (prevents free-tier backend spin-down mid-game) ────────
 const { enabled: keepAliveEnabled, toggle: toggleKeepAlive } = useKeepAlive()
 </script>
 
 <style scoped>
-.turn-enter-active,
-.turn-leave-active,
 .panel-enter-active,
 .panel-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
-.turn-enter-from,
 .panel-enter-from {
   opacity: 0;
   transform: translateY(8px);
 }
-.turn-leave-to,
 .panel-leave-to {
   opacity: 0;
   transform: translateY(-4px);

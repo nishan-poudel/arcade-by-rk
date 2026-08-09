@@ -50,20 +50,16 @@ export interface GameState {
 /**
  * Private assignment sent ONLY to the individual player via their socket.
  *
- * SECURITY NOTE: `imposterIds` is populated ONLY in the copy sent to the host
- * socket.  Every other player (crewmate or imposter) receives an empty array
- * so that intercepting socket traffic cannot reveal who the imposters are.
- * The server enforces this in handlers.ts – never rely on the client to hide it.
+ * SECURITY NOTE: the host is just another player who happens to coordinate
+ * turns/voting — they must NOT learn who the imposter(s) are ahead of time,
+ * and they themselves can be assigned the imposter role. Nobody's private
+ * assignment reveals the identity of other players' roles; imposters are
+ * only revealed to everyone together, after the round ends (see `GameReveal`).
  */
 export interface PlayerAssignment {
   role: PlayerRole
   /** Secret word for crewmates; null for imposters */
   word: string | null
-  /**
-   * Non-empty only in the host's private assignment.
-   * Contains socket IDs of all imposters for the current round.
-   */
-  imposterIds: string[]
 }
 
 // ─── Client → Server Payloads ─────────────────────────────────────────────────
@@ -131,6 +127,4 @@ export interface GameReveal {
   ejectedPlayerName: string | null
   /** playerId → number of votes received */
   voteCounts: Record<string, number>
-  /** voterId → votedForId, revealed to everyone after the round ends */
-  votes: Record<string, string>
 }

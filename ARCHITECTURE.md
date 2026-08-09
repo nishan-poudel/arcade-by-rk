@@ -2,22 +2,18 @@
 
 ## Design Principles
 
-This application is built on clean, modular architecture for scalability and maintainability.
-
 ### 1. Modular Feature Organization
 
-**Why**: Keep related code together. Each feature (home, about, etc.) is self-contained.
+**Why**: Keep related code together. Each feature is self-contained.
 
 ```
 src/modules/
 ├── home/           # Home feature
 │   ├── views/      # Home page component
 │   └── components/ # Home-specific components
-├── about/          # About feature
-│   ├── views/      # About page component
-│   └── components/ # About-specific components
+├── imposter/       # Imposter party game (see below)
 ├── common/         # Shared layouts
-└── shared/         # Global logic (stores, services, config, types)
+└── shared/         # Global composables (usePageTitle, etc.)
 ```
 
 ### 2. All Routes in One Place
@@ -26,62 +22,18 @@ src/modules/
 
 ```typescript
 // src/router/index.ts - All routes defined here
-export const ROUTE_NAMES = { HOME: 'home', ABOUT: 'about' }
-export const ROUTE_PATHS = { HOME: '/', ABOUT: '/about' }
-
-const routes = [
-  {
-    path: ROUTE_PATHS.HOME,
-    component: DefaultLayout,
-    children: [
-      { path: '', component: Home, name: ROUTE_NAMES.HOME },
-      { path: ROUTE_PATHS.ABOUT, component: About, name: ROUTE_NAMES.ABOUT },
-    ]
-  }
-]
+export const ROUTE_NAMES = { HOME: 'home', IMPOSTER: 'imposter' }
+export const ROUTE_PATHS = { HOME: '/', IMPOSTER: '/imposter' }
 ```
 
-### 3. Shared Logic Centralized
+### 3. State Management
 
-**Why**: Reusable code lives in one place. Easy to maintain and extend.
+**Why**: No global store (Vuex/Pinia) is used. Each feature owns its state via
+Vue `ref`/`computed` composables (e.g. `useGame.ts` for the Imposter game).
+This keeps state colocated with the feature that needs it and avoids an
+unnecessary dependency for an app with no cross-feature shared state.
 
-```
-src/modules/shared/
-├── stores/       # Vuex state management
-├── services/     # API calls (Axios client)
-├── composables/  # Reusable Vue logic
-├── config/       # Environment configuration
-└── types/        # TypeScript definitions
-```
-
-### 4. Vuex for State Management
-
-**Why**: Official Vue state management. Clear patterns: state, mutations, actions, getters.
-
-```typescript
-// src/modules/shared/stores/counter.ts
-export default {
-  namespaced: true,
-  state: () => ({ count: 0 }),
-  mutations: {
-    INCREMENT(state) { state.count++ }
-  }
-}
-```
-
-### 5. API Service Layer (Axios)
-
-**Why**: Keep HTTP calls separate from components. Easy to test and maintain.
-
-```typescript
-// src/modules/shared/services/api.ts
-export const apiClient = new ApiClient(baseURL)
-
-// Use in stores or composables
-const data = await apiClient.get('/endpoint')
-```
-
-### 6. Composition API & Composables
+### 4. Composition API & Composables
 
 **Why**: Reusable logic extracted into functions. Better code organization.
 
@@ -93,23 +45,17 @@ export function useMyLogic() {
 }
 ```
 
-### 7. TypeScript for Type Safety
+### 5. TypeScript for Type Safety
 
-**Why**: Catch errors at compile time. Better IDE support.
+**Why**: Catch errors at compile time. Better IDE support. Types shared
+between client and server live in `shared/types/index.ts`.
 
-```typescript
-interface CounterState {
-  count: number
-}
-```
+### 6. Path Aliases
 
-### 8. Path Aliases
-
-**Why**: Clean imports without relative paths.
+**Why**: Clean imports without relative paths (`@/` → `src/`).
 
 ```typescript
-// Instead of: import { api } from '../../../services/api'
-import { apiClient } from '@/modules/shared/services/api'
+import { usePageTitle } from '@/modules/shared/composables/usePageTitle'
 ```
 
 ---
@@ -152,70 +98,6 @@ Done! ✓
 
 ---
 
-## How to Add State (Vuex)
-
-### 1. Create Module
-```typescript
-// src/modules/shared/stores/myfeature.ts
-export default {
-  namespaced: true,
-  state: () => ({ data: [] }),
-  mutations: { SET_DATA(state, data) { state.data = data } },
-  actions: { 
-    async fetchData({ commit }) {
-      const data = await apiClient.get('/myfeature')
-      commit('SET_DATA', data)
-    }
-  }
-}
-```
-
-### 2. Register in `src/modules/shared/stores/index.ts`
-```typescript
-import myfeatureModule from './myfeature'
-
-export const store = createStore({
-  modules: {
-    counter: counterModule,
-    myfeature: myfeatureModule  // ← Add here
-  }
-})
-```
-
-### 3. Use in Component
-```typescript
-const store = useStore()
-const data = computed(() => store.state.myfeature.data)
-const load = () => store.dispatch('myfeature/fetchData')
-```
-
----
-
-## How to Add API Calls
-
-### In a Service
-```typescript
-// src/modules/shared/services/api.ts
-export const myApi = {
-  async getUsers() {
-    return apiClient.get('/users')
-  },
-  async createUser(data) {
-    return apiClient.post('/users', data)
-  }
-}
-```
-
-### Use in Store
-```typescript
-const fetchUsers = async () => {
-  const response = await myApi.getUsers()
-  commit('SET_USERS', response.data)
-}
-```
-
----
-
 ## File Locations
 
 | Task | Location |
@@ -223,26 +105,8 @@ const fetchUsers = async () => {
 | Add/change route | `src/router/index.ts` |
 | Add page | `src/modules/myfeature/views/MyPage.vue` |
 | Add component | `src/modules/myfeature/components/MyComponent.vue` |
-| Add state | `src/modules/shared/stores/myfeature.ts` |
-| Add API | `src/modules/shared/services/api.ts` |
-| Add logic | `src/modules/shared/composables/useMyLogic.ts` |
-| Add config | `src/modules/shared/config/index.ts` |
-| Add type | `src/modules/shared/types/index.ts` |
-
----
-
-## Benefits
-
-✅ Easy to understand
-✅ Easy to scale
-✅ Easy to test
-✅ Easy to maintain
-✅ Clear folder organization
-✅ Consistent patterns
-
----
-
-**Created**: March 2, 2026
+| Add reusable logic | `src/modules/shared/composables/useMyLogic.ts` |
+| Add shared type | `shared/types/index.ts` |
 
 ---
 
@@ -315,9 +179,9 @@ lobby  →  playing  →  discussion  →  ended                   │
 | client → server | `set_difficulty`     | Host changes word difficulty (lobby only)            |
 | client → server | `set_imposter_count` | Host changes imposter count (lobby only)             |
 | server → client | `game_state`         | Broadcast: public state for all players (includes each player's `hasVoted`) |
-| server → client | `player_assignment`  | Private: role + word sent **before** game_state broadcast; host gets imposterIds |
+| server → client | `player_assignment`  | Private: own role + word only, sent **before** game_state broadcast; the host receives the same shape as any other player |
 | server → client | `discussion_time`    | All players (or host skip) have finished their turn  |
-| server → client | `round_reveal`       | Public reveal: word + imposter names + ejected player + full vote tally/breakdown |
+| server → client | `round_reveal`       | Public reveal: word + imposter names + ejected player + aggregate vote counts (individual ballots are never revealed) |
 | server → client | `game_ended`         | Session over                                         |
 | server → client | `error`              | Structured error for the receiving socket            |
 
@@ -327,21 +191,26 @@ lobby  →  playing  →  discussion  →  ended                   │
 
 ### CRITICAL: Imposter Identity Isolation
 
-The most important security property of this game is that **no player can learn who the imposters are by intercepting network traffic**.
+The most important security property of this game is that **no player can learn who the imposters are by intercepting network traffic** — and this includes the host. The host is just another player who happens to coordinate turns/voting; they can themselves be assigned the imposter role and must not get advance knowledge of anyone else's role.
 
-**Threat model**: A player opens DevTools → Network → WebSocket and reads all incoming socket messages.
+**Threat model**: A player (including the host) opens DevTools → Network → WebSocket and reads all incoming socket messages.
 
-**Mitigation** (enforced server-side in `handlers.ts`):
+**Mitigation** (enforced server-side in `handlers.ts` / `GameService.ts`):
 - The `player_assignment` event is sent **individually** to each socket (not broadcast).
-- The `imposterIds` array is **only populated in the copy sent to the host socket**.
-- Every other player – crewmate or imposter – receives `imposterIds: []`.
-- The server _never_ relies on the client to hide this field.
+- Every assignment contains only the recipient's own `role` and `word` — never any other player's role.
+- The server _never_ relies on the client to hide this data; there is no client-only concept of "host sees more".
 
 ```
-Host socket       → { role, word, imposterIds: ['socket-abc', 'socket-xyz'] }
-Crewmate socket   → { role, word, imposterIds: [] }
-Imposter socket   → { role: 'imposter', word: null, imposterIds: [] }
+Host socket       → { role, word }
+Crewmate socket   → { role, word }
+Imposter socket   → { role: 'imposter', word: null }
 ```
+
+Imposter identities are only revealed to everyone simultaneously, in the public `round_reveal` payload once the round has ended.
+
+### Vote Privacy
+
+Individual ballots ("who voted for whom") are never sent to clients. `round_reveal` only includes aggregate `voteCounts` (votes received per player) and the ejected player, if any — enough to render a results bar chart without exposing each player's private vote choice.
 
 ### Input Validation Layer (`security/validator.ts`)
 

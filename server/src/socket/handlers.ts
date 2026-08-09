@@ -4,7 +4,8 @@
  * Architecture:
  *  - Every handler validates its payload BEFORE calling GameService.
  *  - Every handler is rate-limited via checkRateLimit().
- *  - Sensitive data (imposterIds) is stripped for non-host sockets.
+ *  - The host is a normal player: their private assignment never reveals
+ *    other players' roles, and they can themselves be assigned imposter.
  *  - Events use snake_case consistently (client ↔ server).
  */
 import type { Server, Socket } from 'socket.io'
@@ -54,19 +55,16 @@ function broadcastState(io: Server, roomCode: string): void {
 
 /**
  * Send individual assignments to all players in a round.
- * SECURITY: imposterIds are stripped for every non-host socket.
+ * SECURITY: every assignment only ever contains the recipient's own role and
+ * word — including the host's, since the host is just another player and
+ * must not learn who else is the imposter.
  */
 function dispatchAssignments(
   io: Server,
-  assignments: Map<string, { role: string; word: string | null; imposterIds: string[] }>,
-  hostId: string,
+  assignments: Map<string, { role: string; word: string | null }>,
 ): void {
   for (const [playerId, assignment] of assignments) {
-    const secureAssignment =
-      playerId === hostId
-        ? assignment
-        : { ...assignment, imposterIds: [] }
-    io.to(playerId).emit('player_assignment', secureAssignment)
+    io.to(playerId).emit('player_assignment', assignment)
   }
 }
 
@@ -127,7 +125,7 @@ export function registerSocketHandlers(io: Server): void {
 
       const room = gameService.getRoom(roomCode)!
       const state = gameService.buildGameState(room)
-      const assignment = { role: 'crewmate' as const, word: null, imposterIds: [] }
+      const assignment = { role: 'crewmate' as const, word: null }
 
       socket.emit('room_created', { roomCode, gameState: state, assignment })
       logger.info('Room created', { roomCode, host: nameResult.value })
@@ -152,7 +150,7 @@ export function registerSocketHandlers(io: Server): void {
 
       const room = gameService.getRoom(codeResult.value)!
       const state = gameService.buildGameState(room)
-      const assignment = { role: 'crewmate' as const, word: null, imposterIds: [] }
+      const assignment = { role: 'crewmate' as const, word: null }
 
       socket.emit('room_joined', { gameState: state, assignment })
       broadcastState(io, codeResult.value)
@@ -179,12 +177,7 @@ export function registerSocketHandlers(io: Server): void {
       socket.join(codeResult.value)
 
       const state = gameService.buildGameState(result.room)
-      // SECURITY: only send imposterIds back to the rejoining host
-      const secureAssignment =
-        result.room.hostId === socket.id
-          ? result.assignment
-          : { ...result.assignment, imposterIds: [] }
-      socket.emit('room_joined', { gameState: state, assignment: secureAssignment })
+      socket.emit('room_joined', { gameState: state, assignment: result.assignment })
       broadcastState(io, codeResult.value)
       logger.info('Player rejoined', { roomCode: codeResult.value, name: nameResult.value })
     })
@@ -207,7 +200,7 @@ export function registerSocketHandlers(io: Server): void {
       // SECURITY: dispatch private assignments BEFORE the public game_state broadcast.
       // This ensures every client already has their role/word when the screen
       // transitions to 'game', preventing a brief flash of the stale lobby assignment.
-      dispatchAssignments(io, assignments, room.hostId)
+      dispatchAssignments(io, assignments)
       io.to(codeResult.value).emit('game_state', gameService.buildGameState(room))
       logger.info('Game started', { roomCode: codeResult.value, round: room.round })
     })
@@ -288,7 +281,7 @@ export function registerSocketHandlers(io: Server): void {
       if (!assignments) {return emitError(socket, 'Failed to start next round.')}
 
       // SECURITY: same ordering as start_game – assignments before state broadcast
-      dispatchAssignments(io, assignments, room.hostId)
+      dispatchAssignments(io, assignments)
       io.to(codeResult.value).emit('game_state', gameService.buildGameState(room))
       logger.info('Next round started', { roomCode: codeResult.value, round: room.round })
     })

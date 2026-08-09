@@ -79,15 +79,6 @@
             <span class="text-xs text-white/40 w-4 text-right">{{ reveal.voteCounts[player.id] ?? 0 }}</span>
           </li>
         </ul>
-
-        <div v-if="voteEntries.length" class="border-t border-white/10 pt-3 mt-3">
-          <p class="text-xs text-white/30 mb-2">{{ locale.imposter.roundReveal.whoVotedFor }}</p>
-          <ul class="space-y-1 text-xs text-white/50">
-            <li v-for="entry in voteEntries" :key="entry.voterId">
-              {{ locale.imposter.roundReveal.voteLine(entry.voterName, entry.votedName) }}
-            </li>
-          </ul>
-        </div>
       </div>
 
       <!-- Round scores snapshot -->
@@ -163,21 +154,10 @@ function isImposterName(name: string): boolean {
   return props.reveal.imposterNames.includes(name)
 }
 
-function nameOf(id: string): string {
-  return props.gameState?.players.find((p) => p.id === id)?.name ?? 'Unknown'
-}
-
 function votePercent(playerId: string): number {
   const total = Object.values(props.reveal.voteCounts).reduce((sum, n) => sum + n, 0)
   if (total === 0) {return 0}
   return Math.round(((props.reveal.voteCounts[playerId] ?? 0) / total) * 100)
 }
 
-const voteEntries = computed(() =>
-  Object.entries(props.reveal.votes).map(([voterId, votedId]) => ({
-    voterId,
-    voterName: nameOf(voterId),
-    votedName: nameOf(votedId),
-  })),
-)
 </script>

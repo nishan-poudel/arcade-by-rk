@@ -159,7 +159,6 @@ export class GameService {
     }
 
     this.rooms.set(code, room)
-    logger.info('Room created', { roomCode: code, host: hostName })
     return code
   }
 
@@ -309,7 +308,8 @@ export class GameService {
       p.role = 'crewmate'
     }
 
-    // Pick imposters randomly (never pick the host as the only imposter when possible)
+    // Pick imposters randomly. The host is just another player in the pool —
+    // they are eligible to be picked as an imposter like anyone else.
     const shuffledIds = shuffle([...playerIds])
     const actualImposterCount = Math.min(room.imposterCount, playerIds.length - 1)
     const imposterIds = new Set(shuffledIds.slice(0, actualImposterCount))
@@ -324,17 +324,15 @@ export class GameService {
     room.currentTurnIndex = 0
 
     // Build assignment map for socket handler.
-    // SECURITY: handlers.ts strips imposterIds for all non-host sockets before
-    // emitting — this map carries the full data only so the handler can selectively
-    // send it to the correct socket.
+    // SECURITY: the host is a normal player and can themselves be the imposter,
+    // so their assignment must never reveal other players' roles either —
+    // only `role` and `word` (their own) are ever sent to anyone.
     const assignments = new Map<string, PlayerAssignment>()
-    const imposterIdList = Array.from(imposterIds)
 
     for (const [id, player] of room.players) {
       assignments.set(id, {
         role: player.role,
         word: player.role === 'crewmate' ? room.currentWord : null,
-        imposterIds: imposterIdList,
       })
     }
 
@@ -460,7 +458,6 @@ export class GameService {
     ejectedPlayerId: string | null
     ejectedPlayerName: string | null
     voteCounts: Record<string, number>
-    votes: Record<string, string>
   } | null {
     const room = this.rooms.get(roomCode.toUpperCase())
     if (!room) {return null}
@@ -498,7 +495,6 @@ export class GameService {
       ejectedPlayerId,
       ejectedPlayerName: ejectedPlayer?.name ?? null,
       voteCounts,
-      votes: Object.fromEntries(room.votes),
     }
   }
 
@@ -562,14 +558,9 @@ export class GameService {
 
   /** Build a PlayerAssignment for an individual player. */
   buildAssignment(room: Room, player: Player): PlayerAssignment {
-    const imposterIds = Array.from(room.players.values())
-      .filter((p) => p.role === 'imposter')
-      .map((p) => p.id)
-
     return {
       role: player.role,
       word: player.role === 'crewmate' ? room.currentWord : null,
-      imposterIds,
     }
   }
 

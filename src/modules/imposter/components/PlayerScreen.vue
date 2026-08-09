@@ -64,34 +64,33 @@
       <!-- Current turn indicator -->
       <div class="card mb-4">
         <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.playerScreen.currentTurnLabel }}</p>
-        <Transition name="turn" mode="out-in">
-          <div
-            v-if="screen === 'discussion'" key="disc"
-            class="text-center py-2">
-            <p class="text-2xl font-bold text-yellow-400">{{ locale.imposter.playerScreen.discussionTitle }}</p>
-            <p class="text-sm text-white/50 mt-1">{{ locale.imposter.playerScreen.discussionSub }}</p>
-          </div>
-          <div
-            v-else
-            :key="gameState.currentTurnPlayerId"
-            class="flex items-center gap-3"
+        <!--
+          No enter/leave transition here on purpose: this text changes every
+          turn (frequently, mid-round) and must always reflect the current
+          server state immediately. A CSS/JS transition here would add
+          latency and — if the tab is ever backgrounded at the wrong instant —
+          can get stuck showing a stale player name until refocused.
+        -->
+        <div v-if="screen === 'discussion'" class="text-center py-2">
+          <p class="text-2xl font-bold text-yellow-400">{{ locale.imposter.playerScreen.discussionTitle }}</p>
+          <p class="text-sm text-white/50 mt-1">{{ locale.imposter.playerScreen.discussionSub }}</p>
+        </div>
+        <div v-else class="flex items-center gap-3">
+          <span
+            :class="[
+              'w-3 h-3 rounded-full flex-shrink-0 transition-colors',
+              isMyTurn ? 'bg-green-400 animate-pulse-slow' : 'bg-white/20',
+            ]"
+          />
+          <span
+            :class="[
+              'font-semibold text-lg',
+              isMyTurn ? 'text-green-400' : 'text-white',
+            ]"
           >
-            <span
-              :class="[
-                'w-3 h-3 rounded-full flex-shrink-0 transition-colors',
-                isMyTurn ? 'bg-green-400 animate-pulse-slow' : 'bg-white/20',
-              ]"
-            />
-            <span
-              :class="[
-                'font-semibold text-lg',
-                isMyTurn ? 'text-green-400' : 'text-white',
-              ]"
-            >
-              {{ isMyTurn ? locale.imposter.playerScreen.yourTurn : gameState.currentTurnName }}
-            </span>
-          </div>
-        </Transition>
+            {{ isMyTurn ? locale.imposter.playerScreen.yourTurn : gameState.currentTurnName }}
+          </span>
+        </div>
       </div>
 
       <!-- In-app voting (discussion phase) -->
@@ -207,18 +206,14 @@ const votedName = computed(
 
 <style scoped>
 .role-enter-active,
-.role-leave-active,
-.turn-enter-active,
-.turn-leave-active {
+.role-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
-.role-enter-from,
-.turn-enter-from {
+.role-enter-from {
   opacity: 0;
   transform: scale(0.96);
 }
-.role-leave-to,
-.turn-leave-to {
+.role-leave-to {
   opacity: 0;
   transform: scale(1.04);
 }

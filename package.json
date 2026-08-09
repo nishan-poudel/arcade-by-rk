@@ -19,11 +19,9 @@
     "server:install": "cd server && npm install"
   },
   "dependencies": {
-    "axios": "^1.6.2",
     "socket.io-client": "^4.7.5",
     "vue": "^3.4.19",
-    "vue-router": "^4.2.5",
-    "vuex": "^4.1.0"
+    "vue-router": "^4.2.5"
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",

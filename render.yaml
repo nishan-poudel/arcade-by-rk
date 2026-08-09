@@ -11,8 +11,8 @@
 #        random suffix because "imposter-game-server" was already taken by
 #        another Render user; this is normal, just use the actual URL below)
 #      If you ever recreate the backend service and it's assigned a different
-#      suffix, update CORS_ORIGINS / VITE_SOCKET_URL / VITE_API_BASE_URL below
-#      to match, then push — autoDeploy will redeploy both services.
+#      suffix, update CORS_ORIGINS / VITE_SOCKET_URL below to match, then
+#      push — autoDeploy will redeploy both services.
 #
 # Free tier notes:
 #   - Static sites (frontend) are free with NO sleep and NO time limit.
@@ -58,7 +58,5 @@ services:
     envVars:
       - key: VITE_SOCKET_URL
         value: https://imposter-game-server-ugq5.onrender.com
-      - key: VITE_API_BASE_URL
-        value: https://imposter-game-server-ugq5.onrender.com/api
       - key: VITE_APP_ENV
         value: production
