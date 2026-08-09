@@ -1,22 +1,8 @@
 export const en = {
-  nav: {
-    home: 'Home',
-    imposterLink: '🕵️ Imposter by RK'
-  },
-  brand: {
-    name: 'Nishan',
-    copyright: '2026 Nishan. All rights reserved.'
-  },
-  home: {
-    greeting: 'Hello, I\'m',
-    name: 'Nishan',
-    sub: 'Vue 3 · TypeScript · Vite',
-    playImposter: '🕵️ Play Imposter by RK'
-  },
   imposter: {
     common: {
-      brandTitle: 'Imposter by RK',
-      brandTagline: 'The in-person party game',
+      brandTitle: 'Nepali Imposter (In Person)',
+      brandTagline: 'The in-person party game with Nepali words! • 3–12 players • Talk in person • Vote the imposter out',
       online: 'Online',
       reconnecting: 'Reconnecting…',
       loading: 'Loading…',
@@ -49,6 +35,9 @@ export const en = {
       joiningButton: 'Joining room…',
       rulesLine1: '3–12 players • Talk in person • Vote the imposter out',
       rulesLine2: 'Crewmates +1 if imposter caught • Imposters +2 if they survive',
+      footerMadeBy: 'Made by',
+      footerName: 'RK',
+      footerRealName: 'Nishan',
     },
     waitingRoom: {
       title: 'Waiting Room',

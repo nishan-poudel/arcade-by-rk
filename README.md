@@ -67,15 +67,13 @@ npm run preview
 web/
 ├── src/
 │   ├── modules/
-│   │   ├── imposter/       # Imposter party game
-│   │   │   ├── views/        # ImposterGame.vue (screen router)
+│   │   ├── imposter/       # Imposter party game (the entire app)
+│   │   │   ├── views/        # ImposterGame.vue (screen router, mounted at `/`)
 │   │   │   ├── components/   # LandingScreen, WaitingRoom, PlayerScreen,
 │   │   │   │              #   HostScreen, RoundReveal, GameOverScreen
 │   │   │   ├── composables/  # useGame.ts, useSocket.ts
 │   │   │   └── types/        # Client type re-exports
-│   │   ├── home/           # Home page
-│   │   ├── common/         # Shared layouts
-│   │   └── shared/         # Global stores, services, composables, types
+│   │   └── shared/         # Global composables (usePageTitle, etc.)
 │   └── router/           # All client routes
 ├── server/               # Node.js + Express + Socket.IO backend
 ├── shared/types/         # TypeScript interfaces shared by client + server
@@ -94,33 +92,26 @@ web/
 | Security | helmet, runtime validators, per-socket rate limiter |
 | Shared types | TypeScript interfaces in `shared/types/` |
 
-## Adding Routes
+## Routing
 
-All routes are in one place: `src/router/index.ts`
+The Imposter game **is** the app — there's no separate homepage. All routes
+are defined in one place: `src/router/index.ts`.
 
 ```typescript
-// 1. Add to ROUTE_NAMES
-export const ROUTE_NAMES = { HOME: 'home', MY_PAGE: 'mypage' }
+export const ROUTE_NAMES = { IMPOSTER: 'imposter' }
+export const ROUTE_PATHS = { IMPOSTER: '/' }
 
-// 2. Add to ROUTE_PATHS  
-export const ROUTE_PATHS = { HOME: '/', MY_PAGE: '/mypage' }
-
-// 3. Add to routes array
-const routes = [{
-  path: ROUTE_PATHS.HOME,
-  component: DefaultLayout,
-  children: [
-    { path: '', component: Home, name: ROUTE_NAMES.HOME },
-    { path: ROUTE_PATHS.MY_PAGE, component: MyPage, name: ROUTE_NAMES.MY_PAGE },
-  ]
-}]
+// `:roomCode?` is optional so `/` (fresh landing) and `/ABC123` (shareable
+// room link / reload while in a room) both resolve to the same component.
+const routes = [
+  { path: '/:roomCode?', component: ImposterGame, name: ROUTE_NAMES.IMPOSTER },
+  { path: '/:pathMatch(.*)*', redirect: ROUTE_PATHS.IMPOSTER },
+]
 ```
 
 ## Folder Structure Explanation
 
-- **modules/home** - Home page and home-specific components
-- **modules/common/layouts** - Shared layout components
-- **modules/shared/composables** - Reusable Vue logic
+- **modules/imposter** - The game itself (views, components, composables)
 - **router** - All route definitions
 
 ## Environment Variables

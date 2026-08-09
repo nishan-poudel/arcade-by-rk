@@ -191,7 +191,7 @@ const linkCopied = ref(false)
 
 async function copyInviteLink() {
   try {
-    const url = `${location.origin}/imposter/${props.gameState.roomCode}`
+    const url = `${location.origin}/${props.gameState.roomCode}`
     await navigator.clipboard.writeText(url)
     linkCopied.value = true
     setTimeout(() => { linkCopied.value = false }, 2000)

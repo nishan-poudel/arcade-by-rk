@@ -168,10 +168,34 @@
     </Transition>
 
     <!-- Rules at bottom -->
-    <div class="mt-auto py-6 text-center text-white/25 text-xs space-y-1">
+    <div class="mt-auto pt-6 text-center text-white/25 text-xs space-y-1">
       <p>{{ locale.imposter.landing.rulesLine1 }}</p>
       <p>{{ locale.imposter.landing.rulesLine2 }}</p>
     </div>
+
+    <!--
+      Footer — simple attribution with a hidden easter egg: tapping the
+      name spins it around to reveal the real name underneath (and spins
+      back if tapped again). Purely decorative, local-only state.
+    -->
+    <footer class="pb-6 pt-3 text-center text-xs text-white/25">
+      <p class="flex items-center justify-center gap-1.5">
+        <span>{{ locale.imposter.landing.footerMadeBy }}</span>
+        <button
+          type="button"
+          class="font-semibold text-white/40 transition-colors hover:text-white/70"
+          style="perspective: 300px"
+          :aria-label="locale.imposter.landing.footerMadeBy + ' ' + (isRealNameRevealed ? locale.imposter.landing.footerRealName : locale.imposter.landing.footerName)"
+          @click="isRealNameRevealed = !isRealNameRevealed"
+        >
+          <Transition name="spin" mode="out-in">
+            <span :key="isRealNameRevealed ? 'real' : 'alias'" class="inline-block">{{
+              isRealNameRevealed ? locale.imposter.landing.footerRealName : locale.imposter.landing.footerName
+            }}</span>
+          </Transition>
+        </button>
+      </p>
+    </footer>
   </div>
 </template>
 
@@ -183,7 +207,7 @@ import type { Difficulty } from '../types/index.js'
 const props = defineProps<{
   pendingAction: 'create' | 'join' | null
   isSlowConnection: boolean
-  /** Pre-fills the Join form when opened via a shared room link (e.g. /imposter/ABC123). */
+  /** Pre-fills the Join form when opened via a shared room link (e.g. /ABC123). */
   initialRoomCode?: string
   /** Pre-fills the name field too, if a saved session for that room exists. */
   initialPlayerName?: string
@@ -196,6 +220,9 @@ const emit = defineEmits<{
 
 // Land straight on the Join tab, pre-filled, when a room code arrived via the URL.
 const tab = ref<'create' | 'join'>(props.initialRoomCode ? 'join' : 'create')
+
+/** Footer easter egg: toggled by tapping the credit name. */
+const isRealNameRevealed = ref(false)
 
 const createForm = reactive({
   hostName: '',
@@ -238,5 +265,19 @@ function submitJoin() {
 .tab-leave-to {
   opacity: 0;
   transform: translateX(-10px);
+}
+
+/* Footer easter egg: spin the credit name around when it swaps. */
+.spin-enter-active,
+.spin-leave-active {
+  transition: transform 0.35s ease, opacity 0.25s ease;
+}
+.spin-enter-from {
+  transform: rotateY(180deg);
+  opacity: 0;
+}
+.spin-leave-to {
+  transform: rotateY(-180deg);
+  opacity: 0;
 }
 </style>

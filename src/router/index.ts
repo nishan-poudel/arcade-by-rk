@@ -1,10 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-// Layouts
-import DefaultLayout from '@/modules/common/layouts/DefaultLayout.vue'
-
 // Views
-import Home from '@/modules/home/views/Home.vue'
 import ImposterGame from '@/modules/imposter/views/ImposterGame.vue'
 
 /**
@@ -12,8 +8,6 @@ import ImposterGame from '@/modules/imposter/views/ImposterGame.vue'
  */
 declare module 'vue-router' {
   interface RouteMeta {
-    layout?: string
-    requiresAuth?: boolean
     title?: string
   }
 }
@@ -24,48 +18,31 @@ declare module 'vue-router' {
  * All routes defined in one place.
  */
 export const ROUTE_NAMES = {
-  HOME: 'home',
   IMPOSTER: 'imposter',
 } as const
 
 export const ROUTE_PATHS = {
-  HOME: '/',
-  IMPOSTER: '/imposter',
+  IMPOSTER: '/',
 } as const
 
 /**
  * Routes Configuration
  *
- * Main routes configuration with layouts and components.
- * The /imposter route is full-screen and bypasses the DefaultLayout.
+ * The Imposter game IS the app's homepage — there is no separate landing
+ * page. :roomCode is optional so `/` (fresh landing) and `/ABC123`
+ * (shareable room link / reload while in a room) both resolve here.
  */
 const routes: RouteRecordRaw[] = [
   {
-    path: ROUTE_PATHS.HOME,
-    component: DefaultLayout,
-    meta: { layout: 'default' },
-    children: [
-      {
-        path: '',
-        component: Home,
-        name: ROUTE_NAMES.HOME,
-        meta: { title: 'Home' },
-      },
-    ],
-  },
-  // Imposter game – full-screen, no shared nav/footer.
-  // :roomCode is optional so /imposter (fresh landing) and /imposter/ABC123
-  // (shareable room link / reload while in a room) both resolve here.
-  {
-    path: `${ROUTE_PATHS.IMPOSTER}/:roomCode?`,
+    path: '/:roomCode?',
     component: ImposterGame,
     name: ROUTE_NAMES.IMPOSTER,
-    meta: { title: 'Imposter by RK' },
+    meta: { title: 'Nepali Imposter (In Person)' },
   },
   // 404 Catch-all
   {
     path: '/:pathMatch(.*)*',
-    redirect: ROUTE_PATHS.HOME,
+    redirect: ROUTE_PATHS.IMPOSTER,
   },
 ]
 
@@ -82,7 +59,7 @@ const router = createRouter({
  */
 router.beforeEach((to, _from, next) => {
   if (to.meta.title) {
-    document.title = `${to.meta.title} · Imposter by RK`
+    document.title = `${to.meta.title}`
   }
   next()
 })

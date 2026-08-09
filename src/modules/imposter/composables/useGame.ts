@@ -46,7 +46,7 @@ const isSlowConnection: Ref<boolean> = ref(false)
 let slowConnectionTimer: ReturnType<typeof setTimeout> | null = null
 
 /**
- * Room code read from the current URL (e.g. /imposter/ABC123) at mount time.
+ * Room code read from the current URL (e.g. /ABC123) at mount time.
  * Set by ImposterGame.vue so the socket `connect` handler below can decide
  * whether a saved reconnect session matches the room the user actually
  * navigated to — this is what makes "refresh the page while in a room" and

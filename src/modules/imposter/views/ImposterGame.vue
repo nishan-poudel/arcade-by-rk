@@ -177,7 +177,7 @@ watch(errorMessage, (msg) => {
 // that says "not in a room" while the socket session is still active —
 // "Leave Room" is the one intentional way to exit.
 watch(roomCode, (code) => {
-  const target = code ? `${ROUTE_PATHS.IMPOSTER}/${code}` : ROUTE_PATHS.IMPOSTER
+  const target = code ? `/${code}` : ROUTE_PATHS.IMPOSTER
   if (route.path.toLowerCase() !== target.toLowerCase()) {
     router.replace(target)
   }

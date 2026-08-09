@@ -2,36 +2,39 @@
 
 ## Design Principles
 
-### 1. Modular Feature Organization
+### 1. Single-Purpose App
 
-**Why**: Keep related code together. Each feature is self-contained.
+**Why**: The entire app is the Imposter party game — there's no separate
+marketing/home page. `src/modules/imposter/` contains the whole feature
+(views, components, composables, types).
 
 ```
 src/modules/
-├── home/           # Home feature
-│   ├── views/      # Home page component
-│   └── components/ # Home-specific components
-├── imposter/       # Imposter party game (see below)
-├── common/         # Shared layouts
-└── shared/         # Global composables (usePageTitle, etc.)
+└── imposter/       # Imposter party game (see below) — the entire app
 ```
 
-### 2. All Routes in One Place
+### 2. Routing
 
-**Why**: Single source of truth. Easy to see all routes at a glance.
+**Why**: Single source of truth, and intentionally minimal since there's
+only one feature. Defined in `src/router/index.ts`:
 
 ```typescript
-// src/router/index.ts - All routes defined here
-export const ROUTE_NAMES = { HOME: 'home', IMPOSTER: 'imposter' }
-export const ROUTE_PATHS = { HOME: '/', IMPOSTER: '/imposter' }
+export const ROUTE_NAMES = { IMPOSTER: 'imposter' }
+export const ROUTE_PATHS = { IMPOSTER: '/' }
+
+// `:roomCode?` is optional so `/` (fresh landing) and `/ABC123` (shareable
+// room link / reload while in a room) both resolve to the same component.
+const routes = [
+  { path: '/:roomCode?', component: ImposterGame, name: ROUTE_NAMES.IMPOSTER },
+  { path: '/:pathMatch(.*)*', redirect: ROUTE_PATHS.IMPOSTER },
+]
 ```
 
 ### 3. State Management
 
-**Why**: No global store (Vuex/Pinia) is used. Each feature owns its state via
-Vue `ref`/`computed` composables (e.g. `useGame.ts` for the Imposter game).
-This keeps state colocated with the feature that needs it and avoids an
-unnecessary dependency for an app with no cross-feature shared state.
+**Why**: No global store (Vuex/Pinia) is used. The game owns its state via
+Vue `ref`/`computed` composables (`useGame.ts`), colocated with the feature
+that needs it — there's no cross-feature shared state to justify a store.
 
 ### 4. Composition API & Composables
 
@@ -55,12 +58,15 @@ between client and server live in `shared/types/index.ts`.
 **Why**: Clean imports without relative paths (`@/` → `src/`).
 
 ```typescript
-import { usePageTitle } from '@/modules/shared/composables/usePageTitle'
+import { useGame } from '@/modules/imposter/composables/useGame'
 ```
 
 ---
 
 ## How to Add a New Feature
+
+Should the app ever grow beyond a single game, follow the existing module
+pattern:
 
 ### 1. Create Folder Structure
 ```bash
@@ -80,18 +86,10 @@ mkdir -p src/modules/myfeature/components
 export const ROUTE_NAMES = { ..., MY_FEATURE: 'myfeature' }
 export const ROUTE_PATHS = { ..., MY_FEATURE: '/myfeature' }
 
-const routes = [{
-  path: ROUTE_PATHS.HOME,
-  component: DefaultLayout,
-  children: [
-    ...,
-    { 
-      path: ROUTE_PATHS.MY_FEATURE, 
-      component: MyFeature, 
-      name: ROUTE_NAMES.MY_FEATURE 
-    }
-  ]
-}]
+const routes = [
+  ...,
+  { path: ROUTE_PATHS.MY_FEATURE, component: MyFeature, name: ROUTE_NAMES.MY_FEATURE },
+]
 ```
 
 Done! ✓
@@ -105,14 +103,14 @@ Done! ✓
 | Add/change route | `src/router/index.ts` |
 | Add page | `src/modules/myfeature/views/MyPage.vue` |
 | Add component | `src/modules/myfeature/components/MyComponent.vue` |
-| Add reusable logic | `src/modules/shared/composables/useMyLogic.ts` |
 | Add shared type | `shared/types/index.ts` |
 
 ---
 
 ## Imposter Party Game
 
-The `/imposter` route mounts a full-featured, real-time in-person party game.
+The root route (`/`, with an optional `/:roomCode` for shareable room links)
+mounts a full-featured, real-time in-person party game — it **is** the app.
 
 ### Full-Stack Overview
 
