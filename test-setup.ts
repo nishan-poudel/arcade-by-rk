@@ -20,6 +20,15 @@ Object.defineProperty(globalThis, 'Element', { value: window.Element, writable: 
 Object.defineProperty(globalThis, 'SVGElement', { value: window.SVGElement, writable: true })
 Object.defineProperty(globalThis, 'Node', { value: window.Node, writable: true })
 Object.defineProperty(globalThis, 'customElements', { value: window.customElements, writable: true })
+// reka-ui's Presence util (used by Tabs/AlertDialog/etc. for enter/leave
+// animation detection) calls these bare (non-window-prefixed) globals.
+Object.defineProperty(globalThis, 'getComputedStyle', { value: window.getComputedStyle.bind(window), writable: true })
+Object.defineProperty(globalThis, 'requestAnimationFrame', { value: window.requestAnimationFrame.bind(window), writable: true })
+Object.defineProperty(globalThis, 'cancelAnimationFrame', { value: window.cancelAnimationFrame.bind(window), writable: true })
+Object.defineProperty(globalThis, 'MutationObserver', { value: window.MutationObserver, writable: true })
+// reka-ui's Presence util (used by Tabs/AlertDialog/etc. for enter/leave
+// animation detection) calls the bare (non-window-prefixed) global.
+Object.defineProperty(globalThis, 'getComputedStyle', { value: window.getComputedStyle.bind(window), writable: true })
 
 process.removeAllListeners('warning')
 

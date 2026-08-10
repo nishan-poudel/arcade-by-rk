@@ -117,13 +117,20 @@ mounts a full-featured, real-time in-person party game — it **is** the app.
 ```
 web/
 ├── client (Vue 3 + Vite + Tailwind)   → http://localhost:5100
-│   └── src/modules/imposter/
-│       ├── views/           ImposterGame.vue  – root screen router
-│       ├── components/      LandingScreen · WaitingRoom · PlayerScreen
-│       │                    HostScreen · RoundReveal · GameOverScreen
-│       ├── composables/     useGame.ts  – all reactive state + socket actions
-│       │                    useSocket.ts – singleton Socket.IO connection
-│       └── types/           index.ts    – re-exports shared types
+│   └── src/
+│       ├── components/ui/   shadcn-vue-style primitives (Button, Card, Input,
+│       │                    Badge, Switch, Progress, Separator, ToggleGroup,
+│       │                    AlertDialog) built on `reka-ui` headless
+│       │                    components + `class-variance-authority` for
+│       │                    variants — shared across every game screen
+│       ├── lib/utils.ts     `cn()` — merges Tailwind classes (clsx + tailwind-merge)
+│       └── modules/imposter/
+│           ├── views/           ImposterGame.vue  – root screen router
+│           ├── components/      LandingScreen · WaitingRoom · PlayerScreen
+│           │                    HostScreen · RoundReveal · GameOverScreen
+│           ├── composables/     useGame.ts  – all reactive state + socket actions
+│           │                    useSocket.ts – singleton Socket.IO connection
+│           └── types/           index.ts    – re-exports shared types
 │
 ├── server/ (Node.js + Express + Socket.IO)  → http://localhost:3001
 │   └── src/
@@ -298,4 +305,4 @@ The current in-memory `Map` in `GameService` does not survive restarts or scale 
 
 ---
 
-**Last updated**: July 2026
+**Last updated**: August 2026

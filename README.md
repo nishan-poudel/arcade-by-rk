@@ -66,14 +66,16 @@ npm run preview
 ```
 web/
 ├── src/
+│   ├── components/ui/     # shadcn-vue-style primitives (Button, Card, Input,
+│   │                      #   Badge, Switch, Progress, ToggleGroup, AlertDialog)
+│   ├── lib/utils.ts       # cn() — Tailwind class merging helper
 │   ├── modules/
-│   │   ├── imposter/       # Imposter party game (the entire app)
-│   │   │   ├── views/        # ImposterGame.vue (screen router, mounted at `/`)
-│   │   │   ├── components/   # LandingScreen, WaitingRoom, PlayerScreen,
-│   │   │   │              #   HostScreen, RoundReveal, GameOverScreen
-│   │   │   ├── composables/  # useGame.ts, useSocket.ts
-│   │   │   └── types/        # Client type re-exports
-│   │   └── shared/         # Global composables (usePageTitle, etc.)
+│   │   └── imposter/       # Imposter party game (the entire app)
+│   │       ├── views/        # ImposterGame.vue (screen router, mounted at `/`)
+│   │       ├── components/   # LandingScreen, WaitingRoom, PlayerScreen,
+│   │       │              #   HostScreen, RoundReveal, GameOverScreen
+│   │       ├── composables/  # useGame.ts, useSocket.ts
+│   │       └── types/        # Client type re-exports
 │   └── router/           # All client routes
 ├── server/               # Node.js + Express + Socket.IO backend
 ├── shared/types/         # TypeScript interfaces shared by client + server
@@ -85,7 +87,9 @@ web/
 | Layer | Technology |
 |-------|------------|
 | Client UI | Vue 3 + TypeScript + Vite |
-| Styling | Tailwind CSS v3 (mobile-first, dark theme) |
+| Components | shadcn-vue-style primitives on `reka-ui` + `class-variance-authority` |
+| Styling | Tailwind CSS v3 (mobile-first, dark theme, CSS-variable design tokens) |
+| Icons | `@lucide/vue` |
 | Real-time | Socket.IO (client + server) |
 | Server | Node.js + Express |
 | State | Vue `ref`/`computed` composables (no global store needed) |
@@ -111,6 +115,7 @@ const routes = [
 
 ## Folder Structure Explanation
 
+- **components/ui** - shadcn-vue-style UI primitives shared by every screen
 - **modules/imposter** - The game itself (views, components, composables)
 - **router** - All route definitions
 
@@ -119,7 +124,6 @@ const routes = [
 Client (`.env`):
 ```env
 VITE_SOCKET_URL=
-VITE_APP_ENV=development
 ```
 
 Server (`server/.env`):

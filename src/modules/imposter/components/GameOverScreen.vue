@@ -1,106 +1,130 @@
 <template>
   <div
-    class="min-h-dvh flex flex-col bg-[#0d0d0d]"
+    class="h-dvh flex flex-col bg-background"
     style="padding-top: max(1rem, env(safe-area-inset-top))"
   >
     <!-- Scrollable body -->
-    <div class="flex-1 overflow-y-auto px-4 pb-4 scroll-area">
-      <!-- Header -->
-      <div class="text-center pt-4 mb-6 animate-bounce-once">
-        <div class="text-6xl mb-3">🏆</div>
-        <h1 class="text-3xl font-extrabold mb-1">{{ locale.imposter.gameOver.title }}</h1>
-        <p class="text-white/40 text-sm">
-          {{ locale.imposter.gameOver.roundsPlayed(gameState.round) }}
-        </p>
-      </div>
-
-      <!-- Podium — scales to the actual number of players -->
-      <div
-        v-if="sortedPlayers.length >= 1"
-        class="flex items-end justify-center gap-3 mb-8 animate-fade-in"
-      >
-        <!-- 2nd place -->
-        <div v-if="sortedPlayers[1]" class="flex flex-col items-center flex-1 max-w-[100px]">
-          <p class="text-xs font-semibold text-white/60 mb-1 truncate w-full text-center">
-            {{ sortedPlayers[1].name }}
+    <div class="flex-1 min-h-0 overflow-y-auto px-4 pb-4 scroll-area">
+      <div class="w-full max-w-md mx-auto">
+        <!-- Header -->
+        <div class="text-center pt-4 mb-6 animate-bounce-once">
+          <Trophy class="size-14 mb-3 mx-auto text-warning" />
+          <h1 class="text-3xl font-extrabold mb-1">{{ locale.imposter.gameOver.title }}</h1>
+          <p class="text-muted-foreground text-sm">
+            {{ locale.imposter.gameOver.roundsPlayed(gameState.round) }}
           </p>
-          <div
-            class="w-full h-20 bg-white/10 rounded-t-xl flex items-end justify-center pb-2"
-          >
-            <span class="text-xl font-extrabold text-white/60">{{ sortedPlayers[1].score }}</span>
+        </div>
+
+        <!-- Podium — scales to the actual number of players -->
+        <div
+          v-if="sortedPlayers.length >= 1"
+          class="flex items-end justify-center gap-3 mb-8 animate-fade-in"
+        >
+          <!-- 2nd place -->
+          <div v-if="sortedPlayers[1]" class="flex flex-col items-center flex-1 max-w-[100px]">
+            <p class="text-xs font-semibold text-foreground/70 mb-1 truncate w-full text-center">
+              {{ sortedPlayers[1].name }}
+            </p>
+            <div
+              class="w-full h-20 bg-secondary/60 rounded-t-xl flex items-end justify-center pb-2
+                     animate-in slide-in-from-bottom-8 fade-in fill-mode-both duration-500"
+              style="animation-delay: 100ms"
+            >
+              <span class="text-xl font-extrabold text-foreground/70">{{ sortedPlayers[1].score }}</span>
+            </div>
+            <div class="w-full bg-secondary/60 text-center text-xs text-muted-foreground py-1.5 rounded-b flex items-center justify-center gap-1">
+              <Medal class="size-3.5" />{{ locale.imposter.gameOver.second }}
+            </div>
           </div>
-          <div class="w-full bg-white/10 text-center text-xs text-white/40 py-1.5 rounded-b">
-            {{ locale.imposter.gameOver.second }}
+
+          <!-- 1st place — taller than others -->
+          <div class="flex flex-col items-center flex-1 max-w-[110px]">
+            <p class="text-sm font-bold text-warning mb-1 truncate w-full text-center">
+              {{ sortedPlayers[0].name }}
+            </p>
+            <div
+              class="w-full h-28 bg-warning/20 border border-warning/40
+                     rounded-t-xl flex items-end justify-center pb-2
+                     animate-in slide-in-from-bottom-8 fade-in fill-mode-both duration-500"
+              style="animation-delay: 200ms"
+            >
+              <span class="text-3xl font-extrabold text-warning">{{ sortedPlayers[0].score }}</span>
+            </div>
+            <div
+              class="w-full bg-warning/20 border border-warning/30
+                     text-center text-xs text-warning py-1.5 rounded-b flex items-center justify-center gap-1"
+            >
+              <Medal class="size-3.5" />{{ locale.imposter.gameOver.first }}
+            </div>
+          </div>
+
+          <!-- 3rd place -->
+          <div v-if="sortedPlayers[2]" class="flex flex-col items-center flex-1 max-w-[90px]">
+            <p class="text-xs font-semibold text-muted-foreground mb-1 truncate w-full text-center">
+              {{ sortedPlayers[2].name }}
+            </p>
+            <div
+              class="w-full h-14 bg-secondary/40 rounded-t-xl flex items-end justify-center pb-2
+                     animate-in slide-in-from-bottom-8 fade-in fill-mode-both duration-500"
+              style="animation-delay: 300ms"
+            >
+              <span class="text-lg font-extrabold text-muted-foreground">{{ sortedPlayers[2].score }}</span>
+            </div>
+            <div class="w-full bg-secondary/40 text-center text-xs text-muted-foreground/70 py-1.5 rounded-b flex items-center justify-center gap-1">
+              <Medal class="size-3.5" />{{ locale.imposter.gameOver.third }}
+            </div>
           </div>
         </div>
 
-        <!-- 1st place — taller than others -->
-        <div class="flex flex-col items-center flex-1 max-w-[110px]">
-          <p class="text-sm font-bold text-yellow-400 mb-1 truncate w-full text-center">
-            {{ sortedPlayers[0].name }}
-          </p>
-          <div
-            class="w-full h-28 bg-yellow-500/20 border border-yellow-500/40
-                   rounded-t-xl flex items-end justify-center pb-2"
-          >
-            <span class="text-3xl font-extrabold text-yellow-400">{{ sortedPlayers[0].score }}</span>
-          </div>
-          <div
-            class="w-full bg-yellow-500/20 border border-yellow-500/30
-                   text-center text-xs text-yellow-400 py-1.5 rounded-b"
-          >
-            {{ locale.imposter.gameOver.first }}
-          </div>
-        </div>
-
-        <!-- 3rd place -->
-        <div v-if="sortedPlayers[2]" class="flex flex-col items-center flex-1 max-w-[90px]">
-          <p class="text-xs font-semibold text-white/50 mb-1 truncate w-full text-center">
-            {{ sortedPlayers[2].name }}
-          </p>
-          <div
-            class="w-full h-14 bg-white/5 rounded-t-xl flex items-end justify-center pb-2"
-          >
-            <span class="text-lg font-extrabold text-white/50">{{ sortedPlayers[2].score }}</span>
-          </div>
-          <div class="w-full bg-white/5 text-center text-xs text-white/30 py-1.5 rounded-b">
-            {{ locale.imposter.gameOver.third }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Full scoreboard -->
-      <div class="card mb-4">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">{{ locale.imposter.gameOver.allScoresHeading }}</p>
-        <ul class="space-y-2">
-          <li
-            v-for="(player, idx) in sortedPlayers"
-            :key="player.id"
-            class="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-white/5 border border-white/10"
-          >
-            <span class="text-xs text-white/30 w-5 shrink-0">{{ idx + 1 }}</span>
-            <span class="flex-1 font-medium truncate">{{ player.name }}</span>
-            <span v-if="player.isHost" class="badge bg-yellow-500/20 text-yellow-400 shrink-0">
-              {{ locale.imposter.gameOver.hostBadge }}
-            </span>
-            <span class="font-extrabold text-green-400 text-lg shrink-0">{{ player.score }}</span>
-          </li>
-        </ul>
+        <!-- Full scoreboard -->
+        <Card class="mb-4">
+          <CardHeader>
+            <CardTitle class="text-xs normal-case">{{ locale.imposter.gameOver.allScoresHeading }}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul class="space-y-2">
+              <li
+                v-for="(player, idx) in sortedPlayers"
+                :key="player.id"
+                class="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-secondary/40 border border-border"
+              >
+                <span class="text-xs text-muted-foreground/60 w-5 shrink-0">{{ idx + 1 }}</span>
+                <span class="flex-1 font-medium truncate">{{ player.name }}</span>
+                <Badge
+                  v-if="player.isHost" variant="warning"
+                  class="shrink-0 gap-1">
+                  <Crown class="size-3" />{{ locale.imposter.gameOver.hostBadge }}
+                </Badge>
+                <span class="font-extrabold text-primary text-lg shrink-0">{{ player.score }}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+        <AppFooter />
       </div>
     </div>
 
     <!-- Sticky back button -->
     <div class="action-bar">
-      <button class="btn-primary w-full text-base py-4" @click="$emit('leave')">
-        {{ locale.imposter.gameOver.backHome }}
-      </button>
+      <div class="w-full max-w-md mx-auto">
+        <Button
+          size="lg" class="w-full"
+          @click="$emit('leave')">
+          <Home class="size-4" />{{ locale.imposter.gameOver.backHome }}
+        </Button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Crown, Home, Medal, Trophy } from '@lucide/vue'
 import { en as locale } from '@/locales/en'
 import type { GameState, PublicPlayer } from '../types/index.js'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import AppFooter from './AppFooter.vue'
 
 defineProps<{
   gameState: GameState

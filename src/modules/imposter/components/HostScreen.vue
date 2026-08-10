@@ -1,220 +1,262 @@
 <template>
   <div
-    class="min-h-dvh flex flex-col bg-[#0d0d0d]"
+    class="h-dvh flex flex-col bg-background"
     style="padding-top: max(1rem, env(safe-area-inset-top))"
   >
     <!-- Scrollable content -->
-    <div class="flex-1 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-4 animate-fade-in">
-        <div>
-          <span class="badge bg-yellow-500/20 text-yellow-400 mb-1 inline-block">{{ locale.imposter.hostScreen.hostBadge }}</span>
-          <h2 class="text-xl font-bold leading-tight">{{ hostPlayer?.name ?? locale.imposter.hostScreen.hostFallback }}</h2>
+    <div class="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
+      <div class="w-full max-w-md mx-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4 animate-fade-in">
+          <div>
+            <Badge variant="warning" class="mb-1 gap-1">
+              <Crown class="size-3" />{{ locale.imposter.hostScreen.hostBadge }}
+            </Badge>
+            <h2 class="text-xl font-bold leading-tight">{{ hostPlayer?.name ?? locale.imposter.hostScreen.hostFallback }}</h2>
+          </div>
+          <div class="text-right">
+            <p class="text-muted-foreground text-xs uppercase tracking-wider">{{ locale.imposter.hostScreen.roundLabel }}</p>
+            <p class="text-3xl font-extrabold">{{ gameState.round }}</p>
+          </div>
         </div>
-        <div class="text-right">
-          <p class="text-white/40 text-xs uppercase tracking-wider">{{ locale.imposter.hostScreen.roundLabel }}</p>
-          <p class="text-3xl font-extrabold">{{ gameState.round }}</p>
-        </div>
-      </div>
 
-      <!--
-        Secret word — HIDDEN if host is the imposter.
-        This is the key fix: before, the host always saw the word even when
-        they were assigned the imposter role.
-      -->
-      <div
-        class="card mb-3 text-center"
-        :class="isHostImposter
-          ? 'border-red-500/40 bg-red-500/10'
-          : 'border-yellow-500/30 bg-yellow-500/5'"
-      >
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-1">
-          {{ isHostImposter ? locale.imposter.hostScreen.yourRoleLabel : locale.imposter.hostScreen.secretWordLabel }}
-        </p>
-        <p v-if="isHostImposter" class="text-2xl font-bold text-red-400 mb-1">
-          {{ locale.imposter.hostScreen.imposterLabel }}
-        </p>
-        <p v-if="isHostImposter" class="text-5xl font-extrabold text-white/20">？？？</p>
-        <p v-else class="text-4xl font-extrabold tracking-tight break-words">
-          {{ myAssignment.word ?? '???' }}
-        </p>
-        <p class="text-xs text-white/30 mt-1">{{ gameState.difficulty }} {{ locale.imposter.hostScreen.difficultySuffix }}</p>
-      </div>
-
-      <!-- Turn status + progress -->
-      <div class="card mb-3">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-2">{{ locale.imposter.hostScreen.statusLabel }}</p>
         <!--
-          No enter/leave transition here on purpose: this text changes every
-          turn (frequently, mid-round) and must always reflect the current
-          server state immediately. A CSS/JS transition here would add
-          latency and — if the tab is ever backgrounded at the wrong instant —
-          can get stuck showing a stale player name until refocused.
+          Secret word — HIDDEN if host is the imposter.
+          This is the key fix: before, the host always saw the word even when
+          they were assigned the imposter role.
         -->
-        <div v-if="screen === 'discussion'" class="text-center py-1">
-          <p class="text-xl font-bold text-yellow-400">{{ locale.imposter.hostScreen.discussionTitle }}</p>
-          <p class="text-sm text-white/50 mt-1">{{ locale.imposter.hostScreen.discussionSub }}</p>
-        </div>
-        <div v-else>
-          <div class="flex items-center gap-2 mb-3">
-            <span class="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse-slow" />
-            <span class="font-semibold">{{ locale.imposter.hostScreen.turnSuffix(gameState.currentTurnName) }}</span>
-          </div>
-          <div class="w-full bg-white/5 rounded-full h-2">
-            <div
-              class="bg-green-500 h-2 rounded-full transition-all duration-500"
-              :style="{ width: turnProgress + '%' }"
-            />
-          </div>
-          <p class="text-xs text-white/30 mt-1.5">
-            {{ locale.imposter.hostScreen.doneProgress(donePlayers, gameState.players.length) }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Keep-alive toggle: prevents a free-tier backend (e.g. Render) from
-           spinning down mid-game due to 15 min of no inbound HTTP traffic. -->
-      <button
-        class="w-full card mb-3 flex items-center justify-between text-left py-3"
-        :class="keepAliveEnabled ? 'border-green-500/30 bg-green-500/5' : ''"
-        @click="toggleKeepAlive"
-      >
-        <span class="text-sm font-semibold" :class="keepAliveEnabled ? 'text-green-400' : 'text-white/70'">
-          {{ keepAliveEnabled ? locale.imposter.common.keepAliveOn : locale.imposter.common.keepAliveOff }}
-        </span>
-        <span
-          :class="[
-            'relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0',
-            keepAliveEnabled ? 'bg-green-500' : 'bg-white/15',
-          ]"
+        <Card
+          class="mb-3 text-center"
+          :class="isHostImposter
+            ? 'border-destructive/40 bg-destructive/10'
+            : 'border-warning/30 bg-warning/5'"
         >
-          <span
-            :class="[
-              'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
-              keepAliveEnabled ? 'translate-x-4' : 'translate-x-1',
-            ]"
-          />
-        </span>
-      </button>
+          <CardContent class="pt-4">
+            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1">
+              {{ isHostImposter ? locale.imposter.hostScreen.yourRoleLabel : locale.imposter.hostScreen.secretWordLabel }}
+            </p>
+            <p v-if="isHostImposter" class="text-2xl font-bold text-destructive mb-1 flex items-center justify-center gap-2">
+              <VenetianMask class="size-6" />{{ locale.imposter.hostScreen.imposterLabel }}
+            </p>
+            <p v-if="isHostImposter" class="text-5xl font-extrabold text-muted-foreground/30">？？？</p>
+            <p v-else class="text-4xl font-extrabold tracking-tight break-words">
+              {{ myAssignment.word ?? '???' }}
+            </p>
+            <p class="text-xs text-muted-foreground/70 mt-1 flex items-center justify-center gap-1">
+              <DifficultyIcon :difficulty="gameState.difficulty" class="size-3" />
+              {{ gameState.difficulty }} {{ locale.imposter.hostScreen.difficultySuffix }}
+            </p>
+          </CardContent>
+        </Card>
 
-      <!-- Player list -->
-      <div class="card mb-3">
-        <p class="text-xs text-white/40 uppercase tracking-widest mb-3">{{ locale.imposter.hostScreen.allPlayersHeading }}</p>
-        <ul class="space-y-2">
-          <li
-            v-for="(player, idx) in sortedPlayers"
-            :key="player.id"
-            class="flex items-center gap-2 py-2.5 px-3 rounded-xl bg-white/5 border border-white/10"
+        <!-- Turn status + progress -->
+        <Card class="mb-3">
+          <CardContent class="pt-4">
+            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2">{{ locale.imposter.hostScreen.statusLabel }}</p>
+            <!--
+              No enter/leave transition here on purpose: this text changes every
+              turn (frequently, mid-round) and must always reflect the current
+              server state immediately. A CSS/JS transition here would add
+              latency and — if the tab is ever backgrounded at the wrong instant —
+              can get stuck showing a stale player name until refocused.
+            -->
+            <div v-if="screen === 'discussion'" class="text-center py-1">
+              <p class="text-xl font-bold text-warning flex items-center justify-center gap-2">
+                <MessagesSquare class="size-5" />{{ locale.imposter.hostScreen.discussionTitle }}
+              </p>
+              <p class="text-sm text-muted-foreground mt-1">{{ locale.imposter.hostScreen.discussionSub }}</p>
+            </div>
+            <div v-else>
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-2.5 h-2.5 bg-primary rounded-full animate-pulse-slow" />
+                <span class="font-semibold">{{ locale.imposter.hostScreen.turnSuffix(gameState.currentTurnName) }}</span>
+              </div>
+              <Progress :model-value="turnProgress" />
+              <p class="text-xs text-muted-foreground/70 mt-1.5">
+                {{ locale.imposter.hostScreen.doneProgress(donePlayers, gameState.players.length) }}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Keep-alive toggle: prevents a free-tier backend (e.g. Render) from
+             spinning down mid-game due to 15 min of no inbound HTTP traffic. -->
+        <Card
+          class="mb-3 flex items-center justify-between py-3 px-4"
+          :class="keepAliveEnabled ? 'border-primary/30 bg-primary/5' : ''"
+        >
+          <span class="text-sm font-semibold flex items-center gap-2" :class="keepAliveEnabled ? 'text-primary' : 'text-foreground/80'">
+            <BatteryCharging class="size-4" />{{ keepAliveEnabled ? locale.imposter.common.keepAliveOn : locale.imposter.common.keepAliveOff }}
+          </span>
+          <Switch :model-value="keepAliveEnabled" @update:model-value="toggleKeepAlive" />
+        </Card>
+
+        <!-- Player list -->
+        <Card class="mb-3">
+          <CardHeader>
+            <CardTitle class="text-xs normal-case">{{ locale.imposter.hostScreen.allPlayersHeading }}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul class="space-y-2">
+              <li
+                v-for="(player, idx) in sortedPlayers"
+                :key="player.id"
+                class="flex items-center gap-2 py-2.5 px-3 rounded-xl bg-secondary/40 border border-border"
+              >
+                <span class="text-xs text-muted-foreground/60 w-5 shrink-0">{{ idx + 1 }}</span>
+                <span
+                  :class="['w-2 h-2 rounded-full shrink-0', player.connected ? 'bg-primary' : 'bg-muted-foreground/30']"
+                />
+                <span class="flex-1 font-medium truncate">{{ player.name }}</span>
+                <Badge v-if="player.hasDone && screen === 'game'" class="animate-in zoom-in-50 duration-200"><Check class="size-3" /></Badge>
+                <Badge
+                  v-if="player.hasVoted && screen === 'discussion'" variant="warning"
+                  class="animate-in zoom-in-50 duration-200">
+                  <Vote class="size-3" />
+                </Badge>
+                <span class="font-bold text-primary text-sm">{{ player.score }}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <!-- In-app voting (discussion phase) — host votes too, plus can force-reveal early -->
+        <Transition name="panel">
+          <Card v-if="screen === 'discussion'" class="mb-3 border-warning/20">
+            <CardContent class="pt-4">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-xs text-muted-foreground uppercase tracking-widest">{{ locale.imposter.hostScreen.voteHeading }}</p>
+                <Badge variant="secondary">{{ locale.imposter.hostScreen.votedOf(votedCount, totalVoters) }}</Badge>
+              </div>
+              <div class="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  v-for="p in votablePlayers"
+                  :key="p.id"
+                  class="rounded-xl py-3 px-2 border text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 truncate"
+                  :class="myVote === p.id ? 'bg-destructive/20 border-destructive/60 text-destructive' : 'bg-secondary/40 border-border text-foreground/80'"
+                  @click="$emit('submit-vote', p.id)"
+                >
+                  <Vote v-if="myVote === p.id" class="size-4" />
+                  <span class="truncate">{{ p.name }}</span>
+                </button>
+              </div>
+              <p class="text-xs text-muted-foreground/70 mb-3 text-center">
+                <template v-if="myVote">{{ locale.imposter.hostScreen.votedForChange(votedName) }}</template>
+                <template v-else>{{ locale.imposter.hostScreen.tapToVote }}</template>
+              </p>
+              <Button
+                variant="secondary" class="w-full text-sm"
+                size="sm" @click="$emit('force-reveal')">
+                <Zap class="size-4" />{{ locale.imposter.hostScreen.forceReveal }}
+              </Button>
+            </CardContent>
+          </Card>
+        </Transition>
+
+        <!-- Host's own Done button (if it's their turn) -->
+        <div v-if="screen === 'game' && isHostTurn" class="mb-3">
+          <Button
+            size="lg"
+            class="w-full text-xl py-7 rounded-2xl font-extrabold
+                   shadow-[0_0_40px_hsl(var(--primary)/0.4)] animate-bounce-once"
+            :disabled="hostPlayer?.hasDone"
+            @click="$emit('player-done')"
           >
-            <span class="text-xs text-white/30 w-5 shrink-0">{{ idx + 1 }}</span>
-            <span
-              :class="['w-2 h-2 rounded-full shrink-0', player.connected ? 'bg-green-400' : 'bg-white/20']"
-            />
-            <span class="flex-1 font-medium truncate">{{ player.name }}</span>
-            <span
-              v-if="player.hasDone && screen === 'game'"
-              class="badge bg-green-500/20 text-green-400"
-            >✓</span>
-            <span
-              v-if="player.hasVoted && screen === 'discussion'"
-              class="badge bg-yellow-500/20 text-yellow-400"
-            >🗳️</span>
-            <span class="font-bold text-green-400 text-sm">{{ player.score }}</span>
-          </li>
-        </ul>
-      </div>
-
-      <!-- In-app voting (discussion phase) — host votes too, plus can force-reveal early -->
-      <Transition name="panel">
-        <div v-if="screen === 'discussion'" class="card mb-3 border-yellow-500/20">
-          <div class="flex items-center justify-between mb-3">
-            <p class="text-xs text-white/40 uppercase tracking-widest">{{ locale.imposter.hostScreen.voteHeading }}</p>
-            <span class="badge bg-white/10 text-white/60">{{ locale.imposter.hostScreen.votedOf(votedCount, totalVoters) }}</span>
-          </div>
-          <div class="grid grid-cols-2 gap-2 mb-3">
-            <button
-              v-for="p in votablePlayers"
-              :key="p.id"
-              class="rounded-xl py-3 px-2 border text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 truncate"
-              :class="myVote === p.id ? 'bg-red-500/30 border-red-500/60 text-red-300' : 'bg-white/5 border-white/10 text-white/70'"
-              @click="$emit('submit-vote', p.id)"
-            >
-              <span v-if="myVote === p.id">🗳️</span>
-              <span class="truncate">{{ p.name }}</span>
-            </button>
-          </div>
-          <p class="text-xs text-white/30 mb-3 text-center">
-            <template v-if="myVote">{{ locale.imposter.hostScreen.votedForChange(votedName) }}</template>
-            <template v-else>{{ locale.imposter.hostScreen.tapToVote }}</template>
-          </p>
-          <button class="btn-secondary w-full text-sm py-3" @click="$emit('force-reveal')">
-            {{ locale.imposter.hostScreen.forceReveal }}
-          </button>
+            <Check class="size-5" />{{ locale.imposter.hostScreen.hostDoneButton }}
+          </Button>
         </div>
-      </Transition>
-
-      <!-- Host's own Done button (if it's their turn) -->
-      <div v-if="screen === 'game' && isHostTurn" class="mb-3">
-        <button
-          class="btn-primary w-full text-xl py-5 rounded-2xl font-extrabold
-                 shadow-[0_0_40px_rgba(34,197,94,0.4)] animate-bounce-once"
-          :disabled="hostPlayer?.hasDone"
-          @click="$emit('player-done')"
-        >
-          {{ locale.imposter.hostScreen.hostDoneButton }}
-        </button>
+        <AppFooter />
       </div>
     </div>
 
     <!-- Sticky action bar -->
     <div class="action-bar space-y-2">
-      <!-- Skip turn — only during game phase when it's NOT the host's own turn -->
-      <button
-        v-if="screen === 'game' && !isHostTurn"
-        class="btn-secondary w-full text-sm py-3"
-        @click="$emit('skip-turn')"
-      >
-        {{ locale.imposter.hostScreen.skipTurn(gameState.currentTurnName) }}
-      </button>
+      <div class="w-full max-w-md mx-auto space-y-2">
+        <!-- Skip turn — only during game phase when it's NOT the host's own turn -->
+        <Button
+          v-if="screen === 'game' && !isHostTurn"
+          variant="secondary"
+          class="w-full text-sm"
+          size="sm"
+          @click="$emit('skip-turn')"
+        >
+          <SkipForward class="size-4" />{{ locale.imposter.hostScreen.skipTurn(gameState.currentTurnName) }}
+        </Button>
 
-      <!-- Confirm overlay for destructive actions -->
-      <Transition name="panel">
-        <div v-if="confirmAction" class="card border-yellow-500/40 bg-yellow-500/10 text-center space-y-3">
-          <p class="font-semibold text-sm">
-            {{ confirmAction === 'reset' ? locale.imposter.hostScreen.confirmReset : locale.imposter.hostScreen.confirmEnd }}
-          </p>
-          <div class="flex gap-2">
-            <button class="btn-secondary flex-1 text-sm py-2.5" @click="confirmAction = null">
-              {{ locale.imposter.hostScreen.cancel }}
-            </button>
-            <button
-              :class="confirmAction === 'end' ? 'btn-danger' : 'btn-primary'"
-              class="flex-1 text-sm py-2.5"
-              @click="confirmAndExecute"
-            >
-              {{ confirmAction === 'reset' ? locale.imposter.hostScreen.confirmResetButton : locale.imposter.hostScreen.confirmEndButton }}
-            </button>
-          </div>
+        <div class="grid grid-cols-2 gap-3">
+          <Button
+            variant="secondary" size="sm"
+            @click="openConfirm('reset')">
+            <RotateCcw class="size-4" />{{ locale.imposter.hostScreen.resetScoresButton }}
+          </Button>
+          <Button
+            variant="destructive" size="sm"
+            @click="openConfirm('end')">
+            <OctagonX class="size-4" />{{ locale.imposter.hostScreen.endGameButton }}
+          </Button>
         </div>
-      </Transition>
-
-      <div v-if="!confirmAction" class="grid grid-cols-2 gap-3">
-        <button class="btn-secondary text-sm py-3" @click="confirmAction = 'reset'">
-          {{ locale.imposter.hostScreen.resetScoresButton }}
-        </button>
-        <button class="btn-danger text-sm py-3" @click="confirmAction = 'end'">
-          {{ locale.imposter.hostScreen.endGameButton }}
-        </button>
       </div>
     </div>
+
+    <!-- Confirm dialog for destructive actions -->
+    <AlertDialog :open="confirmAction !== null" @update:open="(v) => { if (!v) confirmAction = null }">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {{ confirmAction === 'reset' ? locale.imposter.hostScreen.confirmReset : locale.imposter.hostScreen.confirmEnd }}
+          </AlertDialogTitle>
+          <!-- Visually hidden: satisfies dialog a11y requirements without adding new copy -->
+          <AlertDialogDescription class="sr-only">
+            {{ confirmAction === 'reset' ? locale.imposter.hostScreen.confirmReset : locale.imposter.hostScreen.confirmEnd }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="confirmAction = null">
+            {{ locale.imposter.hostScreen.cancel }}
+          </AlertDialogCancel>
+          <AlertDialogAction :variant="confirmAction === 'end' ? 'destructive' : 'default'" @click="confirmAndExecute">
+            {{ confirmAction === 'reset' ? locale.imposter.hostScreen.confirmResetButton : locale.imposter.hostScreen.confirmEndButton }}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import {
+  BatteryCharging,
+  Check,
+  Crown,
+  MessagesSquare,
+  OctagonX,
+  RotateCcw,
+  SkipForward,
+  VenetianMask,
+  Vote,
+  Zap,
+} from '@lucide/vue'
 import { en as locale } from '@/locales/en'
 import { useKeepAlive } from '../composables/useKeepAlive.js'
 import type { GameState, PlayerAssignment, AppScreen } from '../types/index.js'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Progress } from '@/components/ui/progress'
+import DifficultyIcon from './DifficultyIcon.vue'
+import AppFooter from './AppFooter.vue'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 const props = defineProps<{
   gameState: GameState
@@ -235,10 +277,23 @@ const emit = defineEmits<{
 
 // ── Confirm state ─────────────────────────────────────────────────────────────
 const confirmAction = ref<'reset' | 'end' | null>(null)
+// Captured (non-reactive) at trigger time: reka-ui's AlertDialogAction closes the
+// dialog via its own internal handler, which fires *before* our own @click below
+// and already resets `confirmAction` to null (via @update:open) by the time we'd
+// read it — so the action to run is snapshotted here instead of re-read live.
+let pendingExecute: (() => void) | null = null
+
+function openConfirm(action: 'reset' | 'end') {
+  confirmAction.value = action
+  pendingExecute = () => {
+    if (action === 'reset') {emit('reset-scores')}
+    else {emit('end-game')}
+  }
+}
 
 function confirmAndExecute() {
-  if (confirmAction.value === 'reset') {emit('reset-scores')}
-  else if (confirmAction.value === 'end') {emit('end-game')}
+  pendingExecute?.()
+  pendingExecute = null
   confirmAction.value = null
 }
 

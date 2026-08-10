@@ -1,10 +1,22 @@
+import tailwindcssAnimate from 'tailwindcss-animate'
+
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: ['class'],
   content: [
     './index.html',
     './src/**/*.{vue,js,ts,jsx,tsx}',
   ],
   theme: {
+    container: {
+      center: true,
+      padding: '1rem',
+      screens: {
+        sm: '100%',
+        md: '640px',
+        lg: '720px',
+      },
+    },
     extend: {
       // ── Dynamic viewport height ────────────────────────────────────────
       // dvh = dynamic viewport height — accounts for browser chrome
@@ -17,26 +29,57 @@ export default {
         'dvh': '100dvh',
       },
 
-      // ── Brand colours ──────────────────────────────────────────────────
+      // ── shadcn-vue theme tokens (CSS variables defined in tailwind.css) ──
       colors: {
-        brand: {
-          50:  '#f0fdf4',
-          100: '#dcfce7',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
         },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+        },
+        // Brand accents kept for game-specific semantics (imposter red, host gold)
         imposter: {
           500: '#ef4444',
           600: '#dc2626',
         },
-        surface: {
-          900: '#0d0d0d',
-          800: '#141414',
-          700: '#1a1a1a',
-          600: '#222222',
-          500: '#2a2a2a',
-        },
+      },
+
+      borderRadius: {
+        xl: 'calc(var(--radius) + 4px)',
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
       },
 
       // ── Typography ─────────────────────────────────────────────────────
@@ -67,5 +110,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 }

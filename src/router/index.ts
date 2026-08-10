@@ -37,7 +37,7 @@ const routes: RouteRecordRaw[] = [
     path: '/:roomCode?',
     component: ImposterGame,
     name: ROUTE_NAMES.IMPOSTER,
-    meta: { title: 'Nepali Imposter (In Person)' },
+    meta: { title: 'Imposter In Person' },
   },
   // 404 Catch-all
   {

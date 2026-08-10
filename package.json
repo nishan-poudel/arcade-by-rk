@@ -19,7 +19,12 @@
     "server:install": "cd server && npm install"
   },
   "dependencies": {
+    "@lucide/vue": "^1.31.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "reka-ui": "^2.10.1",
     "socket.io-client": "^4.7.5",
+    "tailwind-merge": "^3.6.0",
     "vue": "^3.4.19",
     "vue-router": "^4.2.5"
   },
@@ -43,6 +48,7 @@
     "sass": "^1.97.3",
     "sass-embedded": "^1.97.3",
     "tailwindcss": "^3.4.4",
+    "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.3.3",
