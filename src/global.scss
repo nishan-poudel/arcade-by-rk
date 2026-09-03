@@ -1,18 +1,237 @@
-// ─────────────────────────────── Global base styles ─────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  Global design system — "arcade juice"
+//  ---------------------------------------------------------------------------
+//  Direction ported from nearmirer.com: loud, playful, flavored-soda energy.
+//  A rounded display face (Fredoka) over a clean grotesque body (Hanken
+//  Grotesk), a warm ground, a six-hue "flavor" palette, big radii, organic
+//  blob shapes, hard sticker shadows and bouncy easing.
+//
+//  Each game keeps its signature accent (Grid Raider = terminal green,
+//  Math Chain = logic blue) — those live in the legacy alias block below and
+//  are consumed by the game views unchanged.
+// ═══════════════════════════════════════════════════════════════════════════
 
-// ── Dark theme (default) ────────────────────────────────────────────────────
+// ── Light theme (default / warm cream) ─────────────────────────────────────
 :root,
-[data-theme="dark"] {
-  --bg:            #0d0d0d;
-  --bg-surface:    #151515;
-  --bg-surface-up: #1c1c1c;
-  --text:          rgba(255, 255, 255, 0.85);
-  --text-dim:      rgba(255, 255, 255, 0.45);
-  --text-faint:    rgba(255, 255, 255, 0.22);
+[data-theme='light'] {
+  // Ground + ink
+  --canvas:          #faf6f0;
+  --surface:         #ffffff;
+  --surface-sunken:  #f1ebe1;
+  --surface-raised:  #ffffff;
+  --ink:             #2b2431;
+  --ink-soft:        #5c5566;
+  --ink-faint:       #8b8494;
+  --hairline:        rgba(43, 36, 49, 0.12);
+  --hairline-strong: rgba(43, 36, 49, 0.26);
+
+  // Accent — strawberry coral (CTAs)
+  --accent:          #e05a34;
+  --accent-hover:    #c8492a;
+  --on-accent:       #fff7f3;
+
+  // Solid dark action (the quiet default button)
+  --solid:           #2b2431;
+  --solid-hover:     #40374d;
+  --on-solid:        #faf6f0;
+
+  // Flavor palette — trio each: base / soft wash / ink (text on -soft)
+  --flavor-citron:      #d9bd3c;
+  --flavor-citron-soft: #f6efcd;
+  --flavor-citron-ink:  #6b5810;
+
+  --flavor-peach:       #ef9f57;
+  --flavor-peach-soft:  #fbe6d3;
+  --flavor-peach-ink:   #8a4a19;
+
+  --flavor-berry:       #e35a74;
+  --flavor-berry-soft:  #fbdce2;
+  --flavor-berry-ink:   #9c2b43;
+
+  --flavor-grape:       #8368d4;
+  --flavor-grape-soft:  #e7e0f6;
+  --flavor-grape-ink:   #47368a;
+
+  --flavor-lychee:      #e386b3;
+  --flavor-lychee-soft: #f8dfeb;
+  --flavor-lychee-ink:  #8c3a64;
+
+  --flavor-melon:       #40c286;
+  --flavor-melon-soft:  #d7f0e3;
+  --flavor-melon-ink:   #196742;
+
+  // Status
+  --positive: #2f9e63;
+  --warning:  #d8952a;
+  --critical: #d5452b;
+
+  // Shape
+  --radius-tile:  22px;
+  --radius-inset: 14px;
+  --radius-pill:  999px;
+  --radius-blob:  42% 58% 63% 37% / 43% 38% 62% 57%;
+
+  // Shadows — soft lift + hard sticker offset
+  --shadow-pop:  0 18px 40px -18px rgba(43, 36, 49, 0.35);
+  --shadow-hard: 5px 5px 0 0 var(--ink);
+  --shadow-soft: 0 6px 20px -8px rgba(43, 36, 49, 0.22);
+
+  // Easing
+  --ease-soft:     cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bounce:   cubic-bezier(0.34, 1.4, 0.5, 1);
+  --ease-drop:     cubic-bezier(0.4, 1.3, 0.4, 1);
+
+  // Fonts
+  --font-sans:    'Hanken Grotesk Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                  Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Fredoka Variable', 'Hanken Grotesk Variable', ui-rounded, 'Segoe UI', system-ui,
+                  sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, 'Courier New', monospace;
+
+  // Ambient hero gradient
+  --gradient-hero:
+    radial-gradient(60% 55% at 12% 8%, var(--flavor-lychee-soft), transparent 60%),
+    radial-gradient(55% 60% at 92% 4%, var(--flavor-citron-soft), transparent 55%),
+    radial-gradient(70% 70% at 82% 104%, var(--flavor-grape-soft), transparent 62%);
+
+  // ── Legacy aliases — consumed by the game views. Structure repoints to the
+  //    new tokens; the green/blue/amber game signatures stay explicit. ──
+  --bg:            var(--canvas);
+  --bg-surface:    var(--surface-sunken);
+  --bg-surface-up: var(--surface);
+  --text:          var(--ink);
+  --text-dim:      var(--ink-soft);
+  --text-faint:    var(--ink-faint);
+  --heading:       var(--ink);
+  --border:        var(--hairline);
+
+  --amber:         #a5641a;
+  --amber-dim:     rgba(165, 100, 26, 0.1);
+  --green:         #1b5e20;
+  --green-dim:     rgba(27, 94, 32, 0.08);
+  --green-glow:    rgba(27, 94, 32, 0.16);
+  --green-border:  rgba(27, 94, 32, 0.25);
+  --green-text:    #1b5e20;
+  --blue:          #0d47a1;
+  --blue-dim:      rgba(13, 71, 161, 0.08);
+  --blue-glow:     rgba(13, 71, 161, 0.16);
+  --blue-border:   rgba(13, 71, 161, 0.25);
+  --blue-text:     #0d47a1;
+  --nav-game:      #1b5e20;
+  --nav-game-hover: #1b5e20;
+  --nav-game-bg:   rgba(27, 94, 32, 0.08);
+  --nav-game-active-bg: rgba(27, 94, 32, 0.12);
+  --nav-game-active-border: rgba(27, 94, 32, 0.28);
+  --nav-puzzle:    #0d47a1;
+  --nav-puzzle-hover: #0d47a1;
+  --nav-puzzle-bg: rgba(13, 71, 161, 0.08);
+  --nav-puzzle-active-bg: rgba(13, 71, 161, 0.12);
+  --nav-puzzle-active-border: rgba(13, 71, 161, 0.28);
+  --nav-home:      var(--accent);
+  --nav-home-hover: var(--accent-hover);
+  --nav-home-bg:   rgba(224, 90, 52, 0.09);
+  --nav-home-active-bg: rgba(224, 90, 52, 0.13);
+  --nav-home-active-border: rgba(224, 90, 52, 0.3);
+  --red:           #b5271c;
+  --red-dim:       rgba(181, 39, 28, 0.09);
+  --red-border:    rgba(181, 39, 28, 0.32);
+  --red-glow:      rgba(181, 39, 28, 0.28);
+  --green-bright:  #2f9e63;
+  --green-bright-dim:    rgba(47, 158, 99, 0.1);
+  --green-bright-border: rgba(47, 158, 99, 0.3);
+  --amber-bright:  #a5641a;
+  --amber-bright-dim:  rgba(165, 100, 26, 0.12);
+  --amber-bright-glow: rgba(165, 100, 26, 0.4);
+  --overlay-bg:    rgba(43, 36, 49, 0.5);
+  --cell-bg:       rgba(43, 36, 49, 0.05);
+  --cell-border:   rgba(43, 36, 49, 0.22);
+  --cell-text:     rgba(43, 36, 49, 0.92);
+  --cell-op:       rgba(43, 36, 49, 0.55);
+  --cell-eq:       rgba(43, 36, 49, 0.4);
+  --cell-faint:    rgba(43, 36, 49, 0.04);
+  --glow-bg:       rgba(224, 90, 52, 0.1);
+  --chip-border:   rgba(165, 100, 26, 0.35);
+  --chip-bg:       rgba(165, 100, 26, 0.07);
+  --btn-border:    var(--hairline-strong);
+  --btn-border-hover: var(--ink);
+  --btn-hover-bg:  rgba(43, 36, 49, 0.05);
+  --mobile-drawer: var(--surface);
+  --backdrop-bg:   rgba(20, 16, 24, 0.32);
+  --tooltip-bg:    var(--ink);
+  --tooltip-text:  var(--canvas);
+  --hamburger:     var(--ink);
+}
+
+// ── Dark theme (deep plum-black) ──────────────────────────────────────────
+[data-theme='dark'] {
+  --canvas:          #14121a;
+  --surface:         #1e1b26;
+  --surface-sunken:  #100e15;
+  --surface-raised:  #262230;
+  --ink:             #f3f0ea;
+  --ink-soft:        rgba(243, 240, 234, 0.72);
+  --ink-faint:       rgba(243, 240, 234, 0.48);
+  --hairline:        rgba(255, 255, 255, 0.1);
+  --hairline-strong: rgba(255, 255, 255, 0.22);
+
+  --accent:       #f0714c;
+  --accent-hover: #f4855f;
+  --on-accent:    #1c100b;
+
+  --solid:       #f3f0ea;
+  --solid-hover: #ffffff;
+  --on-solid:    #1e1b26;
+
+  --flavor-citron:      #e6cd5b;
+  --flavor-citron-soft: #38331a;
+  --flavor-citron-ink:  #ecdb92;
+
+  --flavor-peach:       #efa564;
+  --flavor-peach-soft:  #392a1c;
+  --flavor-peach-ink:   #f3c9a2;
+
+  --flavor-berry:       #ec6d85;
+  --flavor-berry-soft:  #3a2028;
+  --flavor-berry-ink:   #f2acb8;
+
+  --flavor-grape:       #9a80e2;
+  --flavor-grape-soft:  #241f3a;
+  --flavor-grape-ink:   #c6b6f0;
+
+  --flavor-lychee:      #ec9bc0;
+  --flavor-lychee-soft: #35212c;
+  --flavor-lychee-ink:  #f2c6db;
+
+  --flavor-melon:       #52ce90;
+  --flavor-melon-soft:  #163020;
+  --flavor-melon-ink:   #a9e7c6;
+
+  --positive: #52ce90;
+  --warning:  #e6b755;
+  --critical: #f0714c;
+
+  --shadow-pop:  0 20px 44px -18px rgba(0, 0, 0, 0.6);
+  --shadow-hard: 5px 5px 0 0 var(--ink);
+  --shadow-soft: 0 8px 24px -10px rgba(0, 0, 0, 0.5);
+
+  --gradient-hero:
+    radial-gradient(60% 55% at 12% 8%, var(--flavor-grape-soft), transparent 60%),
+    radial-gradient(55% 60% at 92% 4%, var(--flavor-berry-soft), transparent 55%),
+    radial-gradient(70% 70% at 82% 104%, var(--flavor-lychee-soft), transparent 62%);
+
+  // ── Legacy aliases (dark) ──
+  --bg:            var(--canvas);
+  --bg-surface:    var(--surface);
+  --bg-surface-up: var(--surface-raised);
+  --text:          var(--ink);
+  --text-dim:      var(--ink-soft);
+  --text-faint:    var(--ink-faint);
   --heading:       #ffffff;
-  --border:        rgba(255, 255, 255, 0.07);
-  --amber:         #f59e0b;
-  --amber-dim:     rgba(245, 158, 11, 0.14);
+  --border:        var(--hairline);
+
+  --amber:         #f0a860;
+  --amber-dim:     rgba(240, 168, 96, 0.14);
   --green:         #00ff41;
   --green-dim:     rgba(0, 255, 65, 0.08);
   --green-glow:    rgba(0, 255, 65, 0.18);
@@ -24,7 +243,7 @@
   --blue-border:   rgba(96, 165, 250, 0.2);
   --blue-text:     rgba(96, 165, 250, 0.8);
   --nav-game:      rgba(0, 200, 65, 0.65);
-  --nav-game-hover:#00ff41;
+  --nav-game-hover: #00ff41;
   --nav-game-bg:   rgba(0, 255, 65, 0.07);
   --nav-game-active-bg: rgba(0, 255, 65, 0.1);
   --nav-game-active-border: rgba(0, 255, 65, 0.3);
@@ -33,11 +252,11 @@
   --nav-puzzle-bg: rgba(96, 165, 250, 0.07);
   --nav-puzzle-active-bg: rgba(96, 165, 250, 0.1);
   --nav-puzzle-active-border: rgba(96, 165, 250, 0.3);
-  --nav-home:      rgba(245, 158, 11, 0.65);
-  --nav-home-hover:#f59e0b;
-  --nav-home-bg:   rgba(245, 158, 11, 0.07);
-  --nav-home-active-bg: rgba(245, 158, 11, 0.1);
-  --nav-home-active-border: rgba(245, 158, 11, 0.3);
+  --nav-home:      var(--accent);
+  --nav-home-hover: var(--accent-hover);
+  --nav-home-bg:   rgba(240, 113, 76, 0.1);
+  --nav-home-active-bg: rgba(240, 113, 76, 0.14);
+  --nav-home-active-border: rgba(240, 113, 76, 0.34);
   --red:           #ff4444;
   --red-dim:       rgba(255, 68, 68, 0.1);
   --red-border:    rgba(255, 68, 68, 0.35);
@@ -46,8 +265,8 @@
   --green-bright-dim:    rgba(74, 222, 128, 0.1);
   --green-bright-border: rgba(74, 222, 128, 0.3);
   --amber-bright:  #fbbf24;
-  --amber-bright-dim:    rgba(251, 191, 36, 0.1);
-  --amber-bright-glow:   rgba(251, 191, 36, 0.5);
+  --amber-bright-dim:  rgba(251, 191, 36, 0.1);
+  --amber-bright-glow: rgba(251, 191, 36, 0.5);
   --overlay-bg:    rgba(0, 0, 0, 0.72);
   --cell-bg:       rgba(255, 255, 255, 0.04);
   --cell-border:   rgba(255, 255, 255, 0.14);
@@ -55,90 +274,24 @@
   --cell-op:       rgba(255, 255, 255, 0.38);
   --cell-eq:       rgba(255, 255, 255, 0.22);
   --cell-faint:    rgba(255, 255, 255, 0.04);
-  --glow-bg:       rgba(245, 158, 11, 0.15);
-  --chip-border:   rgba(245, 158, 11, 0.35);
-  --chip-bg:       rgba(245, 158, 11, 0.07);
-  --btn-border:    rgba(255, 255, 255, 0.2);
+  --glow-bg:       rgba(240, 113, 76, 0.15);
+  --chip-border:   rgba(240, 168, 96, 0.35);
+  --chip-bg:       rgba(240, 168, 96, 0.07);
+  --btn-border:    var(--hairline-strong);
   --btn-border-hover: rgba(255, 255, 255, 0.5);
   --btn-hover-bg:  rgba(255, 255, 255, 0.05);
-  --toggle-icon:   '☀️';
-  --mobile-drawer: #111;
+  --mobile-drawer: var(--surface);
   --backdrop-bg:   rgba(0, 0, 0, 0.6);
-  --tooltip-bg:    #f59e0b;
-  --tooltip-text:  #000;
-  --hamburger:     #fff;
+  --tooltip-bg:    var(--accent);
+  --tooltip-text:  #1c100b;
+  --hamburger:     #ffffff;
 }
 
-// ── Light theme (cream + brown) ─────────────────────────────────────────────
-[data-theme="light"] {
-  --bg:            #faf6f0;
-  --bg-surface:    #f0ebe3;
-  --bg-surface-up: #e8e1d7;
-  --text:          rgba(62, 39, 23, 0.88);
-  --text-dim:      rgba(62, 39, 23, 0.68);
-  --text-faint:    rgba(62, 39, 23, 0.48);
-  --heading:       #3e2723;
-  --border:        rgba(62, 39, 23, 0.15);
-  --amber:         #8c5a00;
-  --amber-dim:     rgba(140, 90, 0, 0.1);
-  --green:         #1b5e20;
-  --green-dim:     rgba(27, 94, 32, 0.08);
-  --green-glow:    rgba(27, 94, 32, 0.14);
-  --green-border:  rgba(27, 94, 32, 0.25);
-  --green-text:    #1b5e20;
-  --blue:          #0d47a1;
-  --blue-dim:      rgba(13, 71, 161, 0.08);
-  --blue-glow:     rgba(13, 71, 161, 0.14);
-  --blue-border:   rgba(13, 71, 161, 0.25);
-  --blue-text:     #0d47a1;
-  --nav-game:      #1b5e20;
-  --nav-game-hover:#1b5e20;
-  --nav-game-bg:   rgba(27, 94, 32, 0.07);
-  --nav-game-active-bg: rgba(27, 94, 32, 0.1);
-  --nav-game-active-border: rgba(27, 94, 32, 0.25);
-  --nav-puzzle:    #0d47a1;
-  --nav-puzzle-hover: #0d47a1;
-  --nav-puzzle-bg: rgba(13, 71, 161, 0.07);
-  --nav-puzzle-active-bg: rgba(13, 71, 161, 0.1);
-  --nav-puzzle-active-border: rgba(13, 71, 161, 0.25);
-  --nav-home:      #8c5a00;
-  --nav-home-hover:#8c5a00;
-  --nav-home-bg:   rgba(140, 90, 0, 0.07);
-  --nav-home-active-bg: rgba(140, 90, 0, 0.1);
-  --nav-home-active-border: rgba(140, 90, 0, 0.25);
-  --red:           #b71c1c;
-  --red-dim:       rgba(183, 28, 28, 0.08);
-  --red-border:    rgba(183, 28, 28, 0.3);
-  --red-glow:      rgba(183, 28, 28, 0.25);
-  --green-bright:  #2e7d32;
-  --green-bright-dim:    rgba(46, 125, 50, 0.08);
-  --green-bright-border: rgba(46, 125, 50, 0.25);
-  --amber-bright:  #8c5a00;
-  --amber-bright-dim:    rgba(140, 90, 0, 0.1);
-  --amber-bright-glow:   rgba(140, 90, 0, 0.35);
-  --overlay-bg:    rgba(0, 0, 0, 0.45);
-  --cell-bg:       rgba(62, 39, 23, 0.06);
-  --cell-border:   rgba(62, 39, 23, 0.22);
-  --cell-text:     rgba(62, 39, 23, 0.92);
-  --cell-op:       rgba(62, 39, 23, 0.58);
-  --cell-eq:       rgba(62, 39, 23, 0.42);
-  --cell-faint:    rgba(62, 39, 23, 0.04);
-  --glow-bg:       rgba(140, 90, 0, 0.08);
-  --chip-border:   rgba(140, 90, 0, 0.35);
-  --chip-bg:       rgba(140, 90, 0, 0.06);
-  --btn-border:    rgba(62, 39, 23, 0.25);
-  --btn-border-hover: rgba(62, 39, 23, 0.5);
-  --btn-hover-bg:  rgba(62, 39, 23, 0.06);
-  --toggle-icon:   '🌙';
-  --mobile-drawer: #f0ebe3;
-  --backdrop-bg:   rgba(0, 0, 0, 0.25);
-  --tooltip-bg:    #3e2723;
-  --tooltip-text:  #faf6f0;
-  --hamburger:     #3e2723;
-}
-
+// ── Reset ─────────────────────────────────────────────────────────────────
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
+  scroll-behavior: smooth;
+  color-scheme: light dark;
 }
 
 * {
@@ -148,16 +301,284 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-sans);
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.55;
   color: var(--text);
   background: var(--bg);
-  overflow-x: hidden;
-  transition: background 0.3s ease, color 0.3s ease;
+  overflow-x: clip;
+  transition: background 0.35s var(--ease-soft), color 0.35s var(--ease-soft);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 input,
-button {
+button,
+textarea,
+select {
   font-family: inherit;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+// iOS Safari: keep form controls at 16px so focus never triggers an auto-zoom.
+@media (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+// ── Ambient flavor wash — fixed behind the whole app, purely decorative ────
+.app-aura {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--flavor-lychee) 7%, transparent);
+  background-image: var(--gradient-hero);
+  transform-origin: center;
+  animation: aura-drift 26s ease-in-out infinite alternate;
+}
+[data-theme='dark'] .app-aura {
+  opacity: 0.7;
+}
+
+// ── Shared utility classes ────────────────────────────────────────────────
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--flavor-berry),
+    var(--flavor-grape) 45%,
+    var(--flavor-peach)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.rounded-blob {
+  border-radius: var(--radius-blob);
+}
+
+// ── Kit: buttons ──────────────────────────────────────────────────────────
+.a-btn {
+  --btn-h: 2.75rem;
+  --btn-px: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: var(--btn-h);
+  padding: 0 var(--btn-px);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 0.2s var(--ease-bounce),
+    color 0.2s var(--ease-bounce),
+    border-color 0.2s var(--ease-bounce),
+    transform 0.2s var(--ease-bounce),
+    box-shadow 0.2s var(--ease-bounce);
+
+  &:hover { transform: translateY(-2px); }
+  &:active { transform: translateY(0) scale(0.97); }
+  &:disabled { opacity: 0.45; pointer-events: none; }
+
+  &--sm { --btn-h: 2.25rem; --btn-px: 1rem; font-size: 0.8rem; }
+  &--lg { --btn-h: 3.25rem; --btn-px: 1.9rem; font-size: 0.98rem; }
+
+  &--solid {
+    background: var(--solid);
+    color: var(--on-solid);
+    &:hover { background: var(--solid-hover); }
+  }
+
+  &--accent {
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow: var(--shadow-pop);
+    &:hover { background: var(--accent-hover); }
+  }
+
+  // Loudest CTA — juicy flavor gradient + hard sticker shadow.
+  // The gradient is always light, so text/border/offset stay near-black in
+  // BOTH themes (a proper sticker) rather than following --ink.
+  &--candy {
+    --candy-ink: #241f1a;
+    border: 2px solid var(--candy-ink);
+    color: var(--candy-ink);
+    background-image: linear-gradient(
+      100deg,
+      var(--flavor-citron),
+      var(--flavor-peach) 45%,
+      var(--flavor-lychee)
+    );
+    box-shadow: 5px 5px 0 0 var(--candy-ink);
+    &:hover { box-shadow: 7px 7px 0 0 var(--candy-ink); }
+    &:active { box-shadow: 2px 2px 0 0 var(--candy-ink); }
+  }
+
+  &--outline {
+    background: transparent;
+    color: var(--ink);
+    border: 1.5px solid var(--hairline-strong);
+    &:hover { border-color: var(--ink); background: var(--surface-sunken); }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: var(--ink-soft);
+    &:hover { background: var(--surface-sunken); color: var(--ink); }
+  }
+}
+
+@media (hover: none) {
+  .a-btn:hover { transform: none; box-shadow: none; }
+  .a-btn--candy:hover { box-shadow: var(--shadow-hard); }
+  .a-btn--accent:hover { box-shadow: var(--shadow-pop); }
+}
+
+// ── Kit: surfaces ─────────────────────────────────────────────────────────
+.a-card {
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--radius-tile);
+}
+
+.a-card--hard {
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-hard);
+}
+
+// ── Kit: sticker + tag ────────────────────────────────────────────────────
+.a-sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.8rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-pill);
+  background: var(--flavor-berry-soft);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  box-shadow: var(--shadow-hard);
+  transition: transform 0.2s var(--ease-bounce);
+
+  &:hover { transform: rotate(0deg) scale(1.04); }
+}
+
+.a-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.6rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+// ── Shared keyframes ──────────────────────────────────────────────────────
+@keyframes aura-drift {
+  from { transform: scale(1) rotate(0deg); }
+  to   { transform: scale(1.12) rotate(1.5deg); }
+}
+
+@keyframes blob-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50%      { transform: translate3d(0, -16px, 0) rotate(4deg); }
+}
+
+@keyframes wobble {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50%      { transform: rotate(2.5deg); }
+}
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  60%  { transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(var(--cx, 0), 110vh, 0) rotate(720deg); opacity: 0; }
+}
+
+@keyframes soft-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+
+// ── Reduced motion — flatten everything ───────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .app-aura {
+    animation: none !important;
+    transform: scale(1.05);
+  }
 }

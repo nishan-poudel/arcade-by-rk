@@ -1,12 +1,20 @@
 <template>
   <div class="about" data-test="about">
-    <div class="about-container">
-      <div class="about-header">
-        <h1>{{ locale.about.contactTitle }}</h1>
-        <p class="about-subtitle">{{ locale.about.contactSubtitle }}</p>
-      </div>
+    <AppBlob
+      class="about-blob about-blob--1" flavor="peach"
+      :size="260" />
+    <AppBlob
+      class="about-blob about-blob--2" flavor="grape"
+      :size="200" :delay="2" />
 
-      <div class="about-content">
+    <div class="about-container" data-test="about-content">
+      <AppReveal class="about-header">
+        <AppSticker flavor="peach" :rotate="-3">✉ say hi</AppSticker>
+        <h1 class="about-title">{{ locale.about.contactTitle }}</h1>
+        <p class="about-subtitle">{{ locale.about.contactSubtitle }}</p>
+      </AppReveal>
+
+      <AppReveal :delay="0.08" class="about-card a-card a-card--hard">
         <form class="contact-form" @submit.prevent="sendMessage">
           <div class="form-group">
             <label for="subject" class="form-label">{{ locale.about.contactForm.subjectLabel }}</label>
@@ -36,32 +44,36 @@
 
           <button
             type="submit"
-            class="btn btn-submit"
+            class="a-btn a-btn--candy a-btn--lg btn-submit"
             :disabled="isSubmitting"
           >
             {{ isSubmitting ? locale.about.contactForm.sendingBtn : locale.about.contactForm.submitBtn }}
           </button>
 
-          <div v-if="formMessage.text" :class="['form-message', formMessage.type]">
-            {{ formMessage.text }}
-          </div>
+          <Transition name="toast">
+            <div v-if="formMessage.text" :class="['form-message', formMessage.type]">
+              {{ formMessage.text }}
+            </div>
+          </Transition>
         </form>
+      </AppReveal>
 
-        <RouterLink :to="{ name: 'home' }" class="btn btn-back">
-          {{ locale.about.backBtn }}
-        </RouterLink>
+      <RouterLink :to="{ name: 'home' }" class="a-btn a-btn--outline btn-back">
+        {{ locale.about.backBtn }}
+      </RouterLink>
 
-        <div class="builder-note">
-          <p>{{ locale.about.builderNote }}</p>
-          <p class="made-by">
-            {{ locale.about.madeByLabel }} <button
-              :key="displayName"
-              class="name-toggle" :class="{ rotating: isRotating }"
-              @click="toggleName">
-              {{ displayName }}
-            </button>.
-          </p>
-        </div>
+      <div class="builder-note">
+        <p>{{ locale.about.builderNote }}</p>
+        <p class="made-by">
+          {{ locale.about.madeByLabel }} <button
+            :key="displayName"
+            class="name-toggle"
+            :class="{ rotating: isRotating }"
+            @click="toggleName"
+          >
+            {{ displayName }}
+          </button>.
+        </p>
       </div>
     </div>
   </div>
@@ -72,12 +84,17 @@ import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { en as locale } from '@/locales/en'
 import { usePageTitle } from '@/modules/shared/composables/usePageTitle'
+import AppBlob from '@/modules/shared/components/AppBlob.vue'
+import AppReveal from '@/modules/shared/components/AppReveal.vue'
+import AppSticker from '@/modules/shared/components/AppSticker.vue'
 
 usePageTitle('About')
 
 const isRockingKaka = ref(true)
 const isRotating = ref(false)
-const displayName = computed(() => isRockingKaka.value ? locale.about.nameAlternate : locale.about.nameDefault)
+const displayName = computed(() =>
+  isRockingKaka.value ? locale.about.nameAlternate : locale.about.nameDefault,
+)
 
 const toggleName = () => {
   isRotating.value = true

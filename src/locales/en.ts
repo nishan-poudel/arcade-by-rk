@@ -15,20 +15,35 @@ export const en = {
   },
   homePage: {
     eyebrow: 'GAME ARCADE',
+    sticker: 'two original games · no installs',
     headline: 'Pick Your Challenge',
+    headlineAccent: 'Challenge',
     sub: 'Two original browser games. No installs, no accounts. Just play.',
+    how: {
+      title: 'How it works',
+      steps: [
+        { n: '01', flavor: 'citron', title: 'Pick a game', body: 'Grid Raider for reflexes, Math Chain for your head. Tap a card.' },
+        { n: '02', flavor: 'grape', title: 'Play in your browser', body: 'No download, no sign-up. Keyboard, swipe or on-screen buttons — your call.' },
+        { n: '03', flavor: 'melon', title: 'Beat your best', body: 'Every run saves a high score locally. Then go again.' },
+      ],
+    },
+    ctaBand: {
+      title: 'Got a minute to kill?',
+      body: 'Both games load instantly and remember your best score.',
+      btn: 'Start playing',
+    },
     cards: {
       hack: {
         tags: ['GRID', 'KEYBOARD', 'ROGUELIKE'],
         title: 'Grid Raider',
         desc: 'Navigate a neon-lit data grid. Collect every packet while dodging barrier tiles. One touch ends your run. Each level spawns more chaos. Every level is guaranteed solvable.',
-        cta: 'Play →',
+        cta: 'Play Grid Raider',
       },
       puzzle: {
         tags: ['MATH', 'LOGIC', 'LEVELS'],
         title: 'Math Chain',
         desc: 'Fill a 3×3 grid so every row, column and diagonal balances as a left-to-right equation. Progressive levels ramp from 2 blanks to 7. Score is based on speed and difficulty.',
-        cta: 'Play →',
+        cta: 'Play Math Chain',
       },
     },
   },

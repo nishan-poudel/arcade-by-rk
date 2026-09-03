@@ -113,31 +113,46 @@ src/
 - **Vue Router** — Named routes, lazy loading
 - **Vuex** — State management
 - **Axios** — HTTP client
-- **SCSS** — Scoped styles + CSS variables
+- **SCSS** — Scoped styles + CSS custom-property design system
+- **Fredoka + Hanken Grotesk** — self-hosted variable fonts (`@fontsource-variable/*`), bundled at build time
 - **Formspree** — Serverless form backend
 - **ESLint + Prettier** — Code quality
 - **Mocha + Chai** — Test framework (ready)
+
+### Design system
+
+`src/global.scss` defines the whole visual language as CSS custom properties for
+both themes (`[data-theme="light"]` / `[data-theme="dark"]`):
+
+- **Ground/ink**: `--canvas`, `--surface`, `--ink`, `--ink-soft`, `--hairline`
+- **Accent**: `--accent` (coral, for CTAs)
+- **Flavor palette**: `--flavor-{citron,peach,berry,grape,lychee,melon}` each with
+  a `-soft` wash and an `-ink` text shade
+- **Shape/motion**: `--radius-tile`, `--radius-pill`, `--shadow-hard`,
+  `--shadow-pop`, `--ease-bounce`, `--ease-out-expo`
+
+Reusable kit classes: `.a-btn` (`--solid/--accent/--candy/--outline/--ghost`),
+`.a-card` / `.a-card--hard`, `.a-sticker`, `.a-tag`, `.eyebrow`, `.text-gradient`.
+Presentational components live in `src/modules/shared/components/`
+(`AppBlob`, `AppWave`, `AppReveal`, `AppSticker`).
+
+Legacy aliases (`--bg`, `--green`, `--blue`, …) are kept so the two games keep
+their signature colours (Grid Raider green, Math Chain blue).
+
+`public/theme-init.js` (loaded from `index.html`) sets `data-theme` before the
+first paint so there's no theme flash on load. Keep its storage key
+(`arcade_theme`) in sync with `src/modules/shared/composables/useTheme.ts`.
 
 ## 🎨 Customization
 
 ### Colors & Theme
 
-Edit `/src/global.scss`:
+Edit the token blocks at the top of `/src/global.scss` — `:root, [data-theme="light"]`
+and `[data-theme="dark"]`. Change `--canvas` / `--ink` / `--accent` / the
+`--flavor-*` trios to re-skin the whole app; everything else references them.
 
-```scss
-// Dark theme (default)
---bg: #0a0a0a;
---text: #ffffff;
---amber: #fbbf24;
---border: #222222;
-
-// Light theme
---bg-light: #ffffff;
---text-dark: #1a1a1a;
---amber-light: #ff7f50;
-```
-
-Theme persists in localStorage. Toggle with the sun/moon icon in the nav.
+Theme persists in `localStorage` (`arcade_theme`) and is applied pre-paint by
+`public/theme-init.js`. Toggle with the sun/moon icon in the nav.
 
 ### Text & Copy
 
@@ -198,11 +213,14 @@ See [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) for details.
 ## 📊 Build Size
 
 ```
-JavaScript:  156.68 KB (57.31 KB gzipped)
-CSS:          68.40 KB (12.10 KB gzipped)  
-HTML:          1.24 KB (0.67 KB gzipped)
-Total:       ~70 KB gzipped (excellent for production)
+JavaScript:  ~164 KB (~60 KB gzipped)
+CSS:         ~87 KB (~18 KB gzipped)
+Fonts:       ~90 KB woff2 (self-hosted, subset-loaded)
+HTML:         ~1.8 KB (~0.9 KB gzipped)
 ```
+
+Output is static `dist/` — same as before. Deploy exactly as you do now
+(GitHub → Render, `npm run build`, publish `dist/`).
 
 ## 🚢 Deployment
 

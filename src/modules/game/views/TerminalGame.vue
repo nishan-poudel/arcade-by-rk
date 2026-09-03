@@ -50,6 +50,7 @@
        Full-screen game overlay
   ───────────────────────────────────────────────────────────── -->
     <Teleport to="body">
+      <Transition name="crt">
       <div
         v-if="overlayOpen"
         class="crt-overlay"
@@ -290,6 +291,7 @@
           </div>
         </footer>
       </div>
+      </Transition>
     </Teleport>
 
     <!-- ── How To Play Modal (Teleported to body, above game overlay) ── -->

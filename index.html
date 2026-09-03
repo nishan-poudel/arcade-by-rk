@@ -10,9 +10,18 @@
       NOTE: frame-ancestors / X-Frame-Options MUST be set as HTTP response
       headers on your server or CDN — they have no effect as <meta> tags.
     -->
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#faf6f0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="Arcade by RK — two original browser games. Grid Raider, a roguelike grid raid, and Math Chain, a logic puzzle. No installs, no accounts. Just play."
+    />
     <title>Arcade by RK</title>
+    <!-- Paint the right theme before first frame (see public/theme-init.js). -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="app"></div>

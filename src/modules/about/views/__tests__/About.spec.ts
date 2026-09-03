@@ -29,55 +29,47 @@ describe('About.vue', () => {
     expect(createWrapper().find('[data-test="about"]').exists()).to.be.true
   })
 
-  it('renders about-grid', () => {
-    expect(createWrapper().find('[data-test="about-grid"]').exists()).to.be.true
+  it('renders the about content container', () => {
+    expect(createWrapper().find('[data-test="about-content"]').exists()).to.be.true
   })
 
-  it('renders about-image and about-content', () => {
+  it('contact title matches locale', () => {
+    expect(createWrapper().find('.about-title').text()).to.equal(locale.about.contactTitle)
+  })
+
+  it('contact subtitle matches locale', () => {
+    expect(createWrapper().find('.about-subtitle').text()).to.equal(locale.about.contactSubtitle)
+  })
+
+  it('renders the subject and message fields', () => {
     const w = createWrapper()
-    expect(w.find('[data-test="about-image"]').exists()).to.be.true
-    expect(w.find('[data-test="about-content"]').exists()).to.be.true
+    expect(w.find('#subject').exists()).to.be.true
+    expect(w.find('#message').exists()).to.be.true
   })
 
-  it('renders image with alt text', () => {
-    const img = createWrapper().find('[data-test="about-img"]')
-    expect(img.exists()).to.be.true
-    expect(img.attributes('alt')).to.have.length.above(0)
+  it('field labels match locale', () => {
+    const w = createWrapper()
+    expect(w.find('label[for="subject"]').text()).to.equal(locale.about.contactForm.subjectLabel)
+    expect(w.find('label[for="message"]').text()).to.equal(
+      locale.about.contactForm.descriptionLabel,
+    )
   })
 
-  it('badge matches locale', () => {
-    expect(createWrapper().find('[data-test="badge"]').text()).to.equal(locale.about.badge)
+  it('submit button text matches locale', () => {
+    expect(createWrapper().find('.btn-submit').text()).to.equal(locale.about.contactForm.submitBtn)
   })
 
-  it('eyebrow matches locale', () => {
-    expect(createWrapper().find('[data-test="eyebrow"]').text()).to.equal(locale.about.eyebrow)
+  it('back link text matches locale', () => {
+    expect(createWrapper().find('.btn-back').text()).to.equal(locale.about.backBtn)
   })
 
-  it('title matches locale', () => {
-    expect(createWrapper().find('[data-test="title"]').text()).to.equal(locale.about.title)
+  it('name toggle starts on the alternate name and flips on click', async () => {
+    const w = createWrapper()
+    const toggle = w.find('.name-toggle')
+    expect(toggle.text()).to.equal(locale.about.nameAlternate)
   })
 
-  it('description matches locale', () => {
-    expect(createWrapper().find('[data-test="description"]').text()).to.equal(locale.about.description)
-  })
-
-  it('stack label matches locale', () => {
-    expect(createWrapper().find('[data-test="stack-label"]').text()).to.equal(locale.about.stackLabel)
-  })
-
-  it('renders all stack chips from locale', () => {
-    const chips = createWrapper().findAll('[data-test="chip"]')
-    expect(chips).to.have.length(locale.about.stack.length)
-    chips.forEach((chip, i) => {
-      expect(chip.text()).to.equal(locale.about.stack[i])
-    })
-  })
-
-  it('CTA text matches locale', () => {
-    expect(createWrapper().find('[data-test="cta"]').text()).to.equal(locale.about.cta)
-  })
-
-  it('renders glow decorator', () => {
-    expect(createWrapper().find('.glow').exists()).to.be.true
+  it('renders a decorative blob', () => {
+    expect(createWrapper().find('.about-blob').exists()).to.be.true
   })
 })
