@@ -25,7 +25,7 @@ const classes = computed(() => cn(
     @update:model-value="(v) => emit('update:modelValue', v)"
   >
     <SwitchThumb
-      class="pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform
+      class="pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-bounce
              data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0.5"
     />
   </SwitchRoot>

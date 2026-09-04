@@ -9,10 +9,11 @@ const props = defineProps<{
 }>()
 
 const classes = computed(() => cn(
-  'flex-1 min-h-[48px] flex items-center justify-center gap-1.5 rounded-xl border border-input ' +
-  'font-semibold text-sm text-muted-foreground bg-secondary/40 transition-all active:scale-95 ' +
+  'flex-1 min-h-[48px] flex items-center justify-center gap-1.5 rounded-2xl border-2 border-input ' +
+  'font-display font-semibold text-sm text-muted-foreground bg-secondary/40 ' +
+  'transition-all duration-200 ease-bounce active:scale-95 ' +
   'data-[state=on]:bg-primary data-[state=on]:border-primary data-[state=on]:text-primary-foreground ' +
-  'data-[state=on]:shadow-sm',
+  'data-[state=on]:shadow-pop data-[state=on]:scale-105',
   props.class,
 ))
 </script>

@@ -10,7 +10,7 @@
       <span>{{ locale.imposter.landing.footerMadeBy }}</span>
       <button
         type="button"
-        class="font-semibold text-muted-foreground transition-colors hover:text-foreground/80"
+        class="font-display font-semibold text-muted-foreground transition-colors hover:text-primary"
         style="perspective: 300px"
         :aria-label="locale.imposter.landing.footerMadeBy + ' ' + (isRealNameRevealed ? locale.imposter.landing.footerRealName : locale.imposter.landing.footerName)"
         @click="isRealNameRevealed = !isRealNameRevealed"

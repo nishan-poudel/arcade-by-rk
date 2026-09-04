@@ -4,7 +4,7 @@
     The Done button stays in the thumb zone (bottom of screen) at all times.
   -->
   <div
-    class="h-dvh flex flex-col bg-background"
+    class="h-dvh flex flex-col"
     style="padding-top: max(1rem, env(safe-area-inset-top))"
   >
     <!-- Scrollable content area -->
@@ -24,7 +24,7 @@
 
         <!-- Role + secret word card: the most important info, takes centre stage -->
         <Card
-          class="text-center mb-4 transition-all duration-300"
+          class="text-center mb-4 transition-all duration-300 shadow-pop"
           :class="myAssignment.role === 'imposter'
             ? 'border-destructive/60 bg-destructive/10'
             : 'border-primary/30 bg-primary/5'"
@@ -34,16 +34,16 @@
               <div
                 v-if="myAssignment.role === 'crewmate'" key="crew"
                 class="py-2">
-                <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1">{{ locale.imposter.playerScreen.yourRoleLabel }}</p>
+                <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1 font-display font-semibold">{{ locale.imposter.playerScreen.yourRoleLabel }}</p>
                 <p class="text-2xl font-bold mb-4">
                   <span class="font-extrabold text-primary">{{ locale.imposter.playerScreen.notImposterPrefix }}</span>
                   <span class="text-foreground"> {{ locale.imposter.playerScreen.notImposterSuffix }}</span>
                 </p>
                 <Separator class="mb-4" />
                 <div>
-                  <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2">{{ locale.imposter.playerScreen.secretWordLabel }}</p>
+                  <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-display font-semibold">{{ locale.imposter.playerScreen.secretWordLabel }}</p>
                   <!-- Word is very large so it's easy to remember at a glance -->
-                  <p class="text-5xl font-extrabold tracking-tight leading-tight break-words">
+                  <p class="text-5xl font-display font-bold tracking-tight leading-tight break-words text-primary">
                     {{ myAssignment.word }}
                   </p>
                 </div>
@@ -51,14 +51,14 @@
               <div
                 v-else key="imp"
                 class="py-2">
-                <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1">{{ locale.imposter.playerScreen.yourRoleLabel }}</p>
+                <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1 font-display font-semibold">{{ locale.imposter.playerScreen.yourRoleLabel }}</p>
                 <p class="text-2xl font-bold text-destructive mb-4 flex items-center justify-center gap-2">
                   <VenetianMask class="size-6" />{{ locale.imposter.playerScreen.imposterLabel }}
                 </p>
                 <Separator class="mb-4" />
                 <div>
-                  <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2">{{ locale.imposter.playerScreen.secretWordLabel }}</p>
-                  <p class="text-5xl font-extrabold text-muted-foreground/30">？？？</p>
+                  <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-display font-semibold">{{ locale.imposter.playerScreen.secretWordLabel }}</p>
+                  <p class="text-5xl font-display font-bold text-muted-foreground/30">？？？</p>
                   <p class="text-xs text-destructive/70 mt-3">{{ locale.imposter.playerScreen.blendIn }}</p>
                 </div>
               </div>
@@ -114,7 +114,7 @@
                 <button
                   v-for="p in votablePlayers"
                   :key="p.id"
-                  class="rounded-xl py-3 px-2 border text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 truncate"
+                  class="rounded-2xl py-3 px-2 border-2 text-sm font-display font-semibold transition-all duration-150 ease-bounce active:scale-95 flex items-center justify-center gap-1.5 truncate"
                   :class="myVote === p.id ? 'bg-destructive/20 border-destructive/60 text-destructive' : 'bg-secondary/40 border-border text-foreground/80'"
                   @click="$emit('submit-vote', p.id)"
                 >
@@ -171,7 +171,7 @@
             size="lg"
             :variant="isMyTurn && !me?.hasDone ? 'default' : 'secondary'"
             :class="[
-              'w-full text-xl py-7 rounded-2xl font-extrabold transition-all duration-150',
+              'w-full text-xl py-7 rounded-3xl font-display font-bold transition-all duration-150',
               isMyTurn && !me?.hasDone
                 ? 'shadow-[0_0_40px_hsl(var(--primary)/0.45)] animate-bounce-once'
                 : 'text-muted-foreground/50',

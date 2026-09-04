@@ -10,11 +10,11 @@ const props = defineProps<{
 }>()
 
 const classes = computed(() => cn(
-  'relative h-2 w-full overflow-hidden rounded-full bg-secondary',
+  'relative h-2.5 w-full overflow-hidden rounded-full bg-secondary',
   props.class,
 ))
 const indicatorClasses = computed(() => cn(
-  'h-full w-full flex-1 bg-primary transition-transform duration-500 ease-out',
+  'h-full w-full flex-1 bg-primary transition-transform duration-500 ease-expo rounded-full',
   props.indicatorClass,
 ))
 </script>

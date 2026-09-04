@@ -1,18 +1,18 @@
 <template>
-  <div class="h-dvh flex flex-col bg-background" style="padding-top: max(1rem, env(safe-area-inset-top))">
+  <div class="h-dvh flex flex-col" style="padding-top: max(1rem, env(safe-area-inset-top))">
     <!-- Scrollable body -->
     <div class="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
       <div class="w-full max-w-md mx-auto">
         <!-- Room code: BIG, easy to read from across the table.
              Tap anywhere on the badge to copy it to clipboard. -->
         <div class="text-center mb-6 animate-fade-in">
-          <p class="text-muted-foreground text-xs uppercase tracking-widest mb-3">{{ locale.imposter.waitingRoom.title }}</p>
+          <p class="text-muted-foreground text-xs uppercase tracking-widest mb-3 font-display font-semibold">{{ locale.imposter.waitingRoom.title }}</p>
           <button
-            class="inline-flex flex-col items-center justify-center bg-secondary/60 border border-border
-                   rounded-2xl px-6 py-4 mb-2 active:scale-[0.98] transition-all w-full max-w-xs"
+            class="inline-flex flex-col items-center justify-center bg-secondary/60 border-2 border-dashed border-primary/50
+                   rounded-3xl px-6 py-5 mb-2 active:scale-[0.98] transition-all duration-200 ease-bounce w-full max-w-xs shadow-pop hover:-translate-y-0.5"
             @click="copyCode"
           >
-            <span class="font-mono font-extrabold text-4xl tracking-[0.25em] text-foreground">
+            <span class="font-display font-bold text-4xl tracking-[0.25em] text-primary">
               {{ gameState.roomCode }}
             </span>
             <Transition name="copy-pop" mode="out-in">
@@ -55,7 +55,7 @@
               <li
                 v-for="player in gameState.players"
                 :key="player.id"
-                class="flex items-center gap-3 py-3 px-3 rounded-xl bg-secondary/40 border border-border"
+                class="flex items-center gap-3 py-3 px-3 rounded-2xl bg-secondary/40 border-2 border-border transition-colors hover:border-primary/40"
               >
                 <span
                   :class="[

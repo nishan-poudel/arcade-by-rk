@@ -1,16 +1,26 @@
 <template>
-  <div class="min-h-dvh bg-background text-foreground">
-    <!-- Connection badge -->
+  <div class="min-h-dvh bg-background text-foreground relative isolate">
+    <!-- Ambient decorative wash, fixed behind every screen. -->
+    <div class="app-aura" />
+
+    <!-- Top-right controls: theme toggle always visible, connection badge once in a room -->
     <div
-      v-if="screen !== 'landing'"
-      class="fixed right-3 z-40 flex items-center gap-1.5 text-xs
-             bg-secondary/70 border border-border rounded-full px-3 py-1.5 backdrop-blur"
+      class="fixed right-3 z-40 flex items-center gap-2"
       style="top: max(0.75rem, env(safe-area-inset-top))"
     >
-      <span
-        :class="['w-1.5 h-1.5 rounded-full', connected ? 'bg-primary' : 'bg-destructive animate-pulse-slow']"
-      />
-      <span class="text-muted-foreground">{{ connected ? locale.imposter.common.online : locale.imposter.common.reconnecting }}</span>
+      <Transition name="pop">
+        <div
+          v-if="screen !== 'landing'"
+          class="flex items-center gap-1.5 text-xs
+                 bg-secondary/70 border-2 border-border rounded-full px-3 py-1.5 backdrop-blur"
+        >
+          <span
+            :class="['w-1.5 h-1.5 rounded-full', connected ? 'bg-primary' : 'bg-destructive animate-pulse-slow']"
+          />
+          <span class="text-muted-foreground">{{ connected ? locale.imposter.common.online : locale.imposter.common.reconnecting }}</span>
+        </div>
+      </Transition>
+      <ThemeToggle />
     </div>
 
     <!-- Error Toast -->
@@ -18,8 +28,7 @@
       <div
         v-if="errorMessage"
         class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-destructive text-destructive-foreground
-               px-5 py-3 rounded-xl shadow-lg text-sm font-medium max-w-sm text-center
-               animate-slide-up"
+               px-5 py-3 rounded-2xl shadow-pop text-sm font-medium max-w-sm text-center border-2 border-foreground/10"
       >
         {{ errorMessage }}
         <button class="ml-3 underline opacity-75 hover:opacity-100" @click="errorMessage = ''">
@@ -129,6 +138,7 @@ import HostScreen from '../components/HostScreen.vue'
 import PlayerScreen from '../components/PlayerScreen.vue'
 import GameOverScreen from '../components/GameOverScreen.vue'
 import RoundReveal from '../components/RoundReveal.vue'
+import ThemeToggle from '@/components/ui/theme-toggle/ThemeToggle.vue'
 
 const {
   gameState,
@@ -224,13 +234,15 @@ function onJoinRoom(payload: { roomCode: string; playerName: string }) {
 
 <style scoped>
 /* Screen transition */
-.screen-enter-active,
+.screen-enter-active {
+  transition: opacity 0.3s ease-out, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
 .screen-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .screen-enter-from {
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(16px) scale(0.98);
 }
 .screen-leave-to {
   opacity: 0;
@@ -238,7 +250,9 @@ function onJoinRoom(payload: { roomCode: string; playerName: string }) {
 }
 
 /* Toast transition */
-.toast-enter-active,
+.toast-enter-active {
+  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
 .toast-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -246,5 +260,16 @@ function onJoinRoom(payload: { roomCode: string; playerName: string }) {
 .toast-leave-to {
   opacity: 0;
   transform: translate(-50%, -12px);
+}
+
+/* Small controls (connection badge) pop in/out */
+.pop-enter-active,
+.pop-leave-active {
+  transition: opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
 }
 </style>

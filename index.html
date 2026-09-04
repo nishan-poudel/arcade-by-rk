@@ -2,10 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Favicon: lucide "venetian-mask" icon (MIT/ISC, matches in-app branding) —
-         avoids a 404 for a missing static icon file since this project has no
-         /public asset folder. -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%230d0d0d'/><g fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M18 11c-1.5 0-2.5.5-3 2'/><path d='M4 6a2 2 0 0 0-2 2v4a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V8a2 2 0 0 0-2-2h-3a8 8 0 0 0-5 2 8 8 0 0 0-5-2z'/><path d='M6 11c1.5 0 2.5.5 3 2'/></g></svg>" />
+    <!-- Favicon: lucide "venetian-mask" icon, recolored to the "juicy soda"
+         coral accent (matches in-app branding) — avoids a 404 for a missing
+         static icon file since this project has no /public asset folder. -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%23241f2b'/><g fill='none' stroke='%23f0705a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M18 11c-1.5 0-2.5.5-3 2'/><path d='M4 6a2 2 0 0 0-2 2v4a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V8a2 2 0 0 0-2-2h-3a8 8 0 0 0-5 2 8 8 0 0 0-5-2z'/><path d='M6 11c1.5 0 2.5.5 3 2'/></g></svg>" />
 
     <!-- Mobile-first viewport: cover fills notch/punch-hole areas -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -19,8 +19,27 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Imposter" />
 
-    <!-- Browser chrome colour (Android + Safari 15+) -->
-    <meta name="theme-color" content="#0d0d0d" />
+    <!-- Browser chrome colour (Android + Safari 15+) — matches the canvas
+         token in src/assets/tailwind.css for each theme. -->
+    <meta name="theme-color" content="#fbf6ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#241f2b" media="(prefers-color-scheme: dark)" />
+
+    <!--
+      Pre-paint theme init: applies the saved/system light-dark preference to
+      <html> before Vue mounts, so there's no flash of the wrong theme. Kept
+      in sync with src/composables/useTheme.ts (same storage key + fallback).
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('arcade-theme')
+          var dark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+          document.documentElement.classList.toggle('dark', dark)
+        } catch (e) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
 
     <title>Imposter In Person</title>
     <style>
@@ -38,13 +57,23 @@
         text-size-adjust: 100%;
       }
 
+      /* Pre-CSS-load fallback background, matching the two theme canvases
+         (src/assets/tailwind.css --background). The `dark` class is already
+         set synchronously by the script above, before this paints. */
+      html:not(.dark) body {
+        color: #241f2b;
+        background: #fbf6ea;
+      }
+      html.dark body {
+        color: #f3ede0;
+        background: #241f2b;
+      }
+
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
           'Helvetica Neue', Arial, sans-serif;
         line-height: 1.5;
-        color: white;
-        background: #0d0d0d;
-        /* Prevent elastic over-scroll bounce revealing white behind the app */
+        /* Prevent elastic over-scroll bounce revealing a mismatched color behind the app */
         overscroll-behavior: none;
       }
 

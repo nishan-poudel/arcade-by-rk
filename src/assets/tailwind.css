@@ -3,41 +3,132 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── shadcn-vue design tokens (HSL channels, no hsl() wrapper) ───────────── */
+/*
+ * ─── Design tokens ("juicy soda", ported from nearmirer.com) ───────────────
+ * HSL channels (no hsl() wrapper) — kept in this format (not oklch) so the
+ * `bg-primary/50`-style opacity modifiers used throughout the app keep
+ * working exactly as before. Light is the default; `.dark` overrides below.
+ * Direction: warm cream canvas / plum-black ink, one coral accent for every
+ * CTA and highlight, a six-hue flavor palette for playful decorative accents.
+ */
 @layer base {
   :root {
-    --background: 0 0% 5.1%;
-    --foreground: 0 0% 98%;
+    --background: 40 60% 97%;
+    --foreground: 300 20% 12%;
 
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 300 20% 12%;
 
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 300 20% 12%;
 
-    --primary: 142 71% 45%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 6 78% 64%;
+    --primary-foreground: 30 100% 98%;
 
-    --secondary: 0 0% 16%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 40 30% 94%;
+    --secondary-foreground: 300 20% 12%;
 
-    --muted: 0 0% 16%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 40 30% 94%;
+    --muted-foreground: 300 8% 40%;
 
-    --accent: 0 0% 18%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 40 30% 91%;
+    --accent-foreground: 300 20% 12%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 9 70% 55%;
+    --destructive-foreground: 30 100% 98%;
 
-    --warning: 45 93% 51%;
-    --warning-foreground: 0 0% 9%;
+    --warning: 40 90% 55%;
+    --warning-foreground: 300 20% 12%;
 
-    --border: 0 0% 100% / 0.1;
-    --input: 0 0% 100% / 0.14;
-    --ring: 142 71% 45%;
+    --border: 300 10% 85%;
+    --input: 300 10% 85%;
+    --ring: 6 78% 64%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
+
+    /* Flavor palette — hue/soft/ink trio per flavor. */
+    --flavor-citron: 74 62% 62%;
+    --flavor-citron-soft: 74 55% 90%;
+    --flavor-citron-ink: 80 40% 30%;
+
+    --flavor-peach: 30 85% 68%;
+    --flavor-peach-soft: 30 70% 91%;
+    --flavor-peach-ink: 22 55% 38%;
+
+    --flavor-berry: 350 72% 62%;
+    --flavor-berry-soft: 350 65% 92%;
+    --flavor-berry-ink: 350 55% 40%;
+
+    --flavor-grape: 265 45% 55%;
+    --flavor-grape-soft: 265 45% 92%;
+    --flavor-grape-ink: 265 40% 38%;
+
+    --flavor-lychee: 335 60% 75%;
+    --flavor-lychee-soft: 335 55% 93%;
+    --flavor-lychee-ink: 335 45% 42%;
+
+    --flavor-melon: 155 45% 60%;
+    --flavor-melon-soft: 155 40% 90%;
+    --flavor-melon-ink: 155 40% 30%;
+  }
+
+  /* Dark theme: deep plum-black canvas, brighter flavors. Toggled via
+     `.dark` on <html> by `useTheme` (src/composables/useTheme.ts). */
+  .dark {
+    --background: 300 12% 14%;
+    --foreground: 40 20% 95%;
+
+    --card: 300 10% 18%;
+    --card-foreground: 40 20% 95%;
+
+    --popover: 300 10% 18%;
+    --popover-foreground: 40 20% 95%;
+
+    --primary: 6 80% 68%;
+    --primary-foreground: 300 15% 15%;
+
+    --secondary: 300 10% 13%;
+    --secondary-foreground: 40 20% 95%;
+
+    --muted: 300 10% 13%;
+    --muted-foreground: 300 8% 62%;
+
+    --accent: 300 10% 24%;
+    --accent-foreground: 40 20% 95%;
+
+    --destructive: 9 75% 62%;
+    --destructive-foreground: 300 15% 15%;
+
+    --warning: 40 85% 58%;
+    --warning-foreground: 300 15% 15%;
+
+    --border: 300 10% 30%;
+    --input: 300 10% 30%;
+    --ring: 6 80% 68%;
+
+    --flavor-citron: 74 60% 58%;
+    --flavor-citron-soft: 74 30% 22%;
+    --flavor-citron-ink: 74 55% 78%;
+
+    --flavor-peach: 30 80% 64%;
+    --flavor-peach-soft: 30 35% 22%;
+    --flavor-peach-ink: 30 70% 80%;
+
+    --flavor-berry: 350 68% 62%;
+    --flavor-berry-soft: 350 40% 24%;
+    --flavor-berry-ink: 350 65% 82%;
+
+    --flavor-grape: 265 42% 62%;
+    --flavor-grape-soft: 265 35% 24%;
+    --flavor-grape-ink: 265 60% 84%;
+
+    --flavor-lychee: 335 55% 72%;
+    --flavor-lychee-soft: 335 32% 25%;
+    --flavor-lychee-ink: 335 55% 84%;
+
+    --flavor-melon: 155 40% 56%;
+    --flavor-melon-soft: 155 30% 20%;
+    --flavor-melon-ink: 155 50% 78%;
   }
 }
 
@@ -61,9 +152,14 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-      sans-serif;
+    @apply bg-background text-foreground font-sans;
+    /* Smooth color transition when the theme toggle flips `.dark`. */
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display font-semibold;
+    letter-spacing: -0.01em;
   }
 
   #app {
@@ -114,6 +210,35 @@
   .h-dvh {
     height: 100dvh;
   }
+
+  /*
+   * Ambient background wash — three soft coral/flavor blooms fixed behind
+   * the whole app. Purely decorative (mounted once in ImposterGame.vue).
+   * `inset: -10%` bleeds past the viewport so the slow drift never reveals
+   * an edge. Frozen by the reduced-motion rule above.
+   */
+  .app-aura {
+    position: fixed;
+    inset: -10%;
+    z-index: -1;
+    pointer-events: none;
+    animation: auraDrift 22s ease-in-out infinite alternate;
+    background-image:
+      radial-gradient(48% 40% at 8% -6%, hsl(var(--primary) / 0.16), transparent 70%),
+      radial-gradient(44% 38% at 106% 4%, hsl(var(--flavor-citron) / 0.16), transparent 66%),
+      radial-gradient(58% 50% at 92% 108%, hsl(var(--flavor-grape) / 0.14), transparent 72%);
+  }
+  .dark .app-aura {
+    background-image:
+      radial-gradient(48% 40% at 8% -6%, hsl(var(--primary) / 0.22), transparent 70%),
+      radial-gradient(44% 38% at 106% 4%, hsl(var(--flavor-citron) / 0.16), transparent 66%),
+      radial-gradient(58% 50% at 92% 108%, hsl(var(--flavor-grape) / 0.2), transparent 72%);
+  }
+}
+
+@keyframes auraDrift {
+  from { transform: scale(1) rotate(0deg); }
+  to   { transform: scale(1.1) rotate(1.5deg); }
 }
 
 /* ─── Motion ───────────────────────────────────────────────────────────────── */

@@ -5,9 +5,11 @@
     Safe to display: the round is over, no more word-guessing needed.
   -->
   <div
-    class="h-dvh flex flex-col bg-background"
+    class="h-dvh flex flex-col relative overflow-hidden"
     style="padding-top: max(1rem, env(safe-area-inset-top))"
   >
+    <ConfettiBurst v-if="reveal.imposterCaught" />
+
     <!-- Scrollable body -->
     <div class="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
       <div class="w-full max-w-md mx-auto">
@@ -18,7 +20,7 @@
             class="size-14 mb-3 mx-auto"
             :class="reveal.imposterCaught ? 'text-primary' : 'text-destructive'"
           />
-          <h1 class="text-2xl font-extrabold mb-1">
+          <h1 class="text-2xl mb-1">
             {{ reveal.imposterCaught ? locale.imposter.roundReveal.imposterCaughtTitle : locale.imposter.roundReveal.imposterSurvivedTitle }}
           </h1>
           <p class="text-muted-foreground text-sm mb-1">
@@ -36,23 +38,24 @@
           :class="reveal.imposterCaught ? 'bg-primary/5 border-primary/30' : 'bg-destructive/5 border-destructive/30'"
         >
           <CardContent class="pt-4">
-            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2">{{ locale.imposter.roundReveal.secretWordLabel }}</p>
-            <p class="text-5xl font-extrabold tracking-tight">{{ reveal.word }}</p>
+            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-display font-semibold">{{ locale.imposter.roundReveal.secretWordLabel }}</p>
+            <p class="text-5xl font-display font-bold tracking-tight">{{ reveal.word }}</p>
           </CardContent>
         </Card>
 
         <!-- Imposters reveal -->
         <Card class="mb-4 animate-fade-in border-destructive/20 bg-destructive/5">
           <CardContent class="pt-4">
-            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-3">
+            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-display font-semibold">
               {{ reveal.imposterNames.length === 1 ? locale.imposter.roundReveal.imposterWasSingular : locale.imposter.roundReveal.imposterWasPlural }}
             </p>
             <div class="flex flex-wrap gap-2">
               <span
-                v-for="name in reveal.imposterNames"
+                v-for="(name, i) in reveal.imposterNames"
                 :key="name"
-                class="flex items-center gap-2 bg-destructive/20 border border-destructive/40
-                       rounded-full px-4 py-2 text-destructive font-semibold text-base"
+                class="flex items-center gap-2 bg-destructive/20 border-2 border-destructive/40
+                       rounded-full px-4 py-2 text-destructive font-display font-semibold text-base animate-pop-in"
+                :style="{ animationDelay: `${i * 80}ms` }"
               >
                 <span class="text-lg"><VenetianMask class="size-4" /></span>
                 {{ name }}
@@ -102,7 +105,7 @@
                 v-for="(player, idx) in sortedPlayers"
                 :key="player.id"
                 :class="[
-                  'flex items-center gap-3 py-2.5 px-3 rounded-xl bg-secondary/40 border border-border',
+                  'flex items-center gap-3 py-2.5 px-3 rounded-2xl bg-secondary/40 border-2 border-border transition-colors hover:border-primary/40',
                   player.id === myId ? 'ring-1 ring-primary/50' : '',
                 ]"
               >
@@ -160,6 +163,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import AppFooter from './AppFooter.vue'
+import ConfettiBurst from './decor/ConfettiBurst.vue'
 
 const props = defineProps<{
   reveal: GameReveal

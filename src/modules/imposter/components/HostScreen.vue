@@ -1,6 +1,6 @@
 <template>
   <div
-    class="h-dvh flex flex-col bg-background"
+    class="h-dvh flex flex-col"
     style="padding-top: max(1rem, env(safe-area-inset-top))"
   >
     <!-- Scrollable content -->
@@ -26,20 +26,20 @@
           they were assigned the imposter role.
         -->
         <Card
-          class="mb-3 text-center"
+          class="mb-3 text-center shadow-pop"
           :class="isHostImposter
             ? 'border-destructive/40 bg-destructive/10'
             : 'border-warning/30 bg-warning/5'"
         >
           <CardContent class="pt-4">
-            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1">
+            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1 font-display font-semibold">
               {{ isHostImposter ? locale.imposter.hostScreen.yourRoleLabel : locale.imposter.hostScreen.secretWordLabel }}
             </p>
             <p v-if="isHostImposter" class="text-2xl font-bold text-destructive mb-1 flex items-center justify-center gap-2">
               <VenetianMask class="size-6" />{{ locale.imposter.hostScreen.imposterLabel }}
             </p>
-            <p v-if="isHostImposter" class="text-5xl font-extrabold text-muted-foreground/30">？？？</p>
-            <p v-else class="text-4xl font-extrabold tracking-tight break-words">
+            <p v-if="isHostImposter" class="text-5xl font-display font-bold text-muted-foreground/30">？？？</p>
+            <p v-else class="text-4xl font-display font-bold tracking-tight break-words text-primary">
               {{ myAssignment.word ?? '???' }}
             </p>
             <p class="text-xs text-muted-foreground/70 mt-1 flex items-center justify-center gap-1">
@@ -101,7 +101,7 @@
               <li
                 v-for="(player, idx) in sortedPlayers"
                 :key="player.id"
-                class="flex items-center gap-2 py-2.5 px-3 rounded-xl bg-secondary/40 border border-border"
+                class="flex items-center gap-2 py-2.5 px-3 rounded-2xl bg-secondary/40 border-2 border-border transition-colors hover:border-primary/40"
               >
                 <span class="text-xs text-muted-foreground/60 w-5 shrink-0">{{ idx + 1 }}</span>
                 <span
@@ -132,7 +132,7 @@
                 <button
                   v-for="p in votablePlayers"
                   :key="p.id"
-                  class="rounded-xl py-3 px-2 border text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 truncate"
+                  class="rounded-2xl py-3 px-2 border-2 text-sm font-display font-semibold transition-all duration-150 ease-bounce active:scale-95 flex items-center justify-center gap-1.5 truncate"
                   :class="myVote === p.id ? 'bg-destructive/20 border-destructive/60 text-destructive' : 'bg-secondary/40 border-border text-foreground/80'"
                   @click="$emit('submit-vote', p.id)"
                 >
@@ -157,7 +157,7 @@
         <div v-if="screen === 'game' && isHostTurn" class="mb-3">
           <Button
             size="lg"
-            class="w-full text-xl py-7 rounded-2xl font-extrabold
+            class="w-full text-xl py-7 rounded-3xl font-display font-bold
                    shadow-[0_0_40px_hsl(var(--primary)/0.4)] animate-bounce-once"
             :disabled="hostPlayer?.hasDone"
             @click="$emit('player-done')"

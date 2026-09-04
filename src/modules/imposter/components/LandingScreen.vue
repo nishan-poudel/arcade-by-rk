@@ -5,25 +5,33 @@
     A max-width wrapper keeps the form comfortably centred on tablet/desktop.
   -->
   <div
-    class="min-h-dvh flex flex-col bg-background bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.12),_transparent_55%)] px-5"
+    class="min-h-dvh flex flex-col px-5 relative overflow-hidden"
     style="padding-top: max(2.5rem, env(safe-area-inset-top))"
   >
+    <!-- Decorative blobs, purely visual -->
+    <AppBlob
+      flavor="berry" size="14rem"
+      class="absolute -left-16 -top-10 -z-10" />
+    <AppBlob
+      flavor="citron" size="12rem"
+      :delay="1.5" class="absolute -right-14 top-24 -z-10" />
+
     <div class="w-full max-w-md mx-auto flex flex-col flex-1">
       <!-- Brand header -->
       <div class="text-center pt-4 pb-6 animate-fade-in">
-        <VenetianMask class="size-12 mb-3 mx-auto text-primary" stroke-width="1.5" />
-        <h1 class="text-3xl font-extrabold tracking-tight">{{ locale.imposter.common.brandTitle }}</h1>
+        <VenetianMask class="size-12 mb-3 mx-auto text-primary animate-wobble" stroke-width="1.5" />
+        <h1 class="text-4xl tracking-tight">{{ locale.imposter.common.brandTitle }}</h1>
         <p class="text-muted-foreground mt-1 text-sm">{{ locale.imposter.common.brandTagline }}</p>
       </div>
 
       <div class="flex flex-col gap-5">
         <!-- Tab selector: big enough to tap comfortably -->
-        <div class="inline-flex w-full items-center gap-1 rounded-2xl bg-secondary/60 p-1">
+        <div class="inline-flex w-full items-center gap-1 rounded-2xl border-2 border-border bg-secondary/60 p-1">
           <button
             type="button"
             :class="[
-              'flex-1 min-h-[44px] rounded-xl text-sm font-bold transition-all',
-              tab === 'create' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground',
+              'flex-1 min-h-[44px] rounded-xl text-sm font-display font-bold transition-all duration-200 ease-bounce',
+              tab === 'create' ? 'bg-primary text-primary-foreground shadow-pop scale-[1.02]' : 'text-muted-foreground',
             ]"
             @click="tab = 'create'"
           >
@@ -32,8 +40,8 @@
           <button
             type="button"
             :class="[
-              'flex-1 min-h-[44px] rounded-xl text-sm font-bold transition-all',
-              tab === 'join' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground',
+              'flex-1 min-h-[44px] rounded-xl text-sm font-display font-bold transition-all duration-200 ease-bounce',
+              tab === 'join' ? 'bg-primary text-primary-foreground shadow-pop scale-[1.02]' : 'text-muted-foreground',
             ]"
             @click="tab = 'join'"
           >
@@ -202,6 +210,7 @@ import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import DifficultyIcon from './DifficultyIcon.vue'
 import AppFooter from './AppFooter.vue'
+import AppBlob from './decor/AppBlob.vue'
 import type { Difficulty } from '../types/index.js'
 
 const props = defineProps<{

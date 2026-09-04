@@ -10,8 +10,8 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const classes = computed(() => cn(
-  'flex w-full min-h-[48px] rounded-xl border border-input bg-secondary/50 px-4 py-3 text-base ' +
-  'text-foreground placeholder:text-muted-foreground transition-colors ' +
+  'flex w-full min-h-[48px] rounded-2xl border-2 border-input bg-secondary/50 px-4 py-3 text-base ' +
+  'text-foreground placeholder:text-muted-foreground transition-all ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-transparent ' +
   'disabled:cursor-not-allowed disabled:opacity-50',
   props.class,
