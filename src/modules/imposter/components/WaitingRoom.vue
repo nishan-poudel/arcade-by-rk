@@ -1,5 +1,5 @@
 <template>
-  <div class="h-dvh flex flex-col" style="padding-top: max(1rem, env(safe-area-inset-top))">
+  <div class="h-dvh flex flex-col" style="padding-top: max(3.25rem, calc(env(safe-area-inset-top) + 2.5rem))">
     <!-- Scrollable body -->
     <div class="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
       <div class="w-full max-w-md mx-auto">
@@ -60,10 +60,21 @@
                 <span
                   :class="[
                     'w-2.5 h-2.5 rounded-full flex-shrink-0',
-                    player.connected ? 'bg-primary' : 'bg-muted-foreground/30',
+                    player.connected ? 'bg-primary' : 'bg-muted-foreground/30 animate-pulse-slow',
                   ]"
                 />
-                <span class="flex-1 font-medium text-base">{{ player.name }}</span>
+                <span class="flex-1 font-medium text-base" :class="{ 'text-muted-foreground/60': !player.connected }">{{ player.name }}</span>
+                <span v-if="!player.connected" class="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                  {{ locale.imposter.hostScreen.offlineTag }}
+                </span>
+                <button
+                  v-if="isHost && !player.connected && !player.isHost"
+                  class="p-1.5 rounded-lg text-destructive/80 hover:bg-destructive/10 active:scale-90 transition"
+                  :aria-label="locale.imposter.hostScreen.removeOffline(player.name)"
+                  @click="$emit('remove-player', player.id)"
+                >
+                  <UserMinus class="size-4" />
+                </button>
                 <Badge
                   v-if="player.isHost" variant="warning"
                   class="gap-1">
@@ -176,7 +187,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { BatteryCharging, CheckIcon, CopyIcon, Crown, LinkIcon, Rocket, UsersIcon } from '@lucide/vue'
+import { BatteryCharging, CheckIcon, CopyIcon, Crown, LinkIcon, Rocket, UserMinus, UsersIcon } from '@lucide/vue'
 import { en as locale } from '@/locales/en'
 import { useKeepAlive } from '../composables/useKeepAlive.js'
 import type { GameState, Difficulty } from '../types/index.js'
@@ -199,6 +210,7 @@ defineEmits<{
   leave: []
   'set-difficulty': [difficulty: Difficulty]
   'set-imposter-count': [count: number]
+  'remove-player': [playerId: string]
 }>()
 // ── Keep-alive toggle (prevents free-tier backend spin-down mid-lobby) ────────
 const { enabled: keepAliveEnabled, toggle: toggleKeepAlive } = useKeepAlive()

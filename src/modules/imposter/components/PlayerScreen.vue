@@ -1,14 +1,75 @@
 <template>
   <!--
-    Layout: fixed-height screen split into scrollable content + sticky Done button.
-    The Done button stays in the thumb zone (bottom of screen) at all times.
+    Layout: fixed-height screen. The pinned top block (outside the scroll area)
+    holds the turn status during 'game' and the whole voting panel during
+    'discussion', so neither ever needs scrolling. The one Done button lives in
+    the bottom sticky bar.
   -->
   <div
     class="h-dvh flex flex-col"
-    style="padding-top: max(1rem, env(safe-area-inset-top))"
+    style="padding-top: max(3.25rem, calc(env(safe-area-inset-top) + 2.5rem))"
   >
+    <!-- Pinned: turn status during describe -->
+    <div v-if="screen === 'game'" class="px-4 pt-1 shrink-0">
+      <div class="w-full max-w-md mx-auto">
+        <Transition name="turn-banner" mode="out-in">
+          <div
+            v-if="isMyTurn && !me?.hasDone"
+            key="mine"
+            class="rounded-2xl border-2 border-primary bg-primary/15 px-4 py-3 text-center
+                   shadow-[0_0_28px_hsl(var(--primary)/0.3)] animate-bounce-once"
+          >
+            <p class="text-lg font-display font-extrabold text-primary flex items-center justify-center gap-2">
+              <Megaphone class="size-5" />{{ locale.imposter.playerScreen.yourTurnBanner }}
+            </p>
+            <p class="text-xs text-foreground/70 mt-0.5">{{ locale.imposter.playerScreen.yourTurnAction }}</p>
+          </div>
+          <div
+            v-else-if="isMyTurn && me?.hasDone"
+            key="done"
+            class="rounded-2xl border-2 border-primary/40 bg-primary/10 px-4 py-2.5 text-center"
+          >
+            <p class="text-sm font-display font-bold text-primary flex items-center justify-center gap-2">
+              <Check class="size-4" />{{ locale.imposter.playerScreen.doneWaitOthers }}
+            </p>
+          </div>
+          <div
+            v-else-if="isUpNext"
+            key="next"
+            class="rounded-2xl border-2 border-warning/50 bg-warning/10 px-4 py-2 text-center"
+          >
+            <p class="text-sm font-display font-bold text-warning flex items-center justify-center gap-2">
+              <Hourglass class="size-4" />{{ locale.imposter.playerScreen.upNextBanner }}
+            </p>
+          </div>
+          <div
+            v-else
+            key="wait"
+            class="rounded-2xl border-2 border-border bg-secondary/40 px-4 py-2 text-center"
+          >
+            <p class="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-muted-foreground/40" />
+              {{ locale.imposter.playerScreen.waitingTurn(gameState.currentTurnName) }}
+            </p>
+          </div>
+        </Transition>
+      </div>
+    </div>
+
+    <!-- Pinned: the whole voting panel during discussion -->
+    <VotePanel
+      v-else-if="screen === 'discussion'"
+      :game-state="gameState"
+      :my-id="myId"
+      :selection="myVoteSelection"
+      :my-vote="myVote"
+      :is-host="false"
+      @select="$emit('select', $event)"
+      @submit="$emit('submit')"
+    />
+
     <!-- Scrollable content area -->
-    <div class="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
+    <div ref="scrollArea" class="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-4 scroll-area">
       <div class="w-full max-w-md mx-auto">
         <!-- Player header: name + score -->
         <div class="flex items-center justify-between mb-4 animate-fade-in">
@@ -22,113 +83,49 @@
           </div>
         </div>
 
-        <!-- Role + secret word card: the most important info, takes centre stage -->
+        <!-- Role + secret word card: clean green (crewmate) / red (imposter) -->
         <Card
-          class="text-center mb-4 transition-all duration-300 shadow-pop"
-          :class="myAssignment.role === 'imposter'
+          class="text-center mb-4 shadow-pop border-2"
+          :class="isImposter
             ? 'border-destructive/60 bg-destructive/10'
-            : 'border-primary/30 bg-primary/5'"
+            : 'border-flavor-melon/50 bg-flavor-melon-soft'"
         >
-          <CardContent class="pt-4">
-            <Transition name="role" mode="out-in">
-              <div
-                v-if="myAssignment.role === 'crewmate'" key="crew"
-                class="py-2">
-                <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1 font-display font-semibold">{{ locale.imposter.playerScreen.yourRoleLabel }}</p>
-                <p class="text-2xl font-bold mb-4">
-                  <span class="font-extrabold text-primary">{{ locale.imposter.playerScreen.notImposterPrefix }}</span>
-                  <span class="text-foreground"> {{ locale.imposter.playerScreen.notImposterSuffix }}</span>
-                </p>
-                <Separator class="mb-4" />
-                <div>
-                  <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-display font-semibold">{{ locale.imposter.playerScreen.secretWordLabel }}</p>
-                  <!-- Word is very large so it's easy to remember at a glance -->
-                  <p class="text-5xl font-display font-bold tracking-tight leading-tight break-words text-primary">
-                    {{ myAssignment.word }}
-                  </p>
-                </div>
-              </div>
-              <div
-                v-else key="imp"
-                class="py-2">
-                <p class="text-xs text-muted-foreground uppercase tracking-widest mb-1 font-display font-semibold">{{ locale.imposter.playerScreen.yourRoleLabel }}</p>
-                <p class="text-2xl font-bold text-destructive mb-4 flex items-center justify-center gap-2">
-                  <VenetianMask class="size-6" />{{ locale.imposter.playerScreen.imposterLabel }}
-                </p>
-                <Separator class="mb-4" />
-                <div>
-                  <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-display font-semibold">{{ locale.imposter.playerScreen.secretWordLabel }}</p>
-                  <p class="text-5xl font-display font-bold text-muted-foreground/30">？？？</p>
-                  <p class="text-xs text-destructive/70 mt-3">{{ locale.imposter.playerScreen.blendIn }}</p>
-                </div>
-              </div>
-            </Transition>
-          </CardContent>
-        </Card>
+          <CardContent class="pt-5 pb-5">
+            <p
+              class="text-2xl font-display font-extrabold mb-4 flex items-center justify-center gap-2 tracking-wide"
+              :class="isImposter ? 'text-destructive' : 'text-flavor-melon-ink'"
+            >
+              <component :is="isImposter ? VenetianMask : ShieldCheck" class="size-6" />
+              {{ isImposter ? locale.imposter.playerScreen.imposterLabel : locale.imposter.playerScreen.crewmateLabel }}
+            </p>
 
-        <!-- Current turn indicator -->
-        <Card class="mb-4">
-          <CardContent class="pt-4">
-            <p class="text-xs text-muted-foreground uppercase tracking-widest mb-2">{{ locale.imposter.playerScreen.currentTurnLabel }}</p>
-            <!--
-              No enter/leave transition here on purpose: this text changes every
-              turn (frequently, mid-round) and must always reflect the current
-              server state immediately. A CSS/JS transition here would add
-              latency and — if the tab is ever backgrounded at the wrong instant —
-              can get stuck showing a stale player name until refocused.
-            -->
-            <div v-if="screen === 'discussion'" class="text-center py-2">
-              <p class="text-2xl font-bold text-warning flex items-center justify-center gap-2">
-                <MessagesSquare class="size-6" />{{ locale.imposter.playerScreen.discussionTitle }}
-              </p>
-              <p class="text-sm text-muted-foreground mt-1">{{ locale.imposter.playerScreen.discussionSub }}</p>
-            </div>
-            <div v-else class="flex items-center gap-3">
-              <span
-                :class="[
-                  'w-3 h-3 rounded-full flex-shrink-0 transition-colors',
-                  isMyTurn ? 'bg-primary animate-pulse-slow' : 'bg-muted-foreground/30',
-                ]"
-              />
-              <span
-                :class="[
-                  'font-semibold text-lg',
-                  isMyTurn ? 'text-primary' : 'text-foreground',
-                ]"
+            <p
+              class="text-xs uppercase tracking-widest mb-2 font-display font-semibold"
+              :class="isImposter ? 'text-destructive/70' : 'text-flavor-melon-ink/70'"
+            >
+              {{ isImposter && myAssignment.hint ? locale.imposter.playerScreen.imposterHintLabel : locale.imposter.playerScreen.secretWordLabel }}
+            </p>
+
+            <p
+              v-if="!isImposter"
+              class="text-5xl font-display font-bold tracking-tight leading-tight break-words text-flavor-melon-ink"
+            >
+              {{ myAssignment.word }}
+            </p>
+            <template v-else>
+              <p
+                v-if="myAssignment.hint"
+                class="text-5xl font-display font-bold tracking-tight leading-tight break-words text-destructive"
               >
-                {{ isMyTurn ? locale.imposter.playerScreen.yourTurn : gameState.currentTurnName }}
-              </span>
-            </div>
+                {{ myAssignment.hint }}
+              </p>
+              <p v-else class="text-5xl font-display font-bold text-muted-foreground/30">？？？</p>
+              <p class="text-xs text-destructive/70 mt-3">
+                {{ myAssignment.hint ? locale.imposter.playerScreen.imposterHintSub : locale.imposter.playerScreen.blendIn }}
+              </p>
+            </template>
           </CardContent>
         </Card>
-
-        <!-- In-app voting (discussion phase) -->
-        <Transition name="panel">
-          <Card v-if="screen === 'discussion'" class="mb-4 border-warning/20">
-            <CardContent class="pt-4">
-              <div class="flex items-center justify-between mb-3">
-                <p class="text-xs text-muted-foreground uppercase tracking-widest">{{ locale.imposter.playerScreen.voteHeading }}</p>
-                <Badge variant="secondary">{{ locale.imposter.playerScreen.votedOf(votedCount, totalVoters) }}</Badge>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  v-for="p in votablePlayers"
-                  :key="p.id"
-                  class="rounded-2xl py-3 px-2 border-2 text-sm font-display font-semibold transition-all duration-150 ease-bounce active:scale-95 flex items-center justify-center gap-1.5 truncate"
-                  :class="myVote === p.id ? 'bg-destructive/20 border-destructive/60 text-destructive' : 'bg-secondary/40 border-border text-foreground/80'"
-                  @click="$emit('submit-vote', p.id)"
-                >
-                  <Vote v-if="myVote === p.id" class="size-4" />
-                  <span class="truncate">{{ p.name }}</span>
-                </button>
-              </div>
-              <p class="text-xs text-muted-foreground/70 mt-3 text-center">
-                <template v-if="myVote">{{ locale.imposter.playerScreen.votedForChange(votedName) }}</template>
-                <template v-else>{{ locale.imposter.playerScreen.tapToVote }}</template>
-              </p>
-            </CardContent>
-          </Card>
-        </Transition>
 
         <!-- Compact scoreboard -->
         <Card>
@@ -143,13 +140,22 @@
                 :class="[
                   'flex items-center gap-3 py-2 px-2 rounded-lg',
                   player.id === myId ? 'bg-secondary/50' : '',
+                  player.eliminated ? 'opacity-45' : '',
                 ]"
               >
                 <span class="text-xs text-muted-foreground/60 w-5 shrink-0">{{ idx + 1 }}</span>
                 <span
                   :class="['w-2 h-2 rounded-full shrink-0', player.connected ? 'bg-primary' : 'bg-muted-foreground/30']"
                 />
-                <span class="flex-1 text-sm truncate">{{ player.name }}</span>
+                <span class="flex-1 text-sm truncate">
+                  <span class="truncate">{{ player.name }}</span>
+                  <span v-if="player.eliminated" class="text-[10px] uppercase tracking-wider text-muted-foreground/70 ml-1.5">
+                    {{ locale.imposter.playerScreen.outTag(player.eliminatedInRound) }}
+                  </span>
+                </span>
+                <span v-if="player.lastGamePoints > 0" class="text-[11px] font-semibold text-flavor-melon-ink shrink-0">
+                  +{{ player.lastGamePoints }}
+                </span>
                 <span class="font-bold text-primary">{{ player.score }}</span>
               </li>
             </ul>
@@ -160,91 +166,102 @@
     </div>
 
     <!--
-      Sticky Done button — lives in the action-bar so it stays at the bottom
-      of the screen regardless of scroll position. Huge target for easy tapping.
-      Visible only during 'game' phase.
+      The single Done button. Always in the thumb zone for the whole describe
+      phase — active + glowing on your turn, muted otherwise.
     -->
-    <div v-if="screen === 'game'" class="action-bar">
+    <div
+      v-if="screen === 'game'"
+      class="action-bar"
+      :class="{ 'action-bar--active': isMyTurn && !me?.hasDone }"
+    >
       <div class="w-full max-w-md mx-auto">
-        <Transition name="btn-bounce" appear>
-          <Button
-            size="lg"
-            :variant="isMyTurn && !me?.hasDone ? 'default' : 'secondary'"
-            :class="[
-              'w-full text-xl py-7 rounded-3xl font-display font-bold transition-all duration-150',
-              isMyTurn && !me?.hasDone
-                ? 'shadow-[0_0_40px_hsl(var(--primary)/0.45)] animate-bounce-once'
-                : 'text-muted-foreground/50',
-            ]"
-            :disabled="!isMyTurn || me?.hasDone"
-            @click="$emit('player-done')"
-          >
-            <component :is="isMyTurn && !me?.hasDone ? Check : Hourglass" class="size-5" />
-            {{ isMyTurn && !me?.hasDone ? locale.imposter.playerScreen.doneButton : locale.imposter.playerScreen.waitButton }}
-          </Button>
-        </Transition>
+        <Button
+          size="lg"
+          :variant="isMyTurn && !me?.hasDone ? 'default' : 'secondary'"
+          :class="[
+            'w-full rounded-3xl font-display font-bold transition-all duration-150',
+            isMyTurn && !me?.hasDone
+              ? 'text-2xl py-7 shadow-[0_0_44px_hsl(var(--primary)/0.5)] animate-bounce-once'
+              : 'text-lg py-6 text-muted-foreground/50',
+          ]"
+          :disabled="!isMyTurn || me?.hasDone"
+          @click="$emit('player-done')"
+        >
+          <component :is="isMyTurn && !me?.hasDone ? Check : Hourglass" class="size-6" />
+          {{ isMyTurn && !me?.hasDone ? locale.imposter.playerScreen.doneButton : locale.imposter.playerScreen.waitButton }}
+        </Button>
       </div>
-    </div>
-
-    <!-- Discussion phase bottom message -->
-    <div v-else-if="screen === 'discussion'" class="action-bar text-center">
-      <p class="text-warning font-semibold flex items-center justify-center gap-2">
-        <Vote class="size-4" />{{ locale.imposter.playerScreen.votedBottomBar(votedCount, totalVoters) }}
-      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Check, Hourglass, MessagesSquare, VenetianMask, Vote } from '@lucide/vue'
+import { computed, ref, watch, nextTick } from 'vue'
+import { Check, Hourglass, Megaphone, ShieldCheck, VenetianMask } from '@lucide/vue'
 import { en as locale } from '@/locales/en'
 import type { GameState, PlayerAssignment, AppScreen } from '../types/index.js'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import AppFooter from './AppFooter.vue'
+import VotePanel from './VotePanel.vue'
 
 const props = defineProps<{
   gameState: GameState
   myId: string
   myAssignment: PlayerAssignment
   myVote: string
+  myVoteSelection: string
   isMyTurn: boolean
   screen: AppScreen
 }>()
 
-defineEmits<{ 'player-done': []; 'submit-vote': [playerId: string] }>()
+defineEmits<{ 'player-done': []; select: [playerId: string]; submit: [] }>()
 
 const me = computed(() => props.gameState.players.find((p) => p.id === props.myId))
+const isImposter = computed(() => props.myAssignment.role === 'imposter')
+
+const scrollArea = ref<HTMLElement | null>(null)
+
+/** True when I'm the very next player to go (banner: "you're up next"). */
+const isUpNext = computed(
+  () => !props.isMyTurn && props.gameState.nextTurnPlayerId === props.myId,
+)
+
+// When my turn starts: buzz the phone and scroll the content back to the top so
+// the "IT'S YOUR TURN" banner (and the pinned Done button) are both in view.
+watch(
+  () => props.isMyTurn && props.screen === 'game' && !me.value?.hasDone,
+  (mine, wasMine) => {
+    if (mine && !wasMine) {
+      try { navigator.vibrate?.([120, 60, 120]) } catch { /* not supported */ }
+      nextTick(() => scrollArea.value?.scrollTo({ top: 0, behavior: 'smooth' }))
+    }
+  },
+)
 
 const sortedPlayers = computed(() =>
   [...props.gameState.players].sort((a, b) => b.score - a.score),
 )
-
-/** Everyone except me — valid vote targets */
-const votablePlayers = computed(() => props.gameState.players.filter((p) => p.id !== props.myId))
-
-const votedCount = computed(() => props.gameState.players.filter((p) => p.hasVoted).length)
-const totalVoters = computed(() => props.gameState.players.length)
-
-const votedName = computed(
-  () => props.gameState.players.find((p) => p.id === props.myVote)?.name ?? '',
-)
 </script>
 
 <style scoped>
-.role-enter-active,
-.role-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+/* Turn banner swap */
+.turn-banner-enter-active,
+.turn-banner-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.4, 0.5, 1);
 }
-.role-enter-from {
+.turn-banner-enter-from {
   opacity: 0;
-  transform: scale(0.96);
+  transform: translateY(-8px) scale(0.96);
 }
-.role-leave-to {
+.turn-banner-leave-to {
   opacity: 0;
-  transform: scale(1.04);
+  transform: scale(0.98);
+}
+
+/* Extra emphasis on the action bar when it's the player's turn */
+.action-bar--active {
+  border-top-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.08);
 }
 </style>

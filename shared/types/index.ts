@@ -14,19 +14,29 @@ export type Difficulty = 'easy' | 'medium' | 'hard'
 /** Player role within a round */
 export type PlayerRole = 'crewmate' | 'imposter'
 
+/** Who won once a game finishes */
+export type GameOutcome = 'crew' | 'imposter'
+
 // ─── Core Entities ────────────────────────────────────────────────────────────
 
 /** Public player info broadcast to all clients */
 export interface PublicPlayer {
   id: string
   name: string
+  /** Running total score across every game this session */
   score: number
   isHost: boolean
   connected: boolean
   /** Whether this player has pressed "Done" this round */
   hasDone: boolean
-  /** Whether this player has cast their vote during the discussion phase */
+  /** Whether this player has cast their vote for the current voting round */
   hasVoted: boolean
+  /** Voted out this game — now a spectator, cannot vote or be voted for */
+  eliminated: boolean
+  /** Which voting round this player was ejected in (0 = still in the game) */
+  eliminatedInRound: number
+  /** Points earned in the most recently finished game (0 until one finishes) */
+  lastGamePoints: number
 }
 
 /**
@@ -42,7 +52,16 @@ export interface GameState {
   currentTurnPlayerId: string
   currentTurnName: string
   currentTurnIndex: number
+  /** Socket ID of the player who goes next (''  if the current player is last) */
+  nextTurnPlayerId: string
+  /** Turn order for this round, as an ordered list of player socket IDs */
+  turnOrder: string[]
+  /** Game number (increments each time the host starts a fresh word) */
   round: number
+  /** Which voting round the current game is on (1-based; 0 before discussion) */
+  voteRound: number
+  /** Set once the current game has been decided; drives the reveal screen */
+  gameOutcome: GameOutcome | null
   imposterCount: number
   hostId: string
 }
@@ -54,12 +73,19 @@ export interface GameState {
  * turns/voting — they must NOT learn who the imposter(s) are ahead of time,
  * and they themselves can be assigned the imposter role. Nobody's private
  * assignment reveals the identity of other players' roles; imposters are
- * only revealed to everyone together, after the round ends (see `GameReveal`).
+ * only revealed to everyone together, once the game ends (see `GameResult`).
  */
 export interface PlayerAssignment {
   role: PlayerRole
   /** Secret word for crewmates; null for imposters */
   word: string | null
+  /**
+   * Decoy word shown ONLY to the imposter — a word closely related to (but
+   * never equal to) the real secret word, so the imposter has something
+   * plausible to bluff with. `null` for crewmates, and `null` for the
+   * imposter too if the current word list has no decoy for this word.
+   */
+  hint: string | null
 }
 
 // ─── Client → Server Payloads ─────────────────────────────────────────────────
@@ -80,6 +106,25 @@ export interface SubmitVotePayload {
   roomCode: string
   /** Player ID being voted for as the imposter */
   votedPlayerId: string
+}
+
+/** Host removes a player who is currently offline (disconnected). */
+export interface RemovePlayerPayload {
+  roomCode: string
+  /** Socket ID of the offline player to remove */
+  targetPlayerId: string
+}
+
+/**
+ * Client asks the server to re-send the authoritative game state (and the
+ * caller's own private assignment). Powers the manual "Refresh" button plus
+ * the periodic / tab-focus resync that keeps every client from drifting.
+ * `playerName` lets the server fall back to a full rejoin if it no longer
+ * recognises the socket (e.g. after a server restart).
+ */
+export interface RequestStatePayload {
+  roomCode: string
+  playerName: string
 }
 
 export interface SetDifficultyPayload {
@@ -113,18 +158,61 @@ export interface ErrorPayload {
 }
 
 /**
- * Broadcast to all players after in-app voting is tallied (or host force-reveals).
- * Safe to reveal publicly — the round is over at this point.
+ * One completed voting round within a game: who was ejected and every ballot
+ * that was cast. Recorded on the server and revealed to everyone — after each
+ * ejection and in the end-of-game history. Ballots are never sent to clients
+ * *before* the round resolves.
  */
-export interface GameReveal {
-  word: string
-  imposterNames: string[]
-  imposterCaught: boolean
+export interface VoteRoundRecord {
+  voteRound: number
+  ejectedId: string
+  ejectedName: string
+  wasImposter: boolean
+  /** voterId → the id they voted for */
+  ballots: Record<string, string>
+  /** voterName → votedForName — resolved server-side for easy rendering */
+  ballotNames: Array<{ voter: string; target: string }>
+}
+
+/**
+ * Broadcast after every vote tally that ejects someone. If `gameOver` is true a
+ * `game_result` event follows with the full picture.
+ */
+export interface EjectionResult {
+  ejectedId: string
+  ejectedName: string
+  wasImposter: boolean
+  voteRound: number
+  ballotNames: Array<{ voter: string; target: string }>
+  /** Non-eliminated counts AFTER this ejection */
+  remaining: { imposters: number; crew: number }
+  gameOver: boolean
+  outcome: GameOutcome | null
+}
+
+/** Per-player scoreline for a finished game. */
+export interface GameScoreLine {
+  playerId: string
+  name: string
+  /** Points earned this game */
+  points: number
+  /** Running session total (after this game) */
+  total: number
+  isImposter: boolean
+  eliminatedInRound: number
+}
+
+/**
+ * Broadcast once a game is decided (imposter ejected, or imposters reach parity).
+ * Safe to reveal fully — the game is over.
+ */
+export interface GameResult {
+  outcome: GameOutcome
   round: number
-  /** Player ID that received the most votes, or null if tied/no votes */
-  ejectedPlayerId: string | null
-  /** Convenience name for the ejected player, or null */
-  ejectedPlayerName: string | null
-  /** playerId → number of votes received */
-  voteCounts: Record<string, number>
+  word: string
+  /** The decoy word the imposter(s) saw, or null if none. */
+  imposterHint: string | null
+  imposterNames: string[]
+  voteHistory: VoteRoundRecord[]
+  scores: GameScoreLine[]
 }

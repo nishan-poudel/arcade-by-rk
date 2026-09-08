@@ -18,31 +18,65 @@ import type { Difficulty } from '../../../shared/types/index.js'
 // single hardcoded "../../../config" cannot satisfy correctly for both.
 const CONFIG_DIR = join(process.cwd(), '../config')
 
-/** Load word list for a given difficulty from the corresponding JSON file */
-function loadWords(difficulty: Difficulty): string[] {
+/**
+ * A single entry in a word list.
+ *  - `word` is shown to the crewmates.
+ *  - `hint` is a decoy word (closely related, never identical) shown only to
+ *    the imposter. `null` when the list has no decoy for this word.
+ */
+export interface WordEntry {
+  word: string
+  hint: string | null
+}
+
+/**
+ * Load a word list for a given difficulty.
+ *
+ * Accepts two on-disk shapes so old and new config files both work:
+ *   1. `["word", "word", ...]`                    → hint is null
+ *   2. `[["word", "decoy"], ["word", "decoy"]]`   → decoy becomes the hint
+ * A malformed entry is skipped rather than crashing the whole list.
+ */
+function loadWords(difficulty: Difficulty): WordEntry[] {
   const filePath = join(CONFIG_DIR, `${difficulty}.json`)
   try {
     const raw = readFileSync(filePath, 'utf-8')
-    const words: string[] = JSON.parse(raw)
-    if (!Array.isArray(words) || words.length === 0) {
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed) || parsed.length === 0) {
       throw new Error(`Word list for "${difficulty}" is empty or malformed`)
     }
-    return words
+
+    const entries: WordEntry[] = []
+    for (const item of parsed) {
+      if (typeof item === 'string' && item.trim()) {
+        entries.push({ word: item.trim(), hint: null })
+      } else if (Array.isArray(item) && typeof item[0] === 'string' && item[0].trim()) {
+        const word = item[0].trim()
+        const decoy = typeof item[1] === 'string' && item[1].trim() ? item[1].trim() : null
+        // A decoy identical to the word defeats the purpose — drop it.
+        entries.push({ word, hint: decoy && decoy !== word ? decoy : null })
+      }
+    }
+
+    if (entries.length === 0) {
+      throw new Error(`Word list for "${difficulty}" has no usable entries`)
+    }
+    return entries
   } catch (err) {
     console.error(`Failed to load words for difficulty "${difficulty}":`, err)
-    return ['DefaultWord'] // fallback so game never crashes
+    return [{ word: 'DefaultWord', hint: null }] // fallback so game never crashes
   }
 }
 
 /** Pre-loaded word lists keyed by difficulty */
-export const wordLists: Record<Difficulty, string[]> = {
+export const wordLists: Record<Difficulty, WordEntry[]> = {
   easy: loadWords('easy'),
   medium: loadWords('medium'),
   hard: loadWords('hard'),
 }
 
-/** Pick a random word for the given difficulty */
-export function pickWord(difficulty: Difficulty): string {
+/** Pick a random word entry (word + optional decoy hint) for the difficulty */
+export function pickWord(difficulty: Difficulty): WordEntry {
   const list = wordLists[difficulty]
   return list[Math.floor(Math.random() * list.length)]
 }

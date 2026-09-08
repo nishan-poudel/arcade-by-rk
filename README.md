@@ -42,11 +42,11 @@ npm run preview
 
 1. One player opens the app and taps **Create Room** — they become the **Host**.
 2. Everyone else taps **Join Room** and enters the 6-character code.
-3. Host presses **Start Game**. Each person privately checks their phone to see their role and the secret word.
-4. Players take turns saying **one word** out loud that relates to the secret word. Imposters must bluff.
-5. After everyone has had a turn, the group discusses out loud, then everyone votes **in the app** for who they think the imposter is. The round auto-reveals the moment everyone has voted (or the host can force it early).
-6. The app reveals the secret word, the imposter(s), and the vote breakdown to everyone.
-7. Host can start another round or end the game.
+3. Host presses **Start Game**. Each person privately checks their phone to see their role and the secret word. The imposter doesn't get the real word — they get a *decoy* word that's close but not the same, so they have something to bluff with.
+4. Players take turns saying **one word** out loud that relates to the secret word. A big banner + phone buzz tells you when it's your turn; the **Done** button sits pinned at the bottom of the screen.
+5. Once everyone has described, the group talks it out. The vote panel is pinned at the top of the screen — pick a name, press **Submit**, and it's locked (no changing your mind). When everyone's in, the most-voted player is out — the app shows who they were and who voted for whom.
+6. If that wasn't the imposter, the game **keeps going**: the ejected player spectates, everyone left votes again. Repeat until the imposter is caught (crew win) or the imposters can't be outvoted any more (imposter win).
+7. Everyone sees a **score popup** — points for this game plus running totals. Catch the imposter fast for more points; the imposter scores by surviving. Host taps **New Game** for a fresh word, or **End Session**.
 
 ## Available Scripts
 
@@ -81,6 +81,21 @@ web/
 ├── shared/types/         # TypeScript interfaces shared by client + server
 └── config/               # Word lists (easy / medium / hard JSON)
 ```
+
+### Word-list format (`config/*.json`)
+
+Each file is an array of `["word", "decoy"]` pairs — `word` is shown to the
+crewmates, `decoy` is the near-but-different word shown to the imposter:
+
+```json
+[
+  ["स्याउ", "नासपाती"],
+  ["काठमाडौं", "ललितपुर"]
+]
+```
+
+A plain `"word"` string (no decoy) is still accepted for backward compatibility;
+the imposter then just sees `???`.
 
 ## Key Technologies
 

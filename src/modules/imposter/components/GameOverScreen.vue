@@ -1,7 +1,7 @@
 <template>
   <div
     class="h-dvh flex flex-col relative overflow-hidden"
-    style="padding-top: max(1rem, env(safe-area-inset-top))"
+    style="padding-top: max(3.25rem, calc(env(safe-area-inset-top) + 2.5rem))"
   >
     <ConfettiBurst />
 

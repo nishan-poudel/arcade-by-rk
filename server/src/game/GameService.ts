@@ -18,9 +18,13 @@ import type {
   GamePhase,
   Difficulty,
   PlayerRole,
+  GameOutcome,
   PublicPlayer,
   GameState,
   PlayerAssignment,
+  VoteRoundRecord,
+  GameResult,
+  GameScoreLine,
 } from '../../../shared/types/index.js'
 
 // ─── Internal Types ───────────────────────────────────────────────────────────
@@ -33,6 +37,20 @@ interface Player {
   connected: boolean
   role: PlayerRole
   hasDone: boolean
+  /** Voted out this game — spectating, cannot vote or be voted for */
+  eliminated: boolean
+  /** Voting round in which this player was ejected (0 = still in) */
+  eliminatedInRound: number
+  /** Points earned in the most recently finished game */
+  lastGamePoints: number
+  /**
+   * The round number in which this player was last the imposter (0 = never).
+   * Used to weight imposter selection so the same person isn't picked over
+   * and over — recent imposters are strongly de-prioritised, and whoever
+   * was the imposter in the immediately previous round is skipped entirely
+   * whenever the pool is big enough to allow it.
+   */
+  lastImposterRound: number
 }
 
 interface Room {
@@ -46,12 +64,21 @@ interface Room {
   playerOrder: string[]
   currentTurnIndex: number
   currentWord: string | null
+  /** Decoy word shown only to the imposter(s) this round (may be null) */
+  currentHint: string | null
+  /** Game number — increments each time the host starts a fresh word */
   round: number
+  /** Which voting round the current game is on (1-based; 0 before discussion) */
+  voteRound: number
+  /** Completed voting rounds this game (who was ejected + every ballot) */
+  voteHistory: VoteRoundRecord[]
+  /** Set once the current game is decided; null while a game is in progress */
+  gameOutcome: GameOutcome | null
+  /** Cached full result of the most recently finished game */
+  lastResult: GameResult | null
   /** Unix ms timestamp of the last meaningful activity – used for TTL eviction */
   lastActivityAt: number
-  /** True once voting has been tallied and scored for this round (idempotency guard) */
-  resultRecordedThisRound: boolean
-  /** voterId → votedForId, cast during the discussion phase */
+  /** voterId → votedForId, cast during the current voting round */
   votes: Map<string, string>
 }
 
@@ -87,6 +114,33 @@ function shuffle<T>(arr: T[]): T[] {
   return arr
 }
 
+/**
+ * Pick `count` distinct items from `pool` using the given positive weights
+ * (weighted random sampling without replacement). Higher weight → more likely
+ * to be picked. Falls back gracefully if `count` >= pool size.
+ */
+function weightedSample<T>(pool: T[], weightOf: (item: T) => number, count: number): T[] {
+  const items = [...pool]
+  const weights = items.map((it) => Math.max(0.0001, weightOf(it)))
+  const picked: T[] = []
+
+  while (picked.length < count && items.length > 0) {
+    const total = weights.reduce((s, w) => s + w, 0)
+    let r = Math.random() * total
+    let idx = 0
+    for (; idx < items.length; idx++) {
+      r -= weights[idx]
+      if (r <= 0) {break}
+    }
+    if (idx >= items.length) {idx = items.length - 1}
+    picked.push(items[idx])
+    items.splice(idx, 1)
+    weights.splice(idx, 1)
+  }
+
+  return picked
+}
+
 /** Convert internal Player to PublicPlayer (strips role) */
 function toPublic(p: Player, room: Room): PublicPlayer {
   return {
@@ -97,7 +151,15 @@ function toPublic(p: Player, room: Room): PublicPlayer {
     connected: p.connected,
     hasDone: p.hasDone,
     hasVoted: room.votes.has(p.id),
+    eliminated: p.eliminated,
+    eliminatedInRound: p.eliminatedInRound,
+    lastGamePoints: p.lastGamePoints,
   }
+}
+
+/** Players still in the current game (not voted out). */
+function activePlayers(room: Room): Player[] {
+  return Array.from(room.players.values()).filter((p) => !p.eliminated)
 }
 
 // ─── GameService ──────────────────────────────────────────────────────────────
@@ -140,6 +202,10 @@ export class GameService {
       connected: true,
       role: 'crewmate',
       hasDone: false,
+      eliminated: false,
+      eliminatedInRound: 0,
+      lastGamePoints: 0,
+      lastImposterRound: 0,
     }
 
     const room: Room = {
@@ -152,9 +218,13 @@ export class GameService {
       playerOrder: [],
       currentTurnIndex: 0,
       currentWord: null,
+      currentHint: null,
       round: 0,
+      voteRound: 0,
+      voteHistory: [],
+      gameOutcome: null,
+      lastResult: null,
       lastActivityAt: Date.now(),
-      resultRecordedThisRound: false,
       votes: new Map(),
     }
 
@@ -185,6 +255,10 @@ export class GameService {
       connected: true,
       role: 'crewmate',
       hasDone: false,
+      eliminated: false,
+      eliminatedInRound: 0,
+      lastGamePoints: 0,
+      lastImposterRound: 0,
     })
 
     room.lastActivityAt = Date.now()
@@ -195,6 +269,11 @@ export class GameService {
   removePlayer(playerId: string): Room | null {
     for (const room of this.rooms.values()) {
       if (room.players.has(playerId)) {
+        // Remember who is currently "up" so their turn survives the reindex
+        // when a player earlier in the order is spliced out mid-round.
+        const activeTurnId = room.playerOrder[room.currentTurnIndex]
+        const removedIdx = room.playerOrder.indexOf(playerId)
+
         room.players.delete(playerId)
         // Also remove from turn order
         room.playerOrder = room.playerOrder.filter((id) => id !== playerId)
@@ -203,10 +282,19 @@ export class GameService {
         for (const [voterId, votedId] of room.votes) {
           if (votedId === playerId) {room.votes.delete(voterId)}
         }
-        // Adjust currentTurnIndex if needed
+        // Keep currentTurnIndex pointing at the same active player. If the
+        // active player themselves was removed, or the index now runs past the
+        // end, fall back to clamping.
+        if (activeTurnId && activeTurnId !== playerId) {
+          const newIdx = room.playerOrder.indexOf(activeTurnId)
+          room.currentTurnIndex = newIdx >= 0 ? newIdx : room.currentTurnIndex
+        } else if (removedIdx >= 0 && removedIdx < room.currentTurnIndex) {
+          room.currentTurnIndex -= 1
+        }
         if (room.currentTurnIndex >= room.playerOrder.length && room.playerOrder.length > 0) {
           room.currentTurnIndex = 0
         }
+        if (room.currentTurnIndex < 0) {room.currentTurnIndex = 0}
         // Auto-clamp imposterCount so it never exceeds (playerCount - 1)
         const maxImposters = Math.max(1, room.players.size - 1)
         if (room.imposterCount > maxImposters) {
@@ -220,6 +308,39 @@ export class GameService {
       }
     }
     return null
+  }
+
+  /**
+   * Host action: remove a player who is currently OFFLINE from the room.
+   * Refuses to remove a connected player or the host themselves.
+   * Returns { ok: true, room } (room may be null if the room emptied) or an
+   * { ok: false, error } describing why the removal was rejected.
+   */
+  removeOfflinePlayer(
+    roomCode: string,
+    hostId: string,
+    targetId: string,
+  ): { ok: true; room: Room | null } | { ok: false; error: string } {
+    const room = this.rooms.get(roomCode.toUpperCase())
+    if (!room) {return { ok: false, error: 'Room not found.' }}
+    if (room.hostId !== hostId) {return { ok: false, error: 'Only the host can remove players.' }}
+
+    const target = room.players.get(targetId)
+    if (!target) {return { ok: false, error: 'That player is no longer in the room.' }}
+    if (target.id === room.hostId) {return { ok: false, error: 'The host cannot be removed.' }}
+    if (target.connected) {
+      return { ok: false, error: 'That player is online. You can only remove offline players.' }
+    }
+    // A game in progress needs at least 3 players. If removing them would drop
+    // below that, the host should end the game instead. (Lobby is exempt.)
+    if (room.phase !== 'lobby' && room.players.size - 1 < 3) {
+      return {
+        ok: false,
+        error: 'Removing them would leave fewer than 3 players. End the game instead.',
+      }
+    }
+
+    return { ok: true, room: this.removePlayer(targetId) }
   }
 
   /** Mark a disconnected player as disconnected (but keep them in the room). */
@@ -284,39 +405,75 @@ export class GameService {
   // ── Game control ────────────────────────────────────────────────────────────
 
   /**
-   * Start or restart a round.
-   * Picks a word, assigns roles, shuffles turn order.
+   * Start a new game: pick a fresh word + decoy, assign roles, shuffle turn
+   * order, and clear all per-game state (eliminations, vote history, outcome).
    * Returns per-player assignments for the socket handler to dispatch privately.
+   *
+   * @param incrementRound  when false the game counter is left untouched —
+   *   used by the host's "New word" action, which swaps the word for the
+   *   current game number rather than advancing to a new one.
    */
-  startRound(roomCode: string): Map<string, PlayerAssignment> | null {
+  startRound(
+    roomCode: string,
+    incrementRound = true,
+  ): Map<string, PlayerAssignment> | null {
     const room = this.rooms.get(roomCode)
     if (!room) {return null}
     if (room.players.size < 3) {return null}
 
     room.phase = 'playing'
-    room.round += 1
-    room.currentWord = pickWord(room.difficulty)
-    room.resultRecordedThisRound = false
+    if (incrementRound) {room.round += 1}
+    const entry = pickWord(room.difficulty)
+    room.currentWord = entry.word
+    room.currentHint = entry.hint
+    room.voteRound = 0
+    room.voteHistory = []
+    room.gameOutcome = null
+    room.lastResult = null
     room.votes = new Map()
     room.lastActivityAt = Date.now()
 
-    const playerIds = Array.from(room.players.keys())
+    const players = Array.from(room.players.values())
+    const playerIds = players.map((p) => p.id)
 
-    // Reset hasDone for all players
-    for (const p of room.players.values()) {
+    // Reset per-game player state (role/turn/elimination). lastGamePoints is
+    // left alone — it still shows the previous game's result until this one ends.
+    for (const p of players) {
       p.hasDone = false
       p.role = 'crewmate'
+      p.eliminated = false
+      p.eliminatedInRound = 0
     }
 
-    // Pick imposters randomly. The host is just another player in the pool —
-    // they are eligible to be picked as an imposter like anyone else.
-    const shuffledIds = shuffle([...playerIds])
-    const actualImposterCount = Math.min(room.imposterCount, playerIds.length - 1)
-    const imposterIds = new Set(shuffledIds.slice(0, actualImposterCount))
+    // ── Weighted imposter selection ──────────────────────────────────────────
+    // The host is a normal player in the pool — eligible like anyone else.
+    // Goal: the same person should not keep being the imposter. Two levers:
+    //   1. Hard-skip whoever was the imposter in the immediately previous
+    //      round, as long as enough other players remain to fill the slots
+    //      and still leave at least one crewmate.
+    //   2. Weight the rest by how long ago they were last the imposter, so
+    //      players who have never been it (or not for many rounds) are far
+    //      more likely to be chosen than someone picked recently.
+    const actualImposterCount = Math.max(1, Math.min(room.imposterCount, playerIds.length - 1))
+    const prevRound = room.round - 1
 
-    for (const id of imposterIds) {
-      const p = room.players.get(id)
-      if (p) {p.role = 'imposter'}
+    let candidates = players
+    const withoutRecent = players.filter((p) => p.lastImposterRound !== prevRound || prevRound <= 0)
+    if (withoutRecent.length >= actualImposterCount && withoutRecent.length < players.length) {
+      candidates = withoutRecent
+    }
+
+    const weightOf = (p: Player): number => {
+      // Never been the imposter → strongest pull.
+      if (p.lastImposterRound === 0) {return room.round + 3}
+      // Otherwise: more rounds since last time → higher weight (min 1).
+      return Math.max(1, room.round - p.lastImposterRound)
+    }
+
+    const imposters = weightedSample(candidates, weightOf, actualImposterCount)
+    for (const p of imposters) {
+      p.role = 'imposter'
+      p.lastImposterRound = room.round
     }
 
     // Build random turn order starting at index 0
@@ -326,14 +483,10 @@ export class GameService {
     // Build assignment map for socket handler.
     // SECURITY: the host is a normal player and can themselves be the imposter,
     // so their assignment must never reveal other players' roles either —
-    // only `role` and `word` (their own) are ever sent to anyone.
+    // only `role`, `word` and `hint` (their own) are ever sent to anyone.
     const assignments = new Map<string, PlayerAssignment>()
-
     for (const [id, player] of room.players) {
-      assignments.set(id, {
-        role: player.role,
-        word: player.role === 'crewmate' ? room.currentWord : null,
-      })
+      assignments.set(id, this.buildAssignment(room, player))
     }
 
     return assignments
@@ -367,6 +520,7 @@ export class GameService {
 
     if (allDone) {
       room.phase = 'discussion'
+      room.voteRound = 1
     }
 
     const nextPlayerId =
@@ -377,38 +531,14 @@ export class GameService {
     return { allDone, nextPlayerId }
   }
 
-  /**
-   * Record voting result and update scores.
-   * imposterCaught = true  → crewmates each get +1
-   * imposterCaught = false → imposters each get +2
-   *
-   * Idempotency: returns false if a result was already recorded this round.
-   * Normally invoked internally by `tallyVotes()`, never directly by a handler.
-   */
-  recordResult(roomCode: string, imposterCaught: boolean): boolean {
-    const room = this.rooms.get(roomCode)
-    if (!room) {return false}
-    if (room.resultRecordedThisRound) {return false}
-
-    room.resultRecordedThisRound = true
-    for (const player of room.players.values()) {
-      if (imposterCaught && player.role === 'crewmate') {
-        player.score += 1
-      } else if (!imposterCaught && player.role === 'imposter') {
-        player.score += 2
-      }
-    }
-    room.lastActivityAt = Date.now()
-    return true
-  }
-
   // ── In-app voting ────────────────────────────────────────────────────────────
 
   /**
-   * Cast (or change) a vote during the discussion phase.
-   * A player may vote for any other connected player as the suspected imposter.
-   * Re-submitting overwrites the previous vote (no error) so players can change
-   * their mind up until the round is tallied.
+   * Submit a vote during the discussion phase. One submission per voting round —
+   * once cast it is LOCKED (the client selects locally, then submits). Only
+   * players still in the game may vote, and only for another still in the game.
+   * `room.votes` is cleared each round in `tallyVoteRound`, so the lock lifts
+   * automatically for the next round.
    */
   submitVote(
     roomCode: string,
@@ -418,13 +548,15 @@ export class GameService {
     const room = this.rooms.get(roomCode.toUpperCase())
     if (!room) {return { ok: false, error: 'Room not found.' }}
     if (room.phase !== 'discussion') {return { ok: false, error: 'Voting is not open right now.' }}
-    if (room.resultRecordedThisRound) {
-      return { ok: false, error: 'Voting has already ended for this round.' }
-    }
-    if (!room.players.has(voterId)) {return { ok: false, error: 'You are not part of this room.' }}
-    if (!room.players.has(votedPlayerId)) {
-      return { ok: false, error: 'That player is not in this room.' }
-    }
+    if (room.gameOutcome) {return { ok: false, error: 'This game is over.' }}
+
+    const voter = room.players.get(voterId)
+    const target = room.players.get(votedPlayerId)
+    if (!voter) {return { ok: false, error: 'You are not part of this room.' }}
+    if (voter.eliminated) {return { ok: false, error: 'You have been voted out — you can only spectate.' }}
+    if (room.votes.has(voterId)) {return { ok: false, error: 'Your vote is locked in for this round.' }}
+    if (!target) {return { ok: false, error: 'That player is not in this room.' }}
+    if (target.eliminated) {return { ok: false, error: 'That player is already out.' }}
     if (voterId === votedPlayerId) {return { ok: false, error: 'You cannot vote for yourself.' }}
 
     room.votes.set(voterId, votedPlayerId)
@@ -432,70 +564,192 @@ export class GameService {
     return { ok: true }
   }
 
-  /** True once every currently-connected player has cast a vote this round. */
+  /** True once every connected player still in the game has cast a vote. */
   allVotesIn(room: Room): boolean {
     for (const player of room.players.values()) {
-      if (player.connected && !room.votes.has(player.id)) {return false}
+      if (player.connected && !player.eliminated && !room.votes.has(player.id)) {return false}
     }
     return true
   }
 
   /**
-   * Tally votes cast so far, determine who (if anyone) gets ejected, score the
-   * round via `recordResult`, and return everything the client needs to render
-   * the reveal screen.
-   *
-   * Ejection rule: the player with the strict majority of votes is ejected.
-   * A tie for the top spot (or zero votes) means nobody is ejected, which
-   * counts as the imposter(s) surviving.
-   *
-   * Idempotency: returns null if the round has already been tallied/scored.
+   * Decide whether the current game is over based on who's still in.
+   *  - all imposters ejected  → crew win
+   *  - imposters ≥ remaining crew → imposter win (they can no longer be outvoted)
    */
-  tallyVotes(
-    roomCode: string,
-  ): {
-    imposterCaught: boolean
-    ejectedPlayerId: string | null
-    ejectedPlayerName: string | null
-    voteCounts: Record<string, number>
-  } | null {
-    const room = this.rooms.get(roomCode.toUpperCase())
-    if (!room) {return null}
-    if (room.resultRecordedThisRound) {return null}
+  private checkWinner(room: Room): GameOutcome | null {
+    const alive = activePlayers(room)
+    const imposters = alive.filter((p) => p.role === 'imposter').length
+    const crew = alive.length - imposters
+    if (imposters === 0) {return 'crew'}
+    if (imposters >= crew) {return 'imposter'}
+    return null
+  }
 
-    // Initialize every player at 0 so the client can render a full bar chart,
-    // even for players nobody voted for.
-    const voteCounts: Record<string, number> = {}
-    for (const id of room.players.keys()) {voteCounts[id] = 0}
-    for (const votedId of room.votes.values()) {
-      if (voteCounts[votedId] !== undefined) {voteCounts[votedId] += 1}
+  /**
+   * Award points for a finished game and record `lastGamePoints` per player.
+   *  Crew win   → surviving crew `max(1, 3 − wrongEjections)`, ejected crew 1, imposters 0
+   *  Imposter win → each imposter `2 + 2 × wrongEjections`, everyone else 0
+   */
+  private applyGameScore(room: Room, outcome: GameOutcome): void {
+    const wrongEjections = room.voteHistory.filter((h) => !h.wasImposter).length
+    for (const p of room.players.values()) {
+      let pts = 0
+      if (outcome === 'crew') {
+        if (p.role === 'imposter') {pts = 0}
+        else if (p.eliminated) {pts = 1}
+        else {pts = Math.max(1, 3 - wrongEjections)}
+      } else {
+        pts = p.role === 'imposter' ? 2 + 2 * wrongEjections : 0
+      }
+      p.lastGamePoints = pts
+      p.score += pts
+    }
+  }
+
+  /**
+   * Decide who this vote round ejects. Returns the ejected player's id, or
+   * `null` for a tie / no clear winner. `forceEject` breaks a tie (or an empty
+   * round) by picking a random candidate so a host force always makes progress.
+   */
+  private pickEjectedId(room: Room, forceEject: boolean): string | null {
+    const counts = new Map<string, number>()
+    for (const [voterId, targetId] of room.votes) {
+      const voter = room.players.get(voterId)
+      const target = room.players.get(targetId)
+      if (!voter || voter.eliminated || !target || target.eliminated) {continue}
+      counts.set(targetId, (counts.get(targetId) ?? 0) + 1)
     }
 
     let maxVotes = 0
-    let topCandidates: string[] = []
-    for (const [id, count] of Object.entries(voteCounts)) {
-      if (count > maxVotes) {
-        maxVotes = count
-        topCandidates = [id]
-      } else if (count === maxVotes && count > 0) {
-        topCandidates.push(id)
-      }
+    let top: string[] = []
+    for (const [id, c] of counts) {
+      if (c > maxVotes) {maxVotes = c; top = [id]}
+      else if (c === maxVotes) {top.push(id)}
     }
 
-    // Only eject when there's a single, unambiguous top vote-getter
-    const ejectedPlayerId = maxVotes > 0 && topCandidates.length === 1 ? topCandidates[0] : null
-    const ejectedPlayer = ejectedPlayerId ? room.players.get(ejectedPlayerId) : undefined
-    const imposterCaught = !!ejectedPlayer && ejectedPlayer.role === 'imposter'
+    if (maxVotes > 0 && top.length === 1) {return top[0]}
+    if (!forceEject) {return null}
+    const pool = top.length > 0 ? top : activePlayers(room).map((p) => p.id)
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null
+  }
 
-    // Apply scoring through the existing idempotent path
-    this.recordResult(roomCode, imposterCaught)
+  /** Snapshot every ballot cast this round, resolving names for the reveal. */
+  private snapshotBallots(room: Room): {
+    ballots: Record<string, string>
+    ballotNames: Array<{ voter: string; target: string }>
+  } {
+    const ballots: Record<string, string> = {}
+    const ballotNames: Array<{ voter: string; target: string }> = []
+    for (const [voterId, targetId] of room.votes) {
+      const voter = room.players.get(voterId)
+      const target = room.players.get(targetId)
+      if (!voter || !target) {continue}
+      ballots[voterId] = targetId
+      ballotNames.push({ voter: voter.name, target: target.name })
+    }
+    return { ballots, ballotNames }
+  }
+
+  /**
+   * Tally the current voting round.
+   *  - tie / no clear winner → `{ kind: 'tie' }` (unless `forceEject`)
+   *  - otherwise → eject the top vote-getter, record the ballots, then either
+   *    end the game (crew/imposter win) or advance to the next voting round.
+   *
+   * Returns `null` if there's nothing to tally (wrong phase / game already over).
+   */
+  tallyVoteRound(
+    roomCode: string,
+    opts: { forceEject?: boolean } = {},
+  ):
+    | { kind: 'tie' }
+    | {
+        kind: 'ejected'
+        ejectedId: string
+        ejectedName: string
+        wasImposter: boolean
+        voteRound: number
+        ballotNames: Array<{ voter: string; target: string }>
+        remaining: { imposters: number; crew: number }
+        gameOver: boolean
+        outcome: GameOutcome | null
+        result: GameResult | null
+      }
+    | null {
+    const room = this.rooms.get(roomCode.toUpperCase())
+    if (!room || room.phase !== 'discussion' || room.gameOutcome) {return null}
+
+    const thisRound = room.voteRound
+    const ejectedId = this.pickEjectedId(room, !!opts.forceEject)
+
+    if (!ejectedId) {
+      room.votes = new Map()
+      room.lastActivityAt = Date.now()
+      return { kind: 'tie' }
+    }
+
+    const ejected = room.players.get(ejectedId)
+    if (!ejected) {return null}
+    ejected.eliminated = true
+    ejected.eliminatedInRound = thisRound
+    const wasImposter = ejected.role === 'imposter'
+
+    const { ballots, ballotNames } = this.snapshotBallots(room)
+    room.voteHistory.push({
+      voteRound: thisRound,
+      ejectedId,
+      ejectedName: ejected.name,
+      wasImposter,
+      ballots,
+      ballotNames,
+    })
+    room.votes = new Map()
+    room.lastActivityAt = Date.now()
+
+    const alive = activePlayers(room)
+    const remaining = {
+      imposters: alive.filter((p) => p.role === 'imposter').length,
+      crew: alive.filter((p) => p.role === 'crewmate').length,
+    }
+    const outcome = this.checkWinner(room)
+
+    if (outcome) {
+      room.gameOutcome = outcome
+      this.applyGameScore(room, outcome)
+      room.lastResult = this.buildGameResult(room)
+    } else {
+      room.voteRound = thisRound + 1
+    }
 
     return {
-      imposterCaught,
-      ejectedPlayerId,
-      ejectedPlayerName: ejectedPlayer?.name ?? null,
-      voteCounts,
+      kind: 'ejected',
+      ejectedId,
+      ejectedName: ejected.name,
+      wasImposter,
+      voteRound: thisRound,
+      ballotNames,
+      remaining,
+      gameOver: !!outcome,
+      outcome,
+      result: outcome ? room.lastResult : null,
     }
+  }
+
+  /**
+   * Re-check the win condition after a player leaves mid-game (removing a
+   * crewmate can hand the imposter parity; removing the last imposter is a
+   * crew win). Returns the outcome if the departure ended the game.
+   */
+  resolveIfDeparturesEndedGame(roomCode: string): GameResult | null {
+    const room = this.rooms.get(roomCode.toUpperCase())
+    if (!room || room.phase !== 'discussion' || room.gameOutcome) {return null}
+    const outcome = this.checkWinner(room)
+    if (!outcome) {return null}
+    room.gameOutcome = outcome
+    this.applyGameScore(room, outcome)
+    room.lastResult = this.buildGameResult(room)
+    return room.lastResult
   }
 
   /** End the game – set phase to 'ended'. */
@@ -507,11 +761,15 @@ export class GameService {
     }
   }
 
-  /** Reset all scores to 0. */
+  /** Reset all scores to 0 and restart the imposter-rotation history. */
   resetScores(roomCode: string): void {
     const room = this.rooms.get(roomCode)
     if (!room) {return}
-    for (const p of room.players.values()) {p.score = 0}
+    for (const p of room.players.values()) {
+      p.score = 0
+      p.lastGamePoints = 0
+      p.lastImposterRound = 0
+    }
     room.lastActivityAt = Date.now()
   }
 
@@ -541,6 +799,7 @@ export class GameService {
     const players = Array.from(room.players.values()).map((p) => toPublic(p, room))
     const currentTurnId = room.playerOrder[room.currentTurnIndex] ?? ''
     const currentTurnPlayer = room.players.get(currentTurnId)
+    const nextTurnId = room.playerOrder[room.currentTurnIndex + 1] ?? ''
 
     return {
       roomCode: room.code,
@@ -550,7 +809,11 @@ export class GameService {
       currentTurnPlayerId: currentTurnId,
       currentTurnName: currentTurnPlayer?.name ?? '',
       currentTurnIndex: room.currentTurnIndex,
+      nextTurnPlayerId: nextTurnId,
+      turnOrder: [...room.playerOrder],
       round: room.round,
+      voteRound: room.voteRound,
+      gameOutcome: room.gameOutcome,
       imposterCount: room.imposterCount,
       hostId: room.hostId,
     }
@@ -558,30 +821,48 @@ export class GameService {
 
   /** Build a PlayerAssignment for an individual player. */
   buildAssignment(room: Room, player: Player): PlayerAssignment {
+    const isImposter = player.role === 'imposter'
     return {
       role: player.role,
-      word: player.role === 'crewmate' ? room.currentWord : null,
+      word: isImposter ? null : room.currentWord,
+      hint: isImposter ? room.currentHint : null,
     }
   }
 
   /**
-   * Build the base public round reveal payload (word + imposter names + round).
-   * The caller (socket handler) merges this with the result of `tallyVotes()`
-   * to produce the full `GameReveal` sent to clients.
+   * Build the full public result of the current (finished) game: word, decoy,
+   * imposter names, the whole round-by-round vote history, and every player's
+   * points + running total. Callable at any time; only meaningful once
+   * `room.gameOutcome` is set.
    */
-  buildReveal(
-    roomCode: string,
-  ): { word: string; imposterNames: string[]; round: number } | null {
-    const room = this.rooms.get(roomCode.toUpperCase())
-    if (!room) {return null}
-    const imposterNames = Array.from(room.players.values())
-      .filter((p) => p.role === 'imposter')
-      .map((p) => p.name)
+  buildGameResult(room: Room): GameResult {
+    const players = Array.from(room.players.values())
+    const imposterNames = players.filter((p) => p.role === 'imposter').map((p) => p.name)
+    const scores: GameScoreLine[] = players
+      .map((p) => ({
+        playerId: p.id,
+        name: p.name,
+        points: p.lastGamePoints,
+        total: p.score,
+        isImposter: p.role === 'imposter',
+        eliminatedInRound: p.eliminatedInRound,
+      }))
+      .sort((a, b) => b.total - a.total || b.points - a.points)
+
     return {
-      word: room.currentWord ?? '',
-      imposterNames,
+      outcome: room.gameOutcome ?? 'imposter',
       round: room.round,
+      word: room.currentWord ?? '',
+      imposterHint: room.currentHint,
+      imposterNames,
+      voteHistory: room.voteHistory.map((h) => ({ ...h })),
+      scores,
     }
+  }
+
+  /** The cached result of the most recently finished game, if any. */
+  getLastResult(roomCode: string): GameResult | null {
+    return this.rooms.get(roomCode.toUpperCase())?.lastResult ?? null
   }
 
   /**
@@ -598,7 +879,10 @@ export class GameService {
     room.lastActivityAt = Date.now()
 
     const allDone = room.currentTurnIndex >= room.playerOrder.length
-    if (allDone) {room.phase = 'discussion'}
+    if (allDone) {
+      room.phase = 'discussion'
+      room.voteRound = 1
+    }
 
     const nextPlayerId =
       !allDone && room.currentTurnIndex < room.playerOrder.length

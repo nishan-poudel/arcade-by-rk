@@ -6,13 +6,19 @@ export type {
   GamePhase,
   Difficulty,
   PlayerRole,
+  GameOutcome,
   PublicPlayer,
   GameState,
   PlayerAssignment,
-  GameReveal,
+  VoteRoundRecord,
+  EjectionResult,
+  GameScoreLine,
+  GameResult,
   CreateRoomPayload,
   JoinRoomPayload,
   SubmitVotePayload,
+  RemovePlayerPayload,
+  RequestStatePayload,
   SetDifficultyPayload,
   SetImposterCountPayload,
   RejoinPayload,
@@ -26,9 +32,9 @@ export type AppScreen =
   | 'landing'       // create / join form
   | 'waiting'       // lobby before game starts
   | 'game'          // in-game (player or host)
-  | 'discussion'    // all-done discussion phase
-  | 'reveal'        // post-round reveal: word + imposters shown to all
-  | 'over'          // game ended
+  | 'discussion'    // discussion + repeated voting rounds
+  | 'reveal'        // game over: word + imposters + vote history + scores
+  | 'over'          // whole session ended by the host
 
 /** Stored in sessionStorage for reconnection */
 export interface ReconnectInfo {

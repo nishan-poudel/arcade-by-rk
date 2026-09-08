@@ -84,9 +84,17 @@ const io = new Server(httpServer, {
   },
   // Limit max HTTP buffer size to prevent oversized event payloads (1 MB)
   maxHttpBufferSize: 1e6,
-  // Allow client reconnection within 60 s before cleaning up the socket
+  // Detect dead connections faster than the default (25s/20s) so a client
+  // that walked out of Wi-Fi range is marked disconnected promptly and can
+  // be rejoined cleanly, instead of lingering as a ghost "connected" player.
+  pingInterval: 20_000,
+  pingTimeout: 20_000,
+  // Seamlessly restore a briefly-dropped socket (same socket id, buffered
+  // missed events) without the client having to re-handshake. Covers phone
+  // screen-locks, tunnels, brief signal loss.
   connectionStateRecovery: {
-    maxDisconnectionDuration: 60_000,
+    maxDisconnectionDuration: 2 * 60_000,
+    skipMiddlewares: true,
   },
 })
 

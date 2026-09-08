@@ -19,7 +19,20 @@ interface Bucket {
 /** Maximum events allowed per socket within the window (per event name) */
 const GLOBAL_LIMIT = 30          // total events per window
 const WINDOW_MS    = 5_000       // 5-second sliding window
-const BURST_PER_EVENT = 5        // max rapid-fire for a single event type
+const BURST_PER_EVENT = 5        // default max rapid-fire for a single event type
+
+/**
+ * Per-event overrides of BURST_PER_EVENT. `submit_vote` is higher because a
+ * single game now has several voting rounds and players change their vote
+ * freely within a round — 5 is too tight.
+ */
+const BURST_OVERRIDES: Record<string, number> = {
+  submit_vote: 15,
+  // The manual Refresh button + reconnect + periodic resync can legitimately
+  // stack up when a laggy player taps refresh a few times; the server only
+  // replies to that one socket, so a higher cap is safe.
+  request_state: 12,
+}
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -61,7 +74,7 @@ export function checkRateLimit(socketId: string, eventName: string): boolean {
   const eventKey = `${socketId}:${eventName}`
   const evBucket = getBucket(eventBuckets, eventKey)
   evBucket.tokens++
-  if (evBucket.tokens > BURST_PER_EVENT) {return false}
+  if (evBucket.tokens > (BURST_OVERRIDES[eventName] ?? BURST_PER_EVENT)) {return false}
 
   return true
 }

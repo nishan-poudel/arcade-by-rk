@@ -23,7 +23,6 @@ import {
   validateImposterCount,
   isObject,
 } from '../security/validator.js'
-import type { GameReveal } from '../../../shared/types/index.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -54,6 +53,23 @@ function broadcastState(io: Server, roomCode: string): void {
 }
 
 /**
+ * Build the `state_synced` payload for one player. Includes the finished-game
+ * `result` when a game has been decided, so a client that refreshes during the
+ * reveal / score modal is restored to the right place.
+ */
+function syncedPayload(roomCode: string, playerId: string) {
+  const room = gameService.getRoom(roomCode)!
+  const player = room.players.get(playerId)
+  return {
+    gameState: gameService.buildGameState(room),
+    assignment: player
+      ? gameService.buildAssignment(room, player)
+      : { role: 'crewmate' as const, word: null, hint: null },
+    result: room.gameOutcome ? gameService.getLastResult(roomCode) : null,
+  }
+}
+
+/**
  * Send individual assignments to all players in a round.
  * SECURITY: every assignment only ever contains the recipient's own role and
  * word — including the host's, since the host is just another player and
@@ -61,7 +77,7 @@ function broadcastState(io: Server, roomCode: string): void {
  */
 function dispatchAssignments(
   io: Server,
-  assignments: Map<string, { role: string; word: string | null }>,
+  assignments: Map<string, { role: string; word: string | null; hint: string | null }>,
 ): void {
   for (const [playerId, assignment] of assignments) {
     io.to(playerId).emit('player_assignment', assignment)
@@ -69,21 +85,36 @@ function dispatchAssignments(
 }
 
 /**
- * Tally votes for a room and broadcast the public round reveal.
- * Used both when voting completes naturally (all connected players voted)
- * and when the host force-reveals early. No-ops (returns false) if the
- * round was already tallied (idempotency guard inside GameService).
+ * Tally the current voting round and broadcast the outcome.
+ *  - tie / no clear winner → `vote_tie` (unless `forceEject`)
+ *  - someone ejected → `ejection_result`, plus `game_result` if the game is now
+ *    decided (imposter caught, or imposters reached parity with the crew)
+ * No-ops (returns false) if there's nothing to tally.
  */
-function tallyAndBroadcastReveal(io: Server, roomCode: string): boolean {
-  const tally = gameService.tallyVotes(roomCode)
+function tallyAndBroadcast(io: Server, roomCode: string, forceEject = false): boolean {
+  const tally = gameService.tallyVoteRound(roomCode, { forceEject })
   if (!tally) {return false}
 
   broadcastState(io, roomCode)
 
-  const base = gameService.buildReveal(roomCode)
-  if (base) {
-    const fullReveal: GameReveal = { ...base, ...tally }
-    io.to(roomCode).emit('round_reveal', fullReveal)
+  if (tally.kind === 'tie') {
+    io.to(roomCode).emit('vote_tie')
+    return true
+  }
+
+  io.to(roomCode).emit('ejection_result', {
+    ejectedId: tally.ejectedId,
+    ejectedName: tally.ejectedName,
+    wasImposter: tally.wasImposter,
+    voteRound: tally.voteRound,
+    ballotNames: tally.ballotNames,
+    remaining: tally.remaining,
+    gameOver: tally.gameOver,
+    outcome: tally.outcome,
+  })
+
+  if (tally.gameOver && tally.result) {
+    io.to(roomCode).emit('game_result', tally.result)
   }
   return true
 }
@@ -95,7 +126,18 @@ export function registerSocketHandlers(io: Server): void {
   startBucketPurge()
 
   io.on('connection', (socket: Socket) => {
-    logger.info('Socket connected', { socketId: socket.id })
+    logger.info('Socket connected', { socketId: socket.id, recovered: socket.recovered })
+
+    // connectionStateRecovery kicked in: same socket id, briefly dropped and
+    // now back. Flip the player back to connected and re-broadcast so the rest
+    // of the room stops showing them as offline.
+    if (socket.recovered) {
+      const room = gameService.setPlayerConnected(socket.id, true)
+      if (room) {
+        socket.emit('state_synced', syncedPayload(room.code, socket.id))
+        broadcastState(io, room.code)
+      }
+    }
 
     // ── create_room ──────────────────────────────────────────────────────────
     socket.on('create_room', (payload: unknown) => {
@@ -125,7 +167,7 @@ export function registerSocketHandlers(io: Server): void {
 
       const room = gameService.getRoom(roomCode)!
       const state = gameService.buildGameState(room)
-      const assignment = { role: 'crewmate' as const, word: null }
+      const assignment = { role: 'crewmate' as const, word: null, hint: null }
 
       socket.emit('room_created', { roomCode, gameState: state, assignment })
       logger.info('Room created', { roomCode, host: nameResult.value })
@@ -150,7 +192,7 @@ export function registerSocketHandlers(io: Server): void {
 
       const room = gameService.getRoom(codeResult.value)!
       const state = gameService.buildGameState(room)
-      const assignment = { role: 'crewmate' as const, word: null }
+      const assignment = { role: 'crewmate' as const, word: null, hint: null }
 
       socket.emit('room_joined', { gameState: state, assignment })
       broadcastState(io, codeResult.value)
@@ -238,17 +280,18 @@ export function registerSocketHandlers(io: Server): void {
 
       broadcastState(io, codeResult.value)
 
-      // Auto-reveal the moment every connected player has voted
+      // Tally the moment every connected player still in the game has voted
       const room = gameService.getRoom(codeResult.value)
       if (room && gameService.allVotesIn(room)) {
-        tallyAndBroadcastReveal(io, codeResult.value)
-        logger.info('Voting complete (auto)', { roomCode: codeResult.value })
+        tallyAndBroadcast(io, codeResult.value)
+        logger.info('Vote round tallied (auto)', { roomCode: codeResult.value })
       }
     })
 
     // ── force_reveal_votes ───────────────────────────────────────────────────
-    // Host-only escape hatch: tally whatever votes have been cast so far,
-    // useful if an AFK/disconnected player is blocking the auto-reveal.
+    // Host-only escape hatch: tally the votes cast so far right now, useful if
+    // an AFK/disconnected player is blocking the auto-tally. Breaks a tie
+    // (or a zero-vote round) by ejecting a random candidate so it always moves.
     socket.on('force_reveal_votes', (rawCode: unknown) => {
       if (rateLimited(socket, 'force_reveal_votes')) {return}
 
@@ -257,13 +300,14 @@ export function registerSocketHandlers(io: Server): void {
 
       const room = gameService.getRoom(codeResult.value)
       if (!room) {return emitError(socket, 'Room not found.')}
-      if (room.hostId !== socket.id) {return emitError(socket, 'Only the host can force a reveal.')}
+      if (room.hostId !== socket.id) {return emitError(socket, 'Only the host can force a vote.')}
       if (room.phase !== 'discussion') {return emitError(socket, 'Voting not in progress.')}
+      if (room.gameOutcome) {return emitError(socket, 'This game is already over.')}
 
-      const revealed = tallyAndBroadcastReveal(io, codeResult.value)
-      if (!revealed) {return emitError(socket, 'Result already recorded for this round.')}
+      const done = tallyAndBroadcast(io, codeResult.value, true)
+      if (!done) {return emitError(socket, 'Nothing to tally right now.')}
 
-      logger.info('Voting complete (host forced)', { roomCode: codeResult.value })
+      logger.info('Vote round tallied (host forced)', { roomCode: codeResult.value })
     })
 
     // ── next_round ───────────────────────────────────────────────────────────
@@ -284,6 +328,118 @@ export function registerSocketHandlers(io: Server): void {
       dispatchAssignments(io, assignments)
       io.to(codeResult.value).emit('game_state', gameService.buildGameState(room))
       logger.info('Next round started', { roomCode: codeResult.value, round: room.round })
+    })
+
+    // ── change_word ──────────────────────────────────────────────────────────
+    // Host-only: the group doesn't like the current word. Reshuffle the CURRENT
+    // round with a fresh word — new word/decoy, imposters re-picked, turn order
+    // reset — without advancing the round counter and without scoring anything.
+    // The confirmation prompt lives on the client (host may misclick).
+    socket.on('change_word', (rawCode: unknown) => {
+      if (rateLimited(socket, 'change_word')) {return}
+
+      const codeResult = validateRoomCode(rawCode)
+      if (!codeResult.ok) {return emitError(socket, codeResult.error)}
+
+      const room = gameService.getRoom(codeResult.value)
+      if (!room) {return emitError(socket, 'Room not found.')}
+      if (room.hostId !== socket.id) {return emitError(socket, 'Only the host can change the word.')}
+      if (room.phase !== 'playing' && room.phase !== 'discussion') {
+        return emitError(socket, 'The word can only be changed during a round.')
+      }
+
+      const assignments = gameService.startRound(codeResult.value, false)
+      if (!assignments) {return emitError(socket, 'Could not change the word.')}
+
+      dispatchAssignments(io, assignments)
+      io.to(codeResult.value).emit('game_state', gameService.buildGameState(room))
+      io.to(codeResult.value).emit('word_changed')
+      logger.info('Word changed', { roomCode: codeResult.value, round: room.round })
+    })
+
+    // ── remove_player ────────────────────────────────────────────────────────
+    // Host-only: drop a player who is currently offline from the room.
+    socket.on('remove_player', (payload: unknown) => {
+      if (rateLimited(socket, 'remove_player')) {return}
+
+      if (!isObject(payload)) {return emitError(socket, 'Invalid payload.')}
+
+      const codeResult = validateRoomCode(payload.roomCode)
+      if (!codeResult.ok) {return emitError(socket, codeResult.error)}
+
+      if (typeof payload.targetPlayerId !== 'string' || !payload.targetPlayerId) {
+        return emitError(socket, 'targetPlayerId must be a non-empty string.')
+      }
+
+      const result = gameService.removeOfflinePlayer(
+        codeResult.value,
+        socket.id,
+        payload.targetPlayerId,
+      )
+      if (!result.ok) {return emitError(socket, result.error)}
+
+      // Tell the removed client (in case it reconnects) to drop its session,
+      // then sever any socket it still has open.
+      io.to(payload.targetPlayerId).emit('removed_from_room')
+      void io.in(payload.targetPlayerId).disconnectSockets(true)
+
+      if (result.room) {
+        broadcastState(io, result.room.code)
+        // Losing a player can decide the game (imposter now has parity, or the
+        // last imposter just left) or unblock a stalled vote round.
+        const ended = gameService.resolveIfDeparturesEndedGame(result.room.code)
+        if (ended) {
+          broadcastState(io, result.room.code)
+          io.to(result.room.code).emit('game_result', ended)
+        } else if (result.room.phase === 'discussion' && gameService.allVotesIn(result.room)) {
+          tallyAndBroadcast(io, result.room.code)
+        }
+      }
+      logger.info('Player removed by host', {
+        roomCode: codeResult.value,
+        target: payload.targetPlayerId,
+      })
+    })
+
+    // ── request_state ────────────────────────────────────────────────────────
+    // Any client can ask for a fresh authoritative snapshot (+ its own private
+    // assignment). Powers the manual "Refresh" button and the periodic /
+    // tab-focus resync that keeps every client from drifting out of sync.
+    // If the server no longer recognises this socket (e.g. it restarted),
+    // fall back to a full rejoin using the name the client remembered.
+    socket.on('request_state', (payload: unknown) => {
+      if (rateLimited(socket, 'request_state')) {return}
+
+      if (!isObject(payload)) {return emitError(socket, 'Invalid payload.')}
+
+      const codeResult = validateRoomCode(payload.roomCode)
+      if (!codeResult.ok) {return emitError(socket, codeResult.error)}
+
+      const room = gameService.getRoom(codeResult.value)
+      if (!room) {return emitError(socket, 'That room has ended.')}
+
+      const existing = room.players.get(socket.id)
+      if (existing) {
+        socket.join(codeResult.value)
+        const wasOffline = !existing.connected
+        existing.connected = true
+        socket.emit('state_synced', syncedPayload(codeResult.value, socket.id))
+        // Only disturb everyone else if this actually changed something
+        // (a routine keep-in-sync poll must not trigger a room-wide broadcast).
+        if (wasOffline) {broadcastState(io, codeResult.value)}
+        return
+      }
+
+      // Unknown socket — try to reattach by name.
+      const nameResult = validateName(payload.playerName)
+      if (!nameResult.ok) {return emitError(socket, 'Could not resync — please rejoin.')}
+
+      const rejoined = gameService.rejoinRoom(socket.id, codeResult.value, nameResult.value)
+      if (!rejoined) {return emitError(socket, 'Could not resync — please rejoin.')}
+
+      socket.join(codeResult.value)
+      socket.emit('state_synced', syncedPayload(codeResult.value, socket.id))
+      broadcastState(io, codeResult.value)
     })
 
     // ── skip_turn ─────────────────────────────────────────────────────────
@@ -387,7 +543,16 @@ export function registerSocketHandlers(io: Server): void {
 
       // Mark player as disconnected but keep them in room for potential rejoin
       const room = gameService.setPlayerConnected(socket.id, false)
-      if (room) {broadcastState(io, room.code)}
+      if (room) {
+        broadcastState(io, room.code)
+        // If an AFK player drops mid-vote, the remaining connected players may
+        // now all have voted — don't leave the round hanging on a ghost.
+        // (A disconnected player is still "in the game" for win-condition math,
+        // so a drop alone never ends the game — only a removal does.)
+        if (room.phase === 'discussion' && !room.gameOutcome && gameService.allVotesIn(room)) {
+          tallyAndBroadcast(io, room.code)
+        }
+      }
     })
   })
 }
