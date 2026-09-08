@@ -174,25 +174,48 @@ lobby ──► playing ──► discussion ──┐
 - **reveal** is a client screen shown once `gameOutcome` is set (driven by the
   `game_result` event, also derivable from `game_state`). The **score modal**
   pops on top of it.
-- A **tie** (or no clear top vote) ejects nobody — votes are cleared, `vote_tie`
-  is broadcast, the group votes again. `force_reveal_votes` breaks a tie by
-  ejecting a random top candidate so the host can always move things along.
+**Ejection rule** (`pickEjectedId`):
+- A unique top vote-getter is ejected (imposter or crewmate).
+- On a **tie for the top**: if an imposter is among the tied players, **nobody**
+  is ejected (`vote_tie`, re-vote — the imposter benefits from the doubt). If the
+  tied players are all crewmates (the imposter polled lower), a random one of
+  them is ejected and the game continues.
+- No votes at all → nobody ejected. `force_reveal_votes` overrides "nobody" by
+  ejecting a random top-pool candidate.
+- **Every round is recorded** in `voteHistory`, ties included (a tie row has
+  `ejectedId: null`), so the end reveal shows each iteration and the imposter is
+  credited for surviving a tie. `voteRound` advances on a tie too.
+
+The game **always runs until the imposter is caught (crew win) or reaches parity
+with the crew (imposter win)** — `checkWinner` after every ejection. There is no
+round cap and no early stop.
 
 ### Scoring
 
-Points are awarded once per game, in `applyGameScore`:
+Points **accrue per voting round** (a longer game puts more on the table) but are
+only ever added to the running total **once, when the game is decided**
+(`applyGameScore`) — never a live per-round score. Per player, the sum of:
 
-| Outcome | Player | Points |
+| Component | Who | Points |
 |---|---|---|
-| Crew win | surviving crewmate | `max(1, 3 − wrongEjections)` |
-| Crew win | wrongly-ejected crewmate | `1` |
-| Crew win | imposter | `0` |
-| Imposter win | each imposter | `2 + 2 × wrongEjections` |
-| Imposter win | everyone else | `0` |
+| Deduction | crewmate | `+1` per round they (as a crewmate) voted for an **actual imposter** — `Player.correctVotes`, credited every round incl. ties |
+| Survival | imposter | `+1` per round that ended without them ejected — a crewmate ejection **or a tie** (`voteHistory` entries where `!wasImposter`) — applied on a **win or a loss** |
+| Outcome — crew win | crewmate still in at the end | `+3` |
+| Outcome — crew win | ejected crewmate | `+1` |
+| Outcome — imposter win | each imposter | `+5` |
+| — | losing side | `0` (never negative) |
 
-`wrongEjections` = innocent players voted out during the game. `player.score` is
-the running session total; `player.lastGamePoints` is the just-finished game's
-points (shown as a `+N` chip and in the score modal).
+This matches the genre's conventions (Spyfall's "+1 for correctly accusing the
+spy", a caught-but-lasted imposter still scoring, losers at 0).
+
+Every `GameScoreLine` carries a `pointsBreakdown: string[]` (e.g. `["Spotted the
+imposter ×2  +2", "Survived to the win  +3"]`) that the reveal + score modal show
+under each player — the per-round accrual made visible. It contains no
+voter→target information.
+
+`player.score` is the running session total; `player.lastGamePoints` /
+`player.lastGameBreakdown` are the just-finished game's points (the `+N` chip +
+score modal).
 
 ### Imposter selection (fairness)
 
@@ -206,10 +229,18 @@ The host is always in the candidate pool — they can be the imposter like anyon
 
 ### Staying in sync / reconnection
 
+- **Keep-alive** (`useKeepAlive`): while a client is in a room it hits the REST
+  `/api/health` endpoint every ~4 min (±20 s jitter). Render's free web service
+  sleeps after 15 min with no inbound *HTTP* (WS ping/pong doesn't count) and a
+  cold wake is 30–50 s — this keeps it awake for the whole session. No opt-in;
+  it stops when you leave. Between sessions the server is allowed to sleep.
+  For zero cold starts ever, point a free external uptime monitor at
+  `/api/health` every 5 min (see `render.yaml`).
 - The client attempts `request_state` on **every** socket connect (first load, auto-reconnect, `connectionStateRecovery`), with a short backoff retry if the server hasn't yet processed the previous socket's disconnect.
 - A cheap periodic `request_state` (every 12 s) and a `visibilitychange` handler re-converge any client that drifted — phones freeze background sockets, so this is the main defence against "I didn't see the update".
 - A manual **Refresh** button (the connection pill, and the connection-lost banner) forces a reconnect + resync so nobody has to hard-reload the page.
-- Socket.IO client: infinite reconnection attempts; server: `connectionStateRecovery` (2 min) + tightened ping timeouts.
+- Socket.IO client: infinite reconnection attempts + `rememberUpgrade` (reconnects skip the polling probe); server: `connectionStateRecovery` (2 min), `pingInterval` 20 s / `pingTimeout` 25 s.
+- `submit_vote` broadcasts a tiny `vote_update` delta (voterId + count), not the whole `GameState` — the full state is broadcast only on real changes (ejection, phase). The 12 s resync heals any drift.
 - During **discussion**, every player still in the game votes (`submit_vote`);
   eliminated players are spectators and cannot vote or be voted for. Each voting
   round auto-tallies the moment every *connected, non-eliminated* player has
@@ -229,8 +260,8 @@ The host is always in the candidate pool — they can be the imposter like anyon
 | client → server | `skip_turn`          | Host skips the current player's turn (AFK)           |
 | client → server | `change_word`        | Host scraps the current round for a fresh word — new word + decoy, imposters re-picked, turns reset; round counter is **not** advanced and nothing is scored (host only, confirmed client-side) |
 | client → server | `remove_player`      | Host removes a player who is currently **offline** (host only; refuses online players, the host, and any removal that would drop an in-progress game below 3 players — the host is told to end the game instead) |
-| client → server | `submit_vote`        | Cast/change my vote for who to eject (discussion phase; still-in players only) |
-| client → server | `force_reveal_votes` | Host tallies the current voting round now; breaks a tie randomly (host only) |
+| client → server | `submit_vote`        | Lock in my vote for who to eject (one per round, no changes after; still-in players only) |
+| client → server | `force_reveal_votes` | Host tallies the current voting round now; on a no-eject case, ejects a random top-pool player (host only) |
 | client → server | `next_round`         | Host starts a brand-new game (new word + imposter)   |
 | client → server | `end_game`           | Host ends the whole session                          |
 | client → server | `reset_scores`       | Host resets all scores to 0 (also restarts the imposter-rotation history) |
@@ -242,9 +273,10 @@ The host is always in the candidate pool — they can be the imposter like anyon
 | server → client | `word_changed`       | Broadcast: the host used "New Word" — clients reset their per-game local state |
 | server → client | `removed_from_room`  | Private: the host removed you; client drops its saved session |
 | server → client | `discussion_time`    | All players (or host skip) have finished their describe turn |
-| server → client | `ejection_result`    | Broadcast after each vote tally: `{ ejectedId, ejectedName, wasImposter, voteRound, ballotNames, remaining, gameOver, outcome }` — individual ballots ARE included (the round has resolved) |
-| server → client | `vote_tie`           | Broadcast: the vote tied / had no clear winner — nobody ejected, vote again |
-| server → client | `game_result`        | Broadcast once a game is decided: `{ outcome, word, imposterHint, imposterNames, voteHistory, scores }` — full round-by-round ballot history + every player's points & totals |
+| server → client | `vote_update`        | Broadcast on each `submit_vote`: `{ voterId, votedCount, activeCount }` — a tiny delta so a full `game_state` frame isn't sent per ballot |
+| server → client | `ejection_result`    | Broadcast after each vote tally: `{ ejectedId, ejectedName, wasImposter, voteRound, remaining, gameOver, outcome }` — **no ballot data** |
+| server → client | `vote_tie`           | Broadcast: nobody ejected this round (no votes, or an imposter tied for the top) — vote again. The round is still recorded in `voteHistory` with `ejectedId: null` |
+| server → client | `game_result`        | Broadcast once a game is decided: `{ outcome, word, imposterHint, imposterNames, voteHistory, scores }`. `voteHistory[]` = `{ voteRound, ejectedId (null on a tie), ejectedName (null on a tie), wasImposter, voteCounts }` — anonymous per-player vote **counts**, never who voted for whom. `scores[]` carries `pointsBreakdown: string[]` (prose, no targets) |
 | server → client | `game_ended`         | Whole session over (host)                            |
 | server → client | `error`              | Structured error for the receiving socket            |
 
@@ -277,7 +309,19 @@ Imposter identities are only revealed to everyone simultaneously, once the game 
 
 Each player picks a candidate locally, then presses **Submit** — that one submission is **locked** for the voting round (`submitVote` rejects any later change; `room.votes` is cleared each round, so the lock lifts for the next one). Nothing is sent to the server until Submit.
 
-While a voting round is **open**, clients only see `hasVoted` per player (not the target). The moment a round **resolves**, the full "who voted for whom" is broadcast — in `ejection_result.ballotNames` and, at game end, in `game_result.voteHistory` (round by round). This is a deliberate design choice: seeing the ballots is part of the post-round social deduction. Nothing is ever revealed *before* a vote resolves.
+**The voter→target mapping is never sent to any client.** A player only ever
+knows their own vote (client-side `myVote`).
+- While a round is **open**: clients see only `hasVoted` per player.
+- The server keeps `room.votes` (voterId→targetId) only transiently — to credit
+  `correctVotes` and pick the ejection — then clears it. Voter ids are never
+  copied into `voteHistory` or any payload.
+- The end-of-game reveal (`game_result.voteHistory`) includes **anonymous
+  per-player vote counts** for each round (`voteCounts: { playerId → votesReceived }`)
+  — how many votes each player got, never who cast them. Ties are recorded too
+  (`ejectedId: null`). That is the only vote information beyond a player's own
+  ballot.
+- `GameScoreLine.pointsBreakdown` is prose ("Spotted the imposter ×2  +2") — it
+  never names a target or says who someone voted for.
 
 ### Input Validation Layer (`security/validator.ts`)
 

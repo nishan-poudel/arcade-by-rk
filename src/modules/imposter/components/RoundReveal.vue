@@ -62,7 +62,8 @@
           </CardContent>
         </Card>
 
-        <!-- Vote history: round by round, expandable to who voted for whom -->
+        <!-- Vote history: round by round, ties included. Anonymous counts only —
+             who voted for whom is never shown to anyone. -->
         <Card v-if="result.voteHistory.length" class="mb-4 animate-fade-in">
           <CardHeader>
             <CardTitle class="text-xs normal-case">{{ locale.imposter.roundReveal.voteHistoryHeading }}</CardTitle>
@@ -71,14 +72,14 @@
             <div
               v-for="h in result.voteHistory"
               :key="h.voteRound"
-              class="rounded-2xl border-2 border-border bg-secondary/40 overflow-hidden"
+              class="rounded-2xl border-2 border-border bg-secondary/40 px-3 py-2.5"
             >
-              <button
-                type="button"
-                class="w-full flex items-center gap-2 px-3 py-2.5 text-left"
-                @click="toggle(h.voteRound)"
-              >
-                <DoorOpen class="size-4 shrink-0" :class="h.wasImposter ? 'text-flavor-melon-ink' : 'text-destructive'" />
+              <div class="flex items-center gap-2">
+                <component
+                  :is="h.ejectedName ? DoorOpen : Equal"
+                  class="size-4 shrink-0"
+                  :class="!h.ejectedName ? 'text-muted-foreground' : h.wasImposter ? 'text-flavor-melon-ink' : 'text-destructive'"
+                />
                 <span class="flex-1 text-sm font-semibold truncate">
                   {{ locale.imposter.roundReveal.voteRoundLine(h.voteRound, h.ejectedName) }}
                 </span>
@@ -87,25 +88,10 @@
                   class="shrink-0">
                   {{ locale.imposter.roundReveal.wasImposterTag }}
                 </Badge>
-                <ChevronDown
-                  class="size-4 shrink-0 text-muted-foreground transition-transform"
-                  :class="{ 'rotate-180': open.has(h.voteRound) }"
-                />
-              </button>
-              <ul v-if="open.has(h.voteRound)" class="px-3 pb-2.5 pt-0.5 space-y-0.5">
-                <li
-                  v-for="(b, i) in h.ballotNames"
-                  :key="i"
-                  class="text-xs text-muted-foreground flex items-center gap-1.5"
-                >
-                  <span class="truncate">{{ b.voter }}</span>
-                  <ArrowRight class="size-3 shrink-0" />
-                  <span class="truncate font-medium text-foreground/80">{{ b.target }}</span>
-                </li>
-                <li v-if="!h.ballotNames.length" class="text-xs text-muted-foreground/60">
-                  {{ locale.imposter.ejection.forcedByHost }}
-                </li>
-              </ul>
+              </div>
+              <p v-if="countLine(h.voteCounts)" class="text-[11px] text-muted-foreground mt-1">
+                {{ countLine(h.voteCounts) }}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -121,24 +107,38 @@
                 v-for="(row, idx) in result.scores"
                 :key="row.playerId"
                 :class="[
-                  'flex items-center gap-3 py-2.5 px-3 rounded-2xl bg-secondary/40 border-2 border-border',
+                  'py-2.5 px-3 rounded-2xl bg-secondary/40 border-2 border-border',
                   row.playerId === myId ? 'ring-1 ring-primary/50' : '',
                 ]"
               >
-                <span class="text-xs text-muted-foreground/60 w-5 shrink-0">{{ idx + 1 }}</span>
-                <span class="flex-1 font-medium truncate">{{ row.name }}</span>
-                <Badge
-                  v-if="row.isImposter" variant="destructive"
-                  class="shrink-0">
-                  <VenetianMask class="size-3" />
-                </Badge>
-                <span
-                  class="text-sm font-semibold shrink-0"
-                  :class="row.points > 0 ? 'text-flavor-melon-ink' : 'text-muted-foreground/50'"
-                >+{{ row.points }}</span>
-                <span class="font-extrabold text-primary text-lg shrink-0">{{ row.total }}</span>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs text-muted-foreground/60 w-5 shrink-0">{{ idx + 1 }}</span>
+                  <span class="flex-1 font-medium truncate">{{ row.name }}</span>
+                  <Badge
+                    v-if="row.isImposter" variant="destructive"
+                    class="shrink-0">
+                    <VenetianMask class="size-3" />
+                  </Badge>
+                  <span
+                    class="text-sm font-semibold shrink-0"
+                    :class="row.points > 0 ? 'text-flavor-melon-ink' : 'text-muted-foreground/50'"
+                  >+{{ row.points }}</span>
+                  <span class="font-extrabold text-primary text-lg shrink-0">{{ row.total }}</span>
+                </div>
+                <ul v-if="row.pointsBreakdown.length" class="mt-1.5 pl-8 space-y-0.5">
+                  <li
+                    v-for="line in row.pointsBreakdown"
+                    :key="line"
+                    class="text-[11px] text-muted-foreground flex items-center gap-1.5"
+                  >
+                    <span class="w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />{{ line }}
+                  </li>
+                </ul>
               </li>
             </ul>
+            <p class="text-[11px] text-muted-foreground/70 mt-3 text-center">
+              {{ locale.imposter.roundReveal.scoreBreakdownNote }}
+            </p>
           </CardContent>
         </Card>
         <AppFooter />
@@ -172,8 +172,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { ArrowRight, ChevronDown, ChevronsRight, DoorOpen, ShieldCheck, VenetianMask } from '@lucide/vue'
+import { computed } from 'vue'
+import { ChevronsRight, DoorOpen, Equal, ShieldCheck, VenetianMask } from '@lucide/vue'
 import { en as locale } from '@/locales/en'
 import type { GameResult, GameState } from '../types/index.js'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -196,11 +196,14 @@ defineEmits<{
 
 const crewWon = computed(() => props.result.outcome === 'crew')
 
-const open = ref(new Set<number>())
-function toggle(round: number) {
-  if (open.value.has(round)) {open.value.delete(round)}
-  else {open.value.add(round)}
-  // trigger reactivity for Set
-  open.value = new Set(open.value)
+/** "Priya 3 · Sanjay 2" — anonymous, most-voted first, zero-vote players omitted. */
+function countLine(voteCounts: Record<string, number>): string {
+  const nameOf = (id: string) =>
+    props.gameState?.players.find((p) => p.id === id)?.name ?? '?'
+  return Object.entries(voteCounts)
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, n]) => `${nameOf(id)} ${n}`)
+    .join(' · ')
 }
 </script>

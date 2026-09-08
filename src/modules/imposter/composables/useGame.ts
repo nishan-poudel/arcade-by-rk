@@ -6,7 +6,7 @@
  *  - All game state (gameState, myAssignment, myId, screen)
  *  - Action methods emitted to the server
  */
-import { ref, computed, type Ref } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 import { useSocket } from './useSocket.js'
 import { useKeepAlive } from './useKeepAlive.js'
 import { en as locale } from '@/locales/en'
@@ -137,9 +137,18 @@ export function useGame() {
     }
   }
 
+  // Keep the free backend awake for as long as we're in a room (see useKeepAlive).
+  let stopRoomWatch: (() => void) | null = null
+
   // ── Socket event setup (call once from ImposterGame.vue onMounted) ────────
 
   function setupListeners() {
+    stopRoomWatch?.()
+    stopRoomWatch = watch(
+      roomCode,
+      (code) => (code ? useKeepAlive().start() : useKeepAlive().stop()),
+      { immediate: true },
+    )
     // Capture our own socket ID and (re)attach to our room on EVERY connect.
     //
     // This fires on the very first connect, on every socket.io auto-reconnect
@@ -281,9 +290,25 @@ export function useGame() {
       if (dismissedResultForGame !== result.round) {showScoreModal.value = true}
     })
 
+    // One player has voted — a tiny delta instead of a full game_state frame.
+    socket.on(
+      'vote_update',
+      (payload: { voterId: string; votedCount: number; activeCount: number }) => {
+        const gs = gameState.value
+        if (!gs) {return}
+        gameState.value = {
+          ...gs,
+          players: gs.players.map((p) =>
+            p.id === payload.voterId ? { ...p, hasVoted: true } : p,
+          ),
+        }
+      },
+    )
+
     socket.on('game_ended', () => {
       screen.value = 'over'
       clearReconnectInfo()
+      useKeepAlive().stop()
     })
 
     socket.on('error', (payload: { message: string }) => {
@@ -393,6 +418,7 @@ export function useGame() {
     socket.off('discussion_time')
     socket.off('ejection_result')
     socket.off('vote_tie')
+    socket.off('vote_update')
     socket.off('game_result')
     socket.off('word_changed')
     socket.off('removed_from_room')
@@ -402,6 +428,8 @@ export function useGame() {
     socket.off('reconnect_failed')
     stopResyncLoop()
     cancelRejoinRetry()
+    stopRoomWatch?.()
+    stopRoomWatch = null
     if (onVisibility) {
       document.removeEventListener('visibilitychange', onVisibility)
       onVisibility = null
@@ -531,7 +559,7 @@ export function useGame() {
     stopResyncLoop()
     cancelRejoinRetry()
     socketDisconnect()
-    useKeepAlive().disable()
+    useKeepAlive().stop()
     gameState.value = null
     myAssignment.value = null
     myId.value = ''

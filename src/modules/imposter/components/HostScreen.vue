@@ -116,17 +116,6 @@
           </CardContent>
         </Card>
 
-        <!-- Keep-alive toggle: prevents a free-tier backend (e.g. Render) from
-             spinning down mid-game due to 15 min of no inbound HTTP traffic. -->
-        <Card
-          class="mb-3 flex items-center justify-between py-3 px-4"
-          :class="keepAliveEnabled ? 'border-primary/30 bg-primary/5' : ''"
-        >
-          <span class="text-sm font-semibold flex items-center gap-2" :class="keepAliveEnabled ? 'text-primary' : 'text-foreground/80'">
-            <BatteryCharging class="size-4" />{{ keepAliveEnabled ? locale.imposter.common.keepAliveOn : locale.imposter.common.keepAliveOff }}
-          </span>
-          <Switch :model-value="keepAliveEnabled" @update:model-value="toggleKeepAlive" />
-        </Card>
 
         <!-- Player list -->
         <Card class="mb-3">
@@ -257,7 +246,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
-  BatteryCharging,
   Check,
   Crown,
   Hourglass,
@@ -272,12 +260,10 @@ import {
   Vote,
 } from '@lucide/vue'
 import { en as locale } from '@/locales/en'
-import { useKeepAlive } from '../composables/useKeepAlive.js'
 import type { GameState, PlayerAssignment, AppScreen } from '../types/index.js'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
 import DifficultyIcon from './DifficultyIcon.vue'
 import AppFooter from './AppFooter.vue'
@@ -412,9 +398,6 @@ const turnProgress = computed(() => {
   if (total === 0) {return 0}
   return Math.round((donePlayers.value / total) * 100)
 })
-
-// ── Keep-alive toggle (prevents free-tier backend spin-down mid-game) ────────
-const { enabled: keepAliveEnabled, toggle: toggleKeepAlive } = useKeepAlive()
 </script>
 
 <style scoped>

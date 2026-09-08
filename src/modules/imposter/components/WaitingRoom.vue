@@ -129,26 +129,6 @@
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
-
-            <!-- Keep-alive toggle: prevents a free-tier backend (e.g. Render)
-                 from spinning down while the group lingers in the lobby. -->
-            <div
-              class="w-full flex items-center justify-between text-left rounded-xl px-3 py-3 border transition-colors"
-              :class="keepAliveEnabled ? 'border-primary/30 bg-primary/5' : 'border-border bg-secondary/30'"
-            >
-              <span class="flex items-center gap-2">
-                <BatteryCharging class="size-4 shrink-0" :class="keepAliveEnabled ? 'text-primary' : 'text-muted-foreground'" />
-                <span>
-                  <span class="block text-sm font-semibold" :class="keepAliveEnabled ? 'text-primary' : 'text-foreground/80'">
-                    {{ keepAliveEnabled ? locale.imposter.common.keepAliveOn : locale.imposter.common.keepAliveOff }}
-                  </span>
-                  <span class="block text-xs text-muted-foreground/80 mt-0.5">{{ locale.imposter.common.keepAliveHint }}</span>
-                </span>
-              </span>
-              <Switch
-                :model-value="keepAliveEnabled" class="ml-3"
-                @update:model-value="toggleKeepAlive" />
-            </div>
           </CardContent>
         </Card>
 
@@ -187,15 +167,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { BatteryCharging, CheckIcon, CopyIcon, Crown, LinkIcon, Rocket, UserMinus, UsersIcon } from '@lucide/vue'
+import { CheckIcon, CopyIcon, Crown, LinkIcon, Rocket, UserMinus, UsersIcon } from '@lucide/vue'
 import { en as locale } from '@/locales/en'
-import { useKeepAlive } from '../composables/useKeepAlive.js'
 import type { GameState, Difficulty } from '../types/index.js'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import DifficultyIcon from './DifficultyIcon.vue'
 import AppFooter from './AppFooter.vue'
@@ -212,8 +190,7 @@ defineEmits<{
   'set-imposter-count': [count: number]
   'remove-player': [playerId: string]
 }>()
-// ── Keep-alive toggle (prevents free-tier backend spin-down mid-lobby) ────────
-const { enabled: keepAliveEnabled, toggle: toggleKeepAlive } = useKeepAlive()
+
 // ── Copy room code ────────────────────────────────────────────────────────────
 const copied = ref(false)
 

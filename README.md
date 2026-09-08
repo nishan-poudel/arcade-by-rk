@@ -171,6 +171,16 @@ npm run build   # tsc → dist/
 npm start       # node dist/server/src/index.js
 ```
 
+### Free-tier (Render) cold starts
+
+Render's free web service sleeps after 15 min with no inbound HTTP (a 30–50 s
+wake-up). The app already keeps the server awake **while anyone is in a room**
+(each client pings `/api/health` every ~4 min), so a cold start only ever hits
+the first player of a session. To eliminate cold starts entirely, point a free
+uptime monitor (UptimeRobot, cron-job.org, …) at `<server-url>/api/health` every
+5 minutes — a single always-on free web service fits inside the 750 free
+instance-hours/month.
+
 ---
 
 For architecture decisions and design rationale, see [ARCHITECTURE.md](./ARCHITECTURE.md)

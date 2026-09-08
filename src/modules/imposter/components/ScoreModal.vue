@@ -35,28 +35,39 @@
           <li
             v-for="(row, idx) in result.scores"
             :key="row.playerId"
-            class="flex items-center gap-3 py-2.5 px-3 rounded-2xl border-2 transition-colors"
+            class="py-2.5 px-3 rounded-2xl border-2 transition-colors"
             :class="row.playerId === myId
               ? 'bg-primary/10 border-primary/40'
               : 'bg-secondary/40 border-border'"
           >
-            <span class="text-xs text-muted-foreground/60 w-4 shrink-0 text-right">{{ idx + 1 }}</span>
-            <span class="flex-1 min-w-0">
-              <span class="font-semibold truncate block">{{ row.name }}</span>
-              <span class="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                <span v-if="row.playerId === myId" class="text-primary font-semibold">{{ locale.imposter.scoreModal.youTag }}</span>
-                <span v-if="row.isImposter" class="text-destructive font-semibold">{{ locale.imposter.scoreModal.imposterTag }}</span>
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-muted-foreground/60 w-4 shrink-0 text-right">{{ idx + 1 }}</span>
+              <span class="flex-1 min-w-0">
+                <span class="font-semibold truncate block">{{ row.name }}</span>
+                <span class="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <span v-if="row.playerId === myId" class="text-primary font-semibold">{{ locale.imposter.scoreModal.youTag }}</span>
+                  <span v-if="row.isImposter" class="text-destructive font-semibold">{{ locale.imposter.scoreModal.imposterTag }}</span>
+                </span>
               </span>
-            </span>
-            <span class="text-right shrink-0">
-              <span
-                class="block text-lg font-display font-extrabold"
-                :class="row.points > 0 ? 'text-flavor-melon-ink' : 'text-muted-foreground/50'"
-              >+{{ row.points }}</span>
-              <span class="block text-[11px] text-muted-foreground">
-                {{ locale.imposter.scoreModal.total }} {{ row.total }}
+              <span class="text-right shrink-0">
+                <span
+                  class="block text-lg font-display font-extrabold"
+                  :class="row.points > 0 ? 'text-flavor-melon-ink' : 'text-muted-foreground/50'"
+                >+{{ row.points }}</span>
+                <span class="block text-[11px] text-muted-foreground">
+                  {{ locale.imposter.scoreModal.total }} {{ row.total }}
+                </span>
               </span>
-            </span>
+            </div>
+            <ul v-if="row.pointsBreakdown.length" class="mt-1.5 pl-7 space-y-0.5">
+              <li
+                v-for="line in row.pointsBreakdown"
+                :key="line"
+                class="text-[11px] text-muted-foreground flex items-center gap-1.5"
+              >
+                <span class="w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />{{ line }}
+              </li>
+            </ul>
           </li>
         </ul>
 

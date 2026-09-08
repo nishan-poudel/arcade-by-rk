@@ -158,32 +158,33 @@ export interface ErrorPayload {
 }
 
 /**
- * One completed voting round within a game: who was ejected and every ballot
- * that was cast. Recorded on the server and revealed to everyone — after each
- * ejection and in the end-of-game history. Ballots are never sent to clients
- * *before* the round resolves.
+ * One completed voting round within a game: who was ejected (null on a tie that
+ * ejected nobody), and how many votes each player received (ANONYMOUS — the
+ * voter→target mapping is never sent to any client; a player only ever knows
+ * their own vote). Every round is recorded, ties included, so the end-of-game
+ * reveal shows each iteration.
  */
 export interface VoteRoundRecord {
   voteRound: number
-  ejectedId: string
-  ejectedName: string
+  /** null when the round was a tie and nobody was ejected */
+  ejectedId: string | null
+  /** null when the round was a tie and nobody was ejected */
+  ejectedName: string | null
   wasImposter: boolean
-  /** voterId → the id they voted for */
-  ballots: Record<string, string>
-  /** voterName → votedForName — resolved server-side for easy rendering */
-  ballotNames: Array<{ voter: string; target: string }>
+  /** playerId → number of votes they received this round (no voter identities) */
+  voteCounts: Record<string, number>
 }
 
 /**
  * Broadcast after every vote tally that ejects someone. If `gameOver` is true a
- * `game_result` event follows with the full picture.
+ * `game_result` event follows with the full picture. Carries no ballot data —
+ * vote counts appear only on the final reveal.
  */
 export interface EjectionResult {
   ejectedId: string
   ejectedName: string
   wasImposter: boolean
   voteRound: number
-  ballotNames: Array<{ voter: string; target: string }>
   /** Non-eliminated counts AFTER this ejection */
   remaining: { imposters: number; crew: number }
   gameOver: boolean
@@ -200,6 +201,12 @@ export interface GameScoreLine {
   total: number
   isImposter: boolean
   eliminatedInRound: number
+  /**
+   * Human-readable rows explaining how `points` was earned this game, e.g.
+   * ["Spotted the imposter ×2  +2", "Survived to the end  +3"]. Empty when the
+   * player scored nothing. Contains no voter→target information.
+   */
+  pointsBreakdown: string[]
 }
 
 /**

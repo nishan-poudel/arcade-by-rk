@@ -107,7 +107,6 @@ function tallyAndBroadcast(io: Server, roomCode: string, forceEject = false): bo
     ejectedName: tally.ejectedName,
     wasImposter: tally.wasImposter,
     voteRound: tally.voteRound,
-    ballotNames: tally.ballotNames,
     remaining: tally.remaining,
     gameOver: tally.gameOver,
     outcome: tally.outcome,
@@ -278,13 +277,24 @@ export function registerSocketHandlers(io: Server): void {
       const result = gameService.submitVote(codeResult.value, socket.id, payload.votedPlayerId)
       if (!result.ok) {return emitError(socket, result.error)}
 
-      broadcastState(io, codeResult.value)
-
-      // Tally the moment every connected player still in the game has voted
+      // Tally the moment every connected player still in the game has voted.
       const room = gameService.getRoom(codeResult.value)
       if (room && gameService.allVotesIn(room)) {
+        // The tally broadcasts a full game_state itself — skip the delta here.
         tallyAndBroadcast(io, codeResult.value)
         logger.info('Vote round tallied (auto)', { roomCode: codeResult.value })
+        return
+      }
+
+      // Otherwise just tell the room this one player has voted — a tiny delta
+      // instead of a full GameState broadcast on every ballot.
+      if (room) {
+        const p = gameService.voteProgress(room)
+        io.to(codeResult.value).emit('vote_update', {
+          voterId: socket.id,
+          votedCount: p.votedCount,
+          activeCount: p.activeCount,
+        })
       }
     })
 

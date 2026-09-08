@@ -16,8 +16,13 @@
 #
 # Free tier notes:
 #   - Static sites (frontend) are free with NO sleep and NO time limit.
-#   - Web services (backend) sleep after 15 min of inactivity and take
-#     ~30-50s to wake up on the next request. This is normal on the free plan.
+#   - Web services (backend) sleep after 15 min of no inbound HTTP and take
+#     ~30-50s to wake up on the next request. The app keeps itself awake while
+#     anyone is in a room (each client pings /api/health every ~4 min), so a
+#     cold start only ever hits the FIRST player of a session.
+#   - For zero cold starts ever: point a free uptime monitor (UptimeRobot,
+#     cron-job.org, …) at  <backend-url>/api/health  every 5 minutes. One
+#     always-on free web service uses ~730 of the 750 free instance-hours/month.
 services:
   # ── Backend: Express + Socket.IO ──────────────────────────────────────────
   - type: web

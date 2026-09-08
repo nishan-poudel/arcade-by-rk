@@ -84,11 +84,12 @@ const io = new Server(httpServer, {
   },
   // Limit max HTTP buffer size to prevent oversized event payloads (1 MB)
   maxHttpBufferSize: 1e6,
-  // Detect dead connections faster than the default (25s/20s) so a client
-  // that walked out of Wi-Fi range is marked disconnected promptly and can
-  // be rejoined cleanly, instead of lingering as a ghost "connected" player.
+  // Ping every 20s (keeps the WS active through Render's proxy); allow 25s of
+  // silence before declaring the socket dead — enough slack for a brief mobile
+  // stall (screen-lock, tunnel, cell handoff) without a false disconnect, while
+  // still noticing a genuinely-gone client within ~45s.
   pingInterval: 20_000,
-  pingTimeout: 20_000,
+  pingTimeout: 25_000,
   // Seamlessly restore a briefly-dropped socket (same socket id, buffered
   // missed events) without the client having to re-handshake. Covers phone
   // screen-locks, tunnels, brief signal loss.

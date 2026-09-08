@@ -41,8 +41,19 @@ interface Player {
   eliminated: boolean
   /** Voting round in which this player was ejected (0 = still in) */
   eliminatedInRound: number
+  /**
+   * How many voting rounds this game the player (as a crewmate) voted for an
+   * actual imposter. Tracked live (never exposed) and turned into "deduction"
+   * points at game end.
+   */
+  correctVotes: number
   /** Points earned in the most recently finished game */
   lastGamePoints: number
+  /**
+   * Human-readable rows explaining `lastGamePoints` (e.g. "Survived to the win
+   * +3"). Rebuilt each time a game is scored. Contains no ballot data.
+   */
+  lastGameBreakdown: string[]
   /**
    * The round number in which this player was last the imposter (0 = never).
    * Used to weight imposter selection so the same person isn't picked over
@@ -70,7 +81,10 @@ interface Room {
   round: number
   /** Which voting round the current game is on (1-based; 0 before discussion) */
   voteRound: number
-  /** Completed voting rounds this game (who was ejected + every ballot) */
+  /**
+   * Completed voting rounds this game — who was ejected (or null on a tie) and
+   * anonymous per-player vote counts. Never any voter→target mapping.
+   */
   voteHistory: VoteRoundRecord[]
   /** Set once the current game is decided; null while a game is in progress */
   gameOutcome: GameOutcome | null
@@ -204,7 +218,9 @@ export class GameService {
       hasDone: false,
       eliminated: false,
       eliminatedInRound: 0,
+      correctVotes: 0,
       lastGamePoints: 0,
+      lastGameBreakdown: [],
       lastImposterRound: 0,
     }
 
@@ -257,7 +273,9 @@ export class GameService {
       hasDone: false,
       eliminated: false,
       eliminatedInRound: 0,
+      correctVotes: 0,
       lastGamePoints: 0,
+      lastGameBreakdown: [],
       lastImposterRound: 0,
     })
 
@@ -443,6 +461,7 @@ export class GameService {
       p.role = 'crewmate'
       p.eliminated = false
       p.eliminatedInRound = 0
+      p.correctVotes = 0
     }
 
     // ── Weighted imposter selection ──────────────────────────────────────────
@@ -564,6 +583,18 @@ export class GameService {
     return { ok: true }
   }
 
+  /** How many still-in players have voted vs. how many are still in. */
+  voteProgress(room: Room): { votedCount: number; activeCount: number } {
+    let activeCount = 0
+    let votedCount = 0
+    for (const p of room.players.values()) {
+      if (p.eliminated) {continue}
+      activeCount += 1
+      if (room.votes.has(p.id)) {votedCount += 1}
+    }
+    return { votedCount, activeCount }
+  }
+
   /** True once every connected player still in the game has cast a vote. */
   allVotesIn(room: Room): boolean {
     for (const player of room.players.values()) {
@@ -587,32 +618,56 @@ export class GameService {
   }
 
   /**
-   * Award points for a finished game and record `lastGamePoints` per player.
-   *  Crew win   → surviving crew `max(1, 3 − wrongEjections)`, ejected crew 1, imposters 0
-   *  Imposter win → each imposter `2 + 2 × wrongEjections`, everyone else 0
+   * Award points for a finished game and record `lastGamePoints` +
+   * `lastGameBreakdown` per player. Runs once, when the game is decided.
+   *
+   * Points accrue per voting round (see the breakdown rows) and are only ever
+   * added to the running total here, at game end:
+   *   - crewmate: +1 for every round they voted for an actual imposter
+   *   - imposter: +1 for every round that ended without them ejected
+   *               (someone else out, OR a tie) — win or loss
+   *   - outcome bonus:
+   *       crew win     → crew still in +3, crew ejected earlier +1
+   *       imposter win → the imposter +5
+   *   - the losing side gets 0 (never negative).
    */
   private applyGameScore(room: Room, outcome: GameOutcome): void {
-    const wrongEjections = room.voteHistory.filter((h) => !h.wasImposter).length
+    // Every recorded round the imposter was NOT ejected — crew ejections and
+    // ties both count (a tie leaves the imposter in).
+    const roundsSurvived = room.voteHistory.filter((h) => !h.wasImposter).length
     for (const p of room.players.values()) {
+      const rows: string[] = []
       let pts = 0
-      if (outcome === 'crew') {
-        if (p.role === 'imposter') {pts = 0}
-        else if (p.eliminated) {pts = 1}
-        else {pts = Math.max(1, 3 - wrongEjections)}
+
+      if (p.role === 'imposter') {
+        if (roundsSurvived > 0) {
+          pts += roundsSurvived
+          rows.push(`Survived ${roundsSurvived} vote round${roundsSurvived === 1 ? '' : 's'}  +${roundsSurvived}`)
+        }
+        if (outcome === 'imposter') {
+          pts += 5
+          rows.push('Got away with it  +5')
+        }
       } else {
-        pts = p.role === 'imposter' ? 2 + 2 * wrongEjections : 0
+        if (p.correctVotes > 0) {
+          pts += p.correctVotes
+          rows.push(`Spotted the imposter ×${p.correctVotes}  +${p.correctVotes}`)
+        }
+        if (outcome === 'crew') {
+          const bonus = p.eliminated ? 1 : 3
+          pts += bonus
+          rows.push(p.eliminated ? 'On the winning side  +1' : 'Survived to the win  +3')
+        }
       }
+
       p.lastGamePoints = pts
+      p.lastGameBreakdown = rows
       p.score += pts
     }
   }
 
-  /**
-   * Decide who this vote round ejects. Returns the ejected player's id, or
-   * `null` for a tie / no clear winner. `forceEject` breaks a tie (or an empty
-   * round) by picking a random candidate so a host force always makes progress.
-   */
-  private pickEjectedId(room: Room, forceEject: boolean): string | null {
+  /** Votes each still-in player received this round (anonymous — no voters). */
+  private tallyCounts(room: Room): Map<string, number> {
     const counts = new Map<string, number>()
     for (const [voterId, targetId] of room.votes) {
       const voter = room.players.get(voterId)
@@ -620,7 +675,18 @@ export class GameService {
       if (!voter || voter.eliminated || !target || target.eliminated) {continue}
       counts.set(targetId, (counts.get(targetId) ?? 0) + 1)
     }
+    return counts
+  }
 
+  /**
+   * Decide who this vote round ejects, from a pre-computed count map.
+   *   - unique top vote-getter        → eject them (imposter or crewmate)
+   *   - tie with an imposter tied top → nobody (imposter benefits from the doubt)
+   *   - tie of crewmates only         → eject a random one of them
+   *   - no votes                      → nobody
+   * `forceEject` overrides "nobody" by picking randomly from the top pool.
+   */
+  private pickEjectedId(room: Room, counts: Map<string, number>, forceEject: boolean): string | null {
     let maxVotes = 0
     let top: string[] = []
     for (const [id, c] of counts) {
@@ -628,34 +694,28 @@ export class GameService {
       else if (c === maxVotes) {top.push(id)}
     }
 
-    if (maxVotes > 0 && top.length === 1) {return top[0]}
-    if (!forceEject) {return null}
-    const pool = top.length > 0 ? top : activePlayers(room).map((p) => p.id)
-    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null
-  }
+    const randomOf = (ids: string[]) => ids[Math.floor(Math.random() * ids.length)]
 
-  /** Snapshot every ballot cast this round, resolving names for the reveal. */
-  private snapshotBallots(room: Room): {
-    ballots: Record<string, string>
-    ballotNames: Array<{ voter: string; target: string }>
-  } {
-    const ballots: Record<string, string> = {}
-    const ballotNames: Array<{ voter: string; target: string }> = []
-    for (const [voterId, targetId] of room.votes) {
-      const voter = room.players.get(voterId)
-      const target = room.players.get(targetId)
-      if (!voter || !target) {continue}
-      ballots[voterId] = targetId
-      ballotNames.push({ voter: voter.name, target: target.name })
+    if (maxVotes === 0) {
+      return forceEject ? randomOf(activePlayers(room).map((p) => p.id)) : null
     }
-    return { ballots, ballotNames }
+    if (top.length === 1) {return top[0]}
+
+    // Tie: an imposter among the tied-top survives the round.
+    const imposterTied = top.some((id) => room.players.get(id)?.role === 'imposter')
+    if (imposterTied) {return forceEject ? randomOf(top) : null}
+    // Tie of crewmates only — they all out-polled the imposter, so one goes.
+    return randomOf(top)
   }
 
   /**
    * Tally the current voting round.
-   *  - tie / no clear winner → `{ kind: 'tie' }` (unless `forceEject`)
-   *  - otherwise → eject the top vote-getter, record the ballots, then either
+   *  - nobody ejected (see `pickEjectedId`) → `{ kind: 'tie' }`
+   *  - otherwise → eject a player, record anonymous vote counts, then either
    *    end the game (crew/imposter win) or advance to the next voting round.
+   *
+   * Also credits each voter who picked an actual imposter (`correctVotes`, used
+   * for end-of-game scoring). Ballots (voter→target) are never stored or sent.
    *
    * Returns `null` if there's nothing to tally (wrong phase / game already over).
    */
@@ -670,7 +730,6 @@ export class GameService {
         ejectedName: string
         wasImposter: boolean
         voteRound: number
-        ballotNames: Array<{ voter: string; target: string }>
         remaining: { imposters: number; crew: number }
         gameOver: boolean
         outcome: GameOutcome | null
@@ -681,9 +740,33 @@ export class GameService {
     if (!room || room.phase !== 'discussion' || room.gameOutcome) {return null}
 
     const thisRound = room.voteRound
-    const ejectedId = this.pickEjectedId(room, !!opts.forceEject)
+
+    // Credit correct votes: a *crewmate* voter who picked an actual imposter,
+    // before anything clears — every round, ties included. (An imposter voting
+    // a co-imposter earns nothing.)
+    for (const [voterId, targetId] of room.votes) {
+      if (room.players.get(targetId)?.role === 'imposter') {
+        const voter = room.players.get(voterId)
+        if (voter && voter.role === 'crewmate') {voter.correctVotes += 1}
+      }
+    }
+
+    const counts = this.tallyCounts(room)
+    const voteCounts: Record<string, number> = Object.fromEntries(counts)
+    const ejectedId = this.pickEjectedId(room, counts, !!opts.forceEject)
 
     if (!ejectedId) {
+      // Tie — nobody out, but the round still happened: record it (anonymous
+      // counts only) so the end reveal shows every iteration and the imposter
+      // gets credit for surviving it.
+      room.voteHistory.push({
+        voteRound: thisRound,
+        ejectedId: null,
+        ejectedName: null,
+        wasImposter: false,
+        voteCounts,
+      })
+      room.voteRound = thisRound + 1
       room.votes = new Map()
       room.lastActivityAt = Date.now()
       return { kind: 'tie' }
@@ -695,14 +778,12 @@ export class GameService {
     ejected.eliminatedInRound = thisRound
     const wasImposter = ejected.role === 'imposter'
 
-    const { ballots, ballotNames } = this.snapshotBallots(room)
     room.voteHistory.push({
       voteRound: thisRound,
       ejectedId,
       ejectedName: ejected.name,
       wasImposter,
-      ballots,
-      ballotNames,
+      voteCounts,
     })
     room.votes = new Map()
     room.lastActivityAt = Date.now()
@@ -728,7 +809,6 @@ export class GameService {
       ejectedName: ejected.name,
       wasImposter,
       voteRound: thisRound,
-      ballotNames,
       remaining,
       gameOver: !!outcome,
       outcome,
@@ -846,6 +926,7 @@ export class GameService {
         total: p.score,
         isImposter: p.role === 'imposter',
         eliminatedInRound: p.eliminatedInRound,
+        pointsBreakdown: [...p.lastGameBreakdown],
       }))
       .sort((a, b) => b.total - a.total || b.points - a.points)
 

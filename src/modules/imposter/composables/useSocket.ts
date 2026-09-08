@@ -47,6 +47,9 @@ export function useSocket() {
       reconnectionDelayMax: 5000,
       randomizationFactor: 0.5,
       timeout: 20000,
+      // After the first successful websocket upgrade, reconnects go straight to
+      // websocket instead of re-probing with HTTP polling — faster recovery.
+      rememberUpgrade: true,
     })
 
     socket.on('connect', () => {
