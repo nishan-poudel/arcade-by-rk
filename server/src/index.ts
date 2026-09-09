@@ -19,6 +19,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { SERVER_PORT, CORS_ORIGINS } from './config/index.js'
 import { registerSocketHandlers } from './socket/handlers.js'
+import { registerTraitorHandlers } from './traitor/handlers.js'
 import { logger } from './utils/logger.js'
 
 const app = express()
@@ -101,6 +102,11 @@ const io = new Server(httpServer, {
 
 // Register all socket event handlers
 registerSocketHandlers(io)
+
+// The Traitor game runs on its own isolated namespace — the default namespace
+// (the Imposter game, above) is untouched. Same process, same CORS / ping /
+// recovery settings, separate rooms + logic.
+registerTraitorHandlers(io.of('/traitor'))
 
 // ── Start ──────────────────────────────────────────────────────────────────
 const server = httpServer.listen(SERVER_PORT, () => {

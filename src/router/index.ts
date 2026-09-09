@@ -1,7 +1,10 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-// Views
-import ImposterGame from '@/modules/imposter/views/ImposterGame.vue'
+// Views are lazy-loaded so each game ships as its own chunk: opening `/`
+// downloads only the Imposter code, `/traitor` only the Traitor code. The two
+// games share nothing at runtime beyond the UI primitives / theme.
+const ImposterGame = () => import('@/modules/imposter/views/ImposterGame.vue')
+const TraitorGame = () => import('@/modules/traitor/views/TraitorGame.vue')
 
 /**
  * Route Metadata Type
@@ -19,10 +22,12 @@ declare module 'vue-router' {
  */
 export const ROUTE_NAMES = {
   IMPOSTER: 'imposter',
+  TRAITOR: 'traitor',
 } as const
 
 export const ROUTE_PATHS = {
   IMPOSTER: '/',
+  TRAITOR: '/traitor',
 } as const
 
 /**
@@ -33,6 +38,16 @@ export const ROUTE_PATHS = {
  * (shareable room link / reload while in a room) both resolve here.
  */
 const routes: RouteRecordRaw[] = [
+  // Traitor game — a separate self-contained module. Declared before the
+  // Imposter route: the static `traitor` segment out-ranks `/:roomCode?`, so
+  // `/` and `/ABC123` still resolve to Imposter, and `/traitor` / `/traitor/ABC123`
+  // resolve here.
+  {
+    path: '/traitor/:roomCode?',
+    component: TraitorGame,
+    name: ROUTE_NAMES.TRAITOR,
+    meta: { title: 'Traitor In Person' },
+  },
   {
     path: '/:roomCode?',
     component: ImposterGame,
