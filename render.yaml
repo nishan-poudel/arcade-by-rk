@@ -17,12 +17,21 @@
 # Free tier notes:
 #   - Static sites (frontend) are free with NO sleep and NO time limit.
 #   - Web services (backend) sleep after 15 min of no inbound HTTP and take
-#     ~30-50s to wake up on the next request. The app keeps itself awake while
-#     anyone is in a room (each client pings /api/health every ~4 min), so a
-#     cold start only ever hits the FIRST player of a session.
-#   - For zero cold starts ever: point a free uptime monitor (UptimeRobot,
-#     cron-job.org, …) at  <backend-url>/api/health  every 5 minutes. One
-#     always-on free web service uses ~730 of the 750 free instance-hours/month.
+#     ~30-50s to wake up on the next request.
+#   - Staying awake mid-session: every client pings /api/health every ~4 min
+#     AND the server self-pings its own /api/health every ~10 min for as long
+#     as either game has a live room (see server/src/utils/keepAwake.ts). The
+#     server self-ping is the reliable one — mobile browsers freeze the client
+#     timers when the phone is locked. Render injects RENDER_EXTERNAL_URL so it
+#     works with no extra config; it goes idle (instance may sleep) once all
+#     rooms are empty, so free instance-hours aren't burned 24/7.
+#   - A server restart / deploy still drops in-memory rooms — self-ping can't
+#     help there. Rooms would need an external store (e.g. Upstash Redis) to
+#     survive that.
+#   - For zero cold starts on the very first player too: also point a free
+#     uptime monitor (UptimeRobot, cron-job.org, …) at <backend-url>/api/health
+#     every 5 min. One always-on free web service uses ~730 of the 750 free
+#     instance-hours/month.
 services:
   # ── Backend: Express + Socket.IO ──────────────────────────────────────────
   - type: web

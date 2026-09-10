@@ -229,17 +229,25 @@ The host is always in the candidate pool — they can be the imposter like anyon
 
 ### Staying in sync / reconnection
 
-- **Keep-alive** (`useKeepAlive`): while a client is in a room it hits the REST
-  `/api/health` endpoint every ~4 min (±20 s jitter). Render's free web service
+- **Client keep-alive** (`useKeepAlive`): while a client is in a room it hits the
+  REST `/api/health` endpoint every ~4 min (±20 s jitter), plus one immediate
+  ping (`pokeNow()`) whenever the tab regains focus. Render's free web service
   sleeps after 15 min with no inbound *HTTP* (WS ping/pong doesn't count) and a
-  cold wake is 30–50 s — this keeps it awake for the whole session. No opt-in;
-  it stops when you leave. Between sessions the server is allowed to sleep.
-  For zero cold starts ever, point a free external uptime monitor at
-  `/api/health` every 5 min (see `render.yaml`).
-- The client attempts `request_state` on **every** socket connect (first load, auto-reconnect, `connectionStateRecovery`), with a short backoff retry if the server hasn't yet processed the previous socket's disconnect.
-- A cheap periodic `request_state` (every 12 s) and a `visibilitychange` handler re-converge any client that drifted — phones freeze background sockets, so this is the main defence against "I didn't see the update".
+  cold wake is 30–50 s. No opt-in; it stops when you leave.
+- **Server self-ping** (`server/src/utils/keepAwake.ts`): mobile browsers freeze
+  the client timers above when the phone is locked, so the server *also* GETs its
+  own `/api/health` every ~10 min for as long as **either** game has a live room
+  (`gameService.roomCount + traitorGameService.roomCount > 0`). Idle (instance
+  free to sleep) when all rooms are empty. Prod-only; uses `RENDER_EXTERNAL_URL`
+  (auto-set) or `SELF_PING_URL`; `KEEP_AWAKE=false` disables. A server *restart /
+  deploy* still drops in-memory rooms — that needs an external store to survive.
+- The client attempts `request_state` on **every** socket connect (first load, auto-reconnect, `connectionStateRecovery`), with a backoff retry (~15 s / 10 attempts) if the server hasn't processed the previous socket's disconnect or is mid cold-start.
+- A cheap periodic `request_state` (every 12 s), a **quick-resync burst** (~2 s / 5 s / 9 s right after any reconnect), and a `visibilitychange` handler re-converge any client that drifted — phones freeze background sockets, so this is the main defence against "I didn't see the update".
 - A manual **Refresh** button (the connection pill, and the connection-lost banner) forces a reconnect + resync so nobody has to hard-reload the page.
-- Socket.IO client: infinite reconnection attempts + `rememberUpgrade` (reconnects skip the polling probe); server: `connectionStateRecovery` (2 min), `pingInterval` 20 s / `pingTimeout` 25 s.
+- Socket.IO client: infinite reconnection attempts + `rememberUpgrade` (reconnects skip the polling probe); server: `connectionStateRecovery` (4 min), `pingInterval` 20 s / `pingTimeout` 25 s.
+- The **Traitor** game (`/traitor` namespace) mirrors this whole model with its own
+  copies (`useTraitorGame` / `useTraitorSocket` / `useKeepAlive`, `traitor_reconnect`
+  session key).
 - `submit_vote` broadcasts a tiny `vote_update` delta (voterId + count), not the whole `GameState` — the full state is broadcast only on real changes (ejection, phase). The 12 s resync heals any drift.
 - During **discussion**, every player still in the game votes (`submit_vote`);
   eliminated players are spectators and cannot vote or be voted for. Each voting

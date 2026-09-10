@@ -692,6 +692,16 @@ export class TraitorGameService {
     return this.rooms.size
   }
 
+  /** True if any room has at least one currently-connected player (see GameService). */
+  get hasLivePlayers(): boolean {
+    for (const room of this.rooms.values()) {
+      for (const p of room.players.values()) {
+        if (p.connected) {return true}
+      }
+    }
+    return false
+  }
+
   // ── Private ────────────────────────────────────────────────────────────────
 
   private evictStaleRooms(): void {

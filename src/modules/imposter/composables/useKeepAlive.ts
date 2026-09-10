@@ -70,5 +70,15 @@ export function useKeepAlive() {
     }
   }
 
-  return { start, stop }
+  /**
+   * Fire one immediate health ping, off-schedule. Called when the tab regains
+   * focus — mobile browsers freeze the `setTimeout` above while backgrounded, so
+   * a phone unlocked after a while may not have pinged in minutes and the server
+   * could be asleep. This wakes it a beat sooner than the reconnect would.
+   */
+  function pokeNow() {
+    void ping()
+  }
+
+  return { start, stop, pokeNow }
 }

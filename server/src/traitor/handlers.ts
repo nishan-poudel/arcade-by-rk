@@ -26,7 +26,10 @@ function emitError(socket: Socket, message: string): void {
 }
 
 function rateLimited(socket: Socket, eventName: string): boolean {
-  if (!checkRateLimit(socket.id, `traitor:${eventName}`)) {
+  // No namespace prefix on the key: a socket belongs to exactly one namespace so
+  // its id never collides with the Imposter game, and this way the traitor
+  // events inherit the shared per-event burst overrides (request_state: 12, etc).
+  if (!checkRateLimit(socket.id, eventName)) {
     logger.warn('Traitor rate limit exceeded', { socketId: socket.id, event: eventName })
     emitError(socket, 'Too many requests. Slow down.')
     return true

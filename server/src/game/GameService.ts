@@ -991,6 +991,20 @@ export class GameService {
     return this.rooms.size
   }
 
+  /**
+   * True if any room has at least one currently-connected player. Used to decide
+   * whether the free instance needs to be kept awake — an abandoned room that
+   * only holds disconnected players (awaiting the 2 h TTL) doesn't count.
+   */
+  get hasLivePlayers(): boolean {
+    for (const room of this.rooms.values()) {
+      for (const p of room.players.values()) {
+        if (p.connected) {return true}
+      }
+    }
+    return false
+  }
+
   // ── Private helpers ─────────────────────────────────────────────────────────
 
   /**

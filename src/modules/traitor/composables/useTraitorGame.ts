@@ -19,7 +19,10 @@ import type {
 
 const RECONNECT_KEY = 'traitor_reconnect'
 const RESYNC_INTERVAL_MS = 12_000
-const MAX_REJOIN_ATTEMPTS = 6
+/** After a (re)connect, resync a few times fast before the slow loop takes over. */
+const QUICK_RESYNC_DELAYS_MS = [2_000, 5_000, 9_000]
+// ~15 s of silent retries — long enough to ride out a free-tier cold start.
+const MAX_REJOIN_ATTEMPTS = 10
 const SLOW_CONNECTION_THRESHOLD_MS = 4000
 
 // ─── Module-level singleton state ────────────────────────────────────────────
@@ -53,6 +56,7 @@ let slowConnectionTimer: ReturnType<typeof setTimeout> | null = null
 const pendingRoomCodeFromUrl: Ref<string | null> = ref(null)
 
 let resyncTimer: ReturnType<typeof setInterval> | null = null
+let quickResyncTimers: ReturnType<typeof setTimeout>[] = []
 let onVisibility: (() => void) | null = null
 let rejoinRetryTimer: ReturnType<typeof setTimeout> | null = null
 let rejoinAttempts = 0
@@ -129,6 +133,9 @@ export function useTraitorGame() {
         attemptRejoin()
         scheduleRejoinRetry()
       }
+      // Already in a live game (auto-reconnect, CSR, Wi-Fi blip): pull fresh
+      // state a few times fast so nobody sits on a stale screen.
+      if (inSession) {quickResyncBurst()}
     })
 
     socket.on('categories', (payload: { categories: string[] }) => {
@@ -275,27 +282,38 @@ export function useTraitorGame() {
 
     // ── Safety-net resync + tab-focus ───────────────────────────────────────
     stopResyncLoop()
-    resyncTimer = setInterval(() => {
-      if (socket.connected && roomCode.value && screen.value !== 'landing') {
-        socket.emit('request_state', {
-          roomCode: roomCode.value,
-          playerName: getReconnectInfo()?.playerName ?? '',
-        })
-      }
-    }, RESYNC_INTERVAL_MS)
+    resyncTimer = setInterval(resyncOnce, RESYNC_INTERVAL_MS)
 
     onVisibility = () => {
       if (document.visibilityState === 'visible' && screen.value !== 'landing') {
+        // Background timers were likely frozen — wake the server (in case it
+        // slept), force a reconnect, and resync now + a couple more times.
+        useKeepAlive().pokeNow()
         connect()
-        if (socket.connected && roomCode.value) {
-          socket.emit('request_state', {
-            roomCode: roomCode.value,
-            playerName: getReconnectInfo()?.playerName ?? '',
-          })
-        }
+        resyncOnce()
+        quickResyncBurst()
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
+  }
+
+  /** One `request_state` for our room (no-op if we're not in one / disconnected). */
+  function resyncOnce() {
+    if (!socket.connected || !roomCode.value || screen.value === 'landing') {return}
+    socket.emit('request_state', {
+      roomCode: roomCode.value,
+      playerName: getReconnectInfo()?.playerName ?? '',
+    })
+  }
+
+  /**
+   * Fire a few quick `request_state` calls right after a (re)connect so a client
+   * that just came back converges on the authoritative state in ~2 s instead of
+   * waiting up to a full RESYNC_INTERVAL_MS for the slow loop.
+   */
+  function quickResyncBurst() {
+    for (const t of quickResyncTimers) {clearTimeout(t)}
+    quickResyncTimers = QUICK_RESYNC_DELAYS_MS.map((d) => setTimeout(resyncOnce, d))
   }
 
   function stopResyncLoop() {
@@ -303,6 +321,8 @@ export function useTraitorGame() {
       clearInterval(resyncTimer)
       resyncTimer = null
     }
+    for (const t of quickResyncTimers) {clearTimeout(t)}
+    quickResyncTimers = []
   }
 
   function teardownListeners() {

@@ -20,6 +20,9 @@ import helmet from 'helmet'
 import { SERVER_PORT, CORS_ORIGINS } from './config/index.js'
 import { registerSocketHandlers } from './socket/handlers.js'
 import { registerTraitorHandlers } from './traitor/handlers.js'
+import { gameService } from './game/GameService.js'
+import { traitorGameService } from './traitor/TraitorGameService.js'
+import { startKeepAwake } from './utils/keepAwake.js'
 import { logger } from './utils/logger.js'
 
 const app = express()
@@ -93,9 +96,11 @@ const io = new Server(httpServer, {
   pingTimeout: 25_000,
   // Seamlessly restore a briefly-dropped socket (same socket id, buffered
   // missed events) without the client having to re-handshake. Covers phone
-  // screen-locks, tunnels, brief signal loss.
+  // screen-locks, tunnels, brief signal loss. 4 min so a phone put down for a
+  // couple of minutes mid-discussion comes back with zero visible disruption;
+  // the `request_state` resync path covers anything longer.
   connectionStateRecovery: {
-    maxDisconnectionDuration: 2 * 60_000,
+    maxDisconnectionDuration: 4 * 60_000,
     skipMiddlewares: true,
   },
 })
@@ -107,6 +112,12 @@ registerSocketHandlers(io)
 // (the Imposter game, above) is untouched. Same process, same CORS / ping /
 // recovery settings, separate rooms + logic.
 registerTraitorHandlers(io.of('/traitor'))
+
+// Keep the free instance awake while EITHER game has a room with a
+// currently-connected player, so a session never dies just because every
+// player's phone froze its keep-alive timer. No-ops (instance free to sleep)
+// once every room is empty or only holds disconnected players.
+startKeepAwake(() => gameService.hasLivePlayers || traitorGameService.hasLivePlayers)
 
 // ── Start ──────────────────────────────────────────────────────────────────
 const server = httpServer.listen(SERVER_PORT, () => {

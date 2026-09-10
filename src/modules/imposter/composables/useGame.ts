@@ -38,11 +38,16 @@ const roomCode: Ref<string> = ref('')
 let resyncTimer: ReturnType<typeof setInterval> | null = null
 let onVisibility: (() => void) | null = null
 const RESYNC_INTERVAL_MS = 12_000
+/** After a (re)connect, resync a few times fast before the slow loop takes over. */
+const QUICK_RESYNC_DELAYS_MS = [2_000, 5_000, 9_000]
+let quickResyncTimers: ReturnType<typeof setTimeout>[] = []
 
 /** Auto-rejoin retry backoff (server may not have seen our old socket drop yet). */
 let rejoinRetryTimer: ReturnType<typeof setTimeout> | null = null
 let rejoinAttempts = 0
-const MAX_REJOIN_ATTEMPTS = 6
+// ~15 s of silent retries — long enough to ride out a free-tier cold start
+// before showing the "please rejoin" error.
+const MAX_REJOIN_ATTEMPTS = 10
 /** My locally-picked candidate this round, BEFORE pressing Submit (never emitted) */
 const myVoteSelection: Ref<string> = ref('')
 /** Who I submitted my (now locked) vote for this round; '' until Submit */
@@ -173,6 +178,9 @@ export function useGame() {
         attemptRejoin()
         scheduleRejoinRetry()
       }
+      // Already in a live game (socket.io auto-reconnect, CSR, Wi-Fi blip):
+      // pull fresh state a few times fast so nobody sits on a stale screen.
+      if (inSession) {quickResyncBurst()}
     })
 
     socket.on('room_created', (payload: { roomCode: string; gameState: GameState; assignment: PlayerAssignment }) => {
@@ -362,13 +370,12 @@ export function useGame() {
     // background sockets — this is the #1 cause of "I didn't see the update").
     onVisibility = () => {
       if (document.visibilityState === 'visible' && screen.value !== 'landing') {
+        // Background timers were likely frozen — wake the server (in case it
+        // slept), force a reconnect, and resync now + a couple more times.
+        useKeepAlive().pokeNow()
         connect()
-        if (socket.connected && roomCode.value) {
-          socket.emit('request_state', {
-            roomCode: roomCode.value,
-            playerName: getReconnectInfo()?.playerName ?? '',
-          })
-        }
+        resyncOnce()
+        quickResyncBurst()
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
@@ -379,6 +386,27 @@ export function useGame() {
       clearInterval(resyncTimer)
       resyncTimer = null
     }
+    for (const t of quickResyncTimers) {clearTimeout(t)}
+    quickResyncTimers = []
+  }
+
+  /** One `request_state` for our room (no-op if we're not in one / disconnected). */
+  function resyncOnce() {
+    if (!socket.connected || !roomCode.value || screen.value === 'landing') {return}
+    socket.emit('request_state', {
+      roomCode: roomCode.value,
+      playerName: getReconnectInfo()?.playerName ?? '',
+    })
+  }
+
+  /**
+   * Fire a few quick `request_state` calls right after a (re)connect so a client
+   * that just came back converges on the authoritative state in ~2 s instead of
+   * waiting up to a full RESYNC_INTERVAL_MS for the slow loop.
+   */
+  function quickResyncBurst() {
+    for (const t of quickResyncTimers) {clearTimeout(t)}
+    quickResyncTimers = QUICK_RESYNC_DELAYS_MS.map((d) => setTimeout(resyncOnce, d))
   }
 
   /** Clear the per-game local UI state (called on new game / word swap / leave). */
