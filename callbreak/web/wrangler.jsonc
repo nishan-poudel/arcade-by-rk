@@ -1,0 +1,27 @@
+{
+	// The web app deploys as a Workers "static assets" project: no server
+	// code, just the built SPA in ./dist. Cloudflare serves it from the edge
+	// and falls back to index.html for client-side routes (SPA routing).
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "callbreak-web",
+	"compatibility_date": "2026-08-01",
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "single-page-application"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"env": {
+		"production": {
+			"name": "callbreak-web-production"
+			// Attach a custom domain once you have one on Cloudflare (see
+			// callbreak/README.md) — until then the free
+			// callbreak-web-production.<subdomain>.workers.dev URL works as-is:
+			// "routes": [{ "pattern": "callbreak.yourdomain.com", "custom_domain": true }]
+		},
+		"preview": {
+			"name": "callbreak-web-preview"
+		}
+	}
+}

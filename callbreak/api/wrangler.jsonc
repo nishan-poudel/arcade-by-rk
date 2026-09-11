@@ -1,0 +1,51 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "callbreak-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": {
+		"enabled": true
+	},
+	// Everything here fits the Cloudflare Workers FREE plan: Workers +
+	// SQLite-backed Durable Objects (WebSocket Hibernation included). No D1,
+	// KV, or R2 — a room's entire state lives in its own Durable Object.
+	// `vars` are PUBLIC config. There are no secrets in this app (no auth, no
+	// PII) so `wrangler secret put` is never needed.
+	"vars": {
+		"ENVIRONMENT": "development",
+		"CORS_ALLOWED_ORIGINS": "http://localhost:5173"
+	},
+	"durable_objects": {
+		"bindings": [
+			{ "name": "GAME_ROOM", "class_name": "GameRoom" },
+			{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" }
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["GameRoom", "ScoreRoom"]
+		}
+	],
+	"env": {
+		"production": {
+			"name": "callbreak-api-production",
+			"vars": {
+				"ENVIRONMENT": "production",
+				// Update to the deployed web Worker's *.workers.dev URL (or custom
+				// domain, once you attach one) before your first production deploy.
+				"CORS_ALLOWED_ORIGINS": "https://callbreak-web-production.nishan-poudel.workers.dev"
+			}
+			// Uncomment once you attach a custom domain (see callbreak/README.md):
+			// "routes": [{ "pattern": "callbreak-api.yourdomain.com", "custom_domain": true }]
+		},
+		"preview": {
+			"name": "callbreak-api-preview",
+			"vars": {
+				"ENVIRONMENT": "preview",
+				"CORS_ALLOWED_ORIGINS": "https://callbreak-web-preview.workers.dev"
+			}
+		}
+	}
+}

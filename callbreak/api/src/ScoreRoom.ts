@@ -1,0 +1,343 @@
+import { DurableObject } from 'cloudflare:workers'
+import { DEFAULT_ROUND_COUNT, scoreRound, type RoundCount } from '@callbreak/shared-logic'
+import type { Env } from './env'
+import { RateLimiter } from './rateLimiter'
+import { type InboundMessage, parseMessage, send, sendError } from './roomSocket'
+import { validateName, validateRoundCount, validateTricksWon, validateCall, type ValidationResult } from './validate'
+
+/**
+ * The in-person score-keeper: no cards are dealt or played by the app at
+ * all — people play with a physical deck, and the host enters what actually
+ * happened at the table each round. Every connected phone sees the same
+ * live leaderboard. Much simpler state machine than GameRoom: there is
+ * nothing private to redact per player.
+ */
+
+type Phase = 'lobby' | 'roundEntry' | 'roundResult' | 'gameOver'
+
+interface Player {
+  id: string
+  name: string
+  seat: number
+  connectionId: string | null
+  isHost: boolean
+}
+
+interface RoundEntry {
+  call: number
+  tricksWon: number
+  points: number
+}
+
+interface RoomState {
+  code: string
+  phase: Phase
+  roundCount: RoundCount
+  round: number // rounds completed so far
+  players: (Player | null)[]
+  history: RoundEntry[][] // [roundIndex][seat]
+  totals: number[]
+  createdAt: number
+  lastActivityAt: number
+}
+
+const STORAGE_KEY = 'state'
+const SEAT_COUNT = 4
+
+function initialState(): RoomState {
+  return {
+    code: '',
+    phase: 'lobby',
+    roundCount: DEFAULT_ROUND_COUNT,
+    round: 0,
+    players: [null, null, null, null],
+    history: [],
+    totals: [0, 0, 0, 0],
+    createdAt: Date.now(),
+    lastActivityAt: Date.now(),
+  }
+}
+
+function must<T>(result: ValidationResult<T>): T {
+  if (!result.ok) throw new Error(result.error)
+  return result.value
+}
+
+interface RawRoundEntryInput {
+  seat: number
+  call: number
+  tricksWon: number
+}
+
+export class ScoreRoom extends DurableObject<Env> {
+  private roomState: RoomState = initialState()
+  private readonly rateLimiter = new RateLimiter()
+  private readonly ready: Promise<void>
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env)
+    this.ready = ctx.blockConcurrencyWhile(async () => {
+      const stored = await ctx.storage.get<RoomState>(STORAGE_KEY)
+      if (stored) this.roomState = stored
+    })
+  }
+
+  private async persist(): Promise<void> {
+    this.roomState.lastActivityAt = Date.now()
+    await this.ctx.storage.put(STORAGE_KEY, this.roomState)
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    await this.ready
+    const url = new URL(request.url)
+
+    if (url.pathname === '/meta') {
+      return Response.json({ exists: this.roomState.players.some((p) => p !== null) })
+    }
+
+    if (request.headers.get('Upgrade') !== 'websocket') {
+      return new Response('Expected a WebSocket upgrade', { status: 426 })
+    }
+
+    if (!this.roomState.code) {
+      this.roomState.code = (url.searchParams.get('room') || '').toUpperCase()
+      await this.persist()
+    }
+
+    const pair = new WebSocketPair()
+    const [client, server] = Object.values(pair)
+    const connectionId = crypto.randomUUID()
+    this.ctx.acceptWebSocket(server, [connectionId])
+    return new Response(null, { status: 101, webSocket: client })
+  }
+
+  async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
+    await this.ready
+    const connectionId = this.ctx.getTags(ws)[0]
+    if (!connectionId) return
+
+    const message = parseMessage(raw)
+    if (!message) {
+      sendError(ws, 'Malformed message.')
+      return
+    }
+
+    if (!this.rateLimiter.check(connectionId, message.type)) {
+      sendError(ws, 'Slow down — too many actions.')
+      return
+    }
+
+    try {
+      await this.handleMessage(ws, connectionId, message)
+    } catch (e) {
+      sendError(ws, e instanceof Error ? e.message : 'Something went wrong.')
+    }
+  }
+
+  async webSocketClose(ws: WebSocket): Promise<void> {
+    await this.ready
+    const connectionId = this.ctx.getTags(ws)[0]
+    if (connectionId) this.rateLimiter.cleanup(connectionId)
+
+    const player = this.roomState.players.find((p) => p?.connectionId === connectionId)
+    if (player) {
+      player.connectionId = null
+      await this.persist()
+      this.broadcastState()
+    }
+  }
+
+  async webSocketError(ws: WebSocket): Promise<void> {
+    await this.webSocketClose(ws)
+  }
+
+  private async handleMessage(ws: WebSocket, connectionId: string, message: InboundMessage): Promise<void> {
+    switch (message.type) {
+      case 'join':
+        return this.handleJoin(connectionId, message.payload)
+      case 'rejoin':
+        return this.handleRejoin(connectionId, message.payload)
+      case 'set_round_count':
+        return this.handleSetRoundCount(connectionId, message.payload)
+      case 'start_game':
+        return this.handleStartGame(connectionId)
+      case 'submit_round':
+        return this.handleSubmitRound(connectionId, message.payload)
+      case 'continue':
+        return this.handleContinue(connectionId)
+      case 'remove_player':
+        return this.handleRemovePlayer(connectionId, message.payload)
+      case 'request_state':
+        this.sendStateTo(ws, connectionId)
+        return
+      default:
+        sendError(ws, `Unknown message type: ${message.type}`)
+    }
+  }
+
+  private seatOf(connectionId: string): number | null {
+    const player = this.roomState.players.find((p) => p?.connectionId === connectionId)
+    return player ? player.seat : null
+  }
+
+  private requireHost(connectionId: string): Player {
+    const seat = this.seatOf(connectionId)
+    const player = seat !== null ? this.roomState.players[seat] : null
+    if (!player) throw new Error('You are not in this room.')
+    if (!player.isHost) throw new Error('Only the host can do that.')
+    return player
+  }
+
+  private async handleJoin(connectionId: string, payload: unknown): Promise<void> {
+    if (this.roomState.phase !== 'lobby') throw new Error('This session has already started.')
+
+    const body = payload as Record<string, unknown> | undefined
+    const name = must(validateName(body?.name))
+
+    const freeSeat = this.roomState.players.findIndex((p) => p === null)
+    if (freeSeat === -1) throw new Error('This session already has 4 players.')
+
+    const player: Player = {
+      id: crypto.randomUUID(),
+      name,
+      seat: freeSeat,
+      connectionId,
+      isHost: this.roomState.players.every((p) => p === null),
+    }
+    this.roomState.players[freeSeat] = player
+
+    await this.persist()
+    // broadcastState() already covers the just-joined player — no separate
+    // sendStateTo needed, that would just double-send them the same state.
+    this.broadcastState()
+  }
+
+  private async handleRejoin(connectionId: string, payload: unknown): Promise<void> {
+    const body = payload as Record<string, unknown> | undefined
+    const playerId = typeof body?.playerId === 'string' ? body.playerId : null
+    if (!playerId) throw new Error('Missing player id.')
+
+    const player = this.roomState.players.find((p) => p?.id === playerId)
+    if (!player) throw new Error('Player not found in this session — please rejoin.')
+
+    player.connectionId = connectionId
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private async handleSetRoundCount(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'lobby') throw new Error('Round count can only be changed in the lobby.')
+
+    const body = payload as Record<string, unknown> | undefined
+    this.roomState.roundCount = must(validateRoundCount(body?.roundCount))
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private async handleStartGame(connectionId: string): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'lobby') throw new Error('This session has already started.')
+    if (this.roomState.players.some((p) => p === null)) throw new Error('Call Break needs exactly 4 players.')
+
+    this.roomState.phase = 'roundEntry'
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private async handleSubmitRound(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'roundEntry') throw new Error('Round entry is not open right now.')
+
+    const body = payload as Record<string, unknown> | undefined
+    const rawEntries = body?.entries
+    if (!Array.isArray(rawEntries) || rawEntries.length !== SEAT_COUNT) {
+      throw new Error('Expected an entry for all 4 players.')
+    }
+
+    const bySeat: RawRoundEntryInput[] = new Array(SEAT_COUNT)
+    for (const raw of rawEntries) {
+      const entry = raw as Record<string, unknown>
+      const seat = Number(entry?.seat)
+      if (!Number.isInteger(seat) || seat < 0 || seat >= SEAT_COUNT) throw new Error('Invalid seat in entry.')
+      if (bySeat[seat]) throw new Error('Duplicate seat in entries.')
+      bySeat[seat] = {
+        seat,
+        call: must(validateCall(entry?.call)),
+        tricksWon: must(validateTricksWon(entry?.tricksWon)),
+      }
+    }
+    if (bySeat.some((e) => !e)) throw new Error('Missing an entry for one of the seats.')
+
+    const totalTricks = bySeat.reduce((sum, e) => sum + e.tricksWon, 0)
+    if (totalTricks !== 13) throw new Error(`Tricks won must add up to 13 across all 4 players (got ${totalTricks}).`)
+
+    const roundResult: RoundEntry[] = bySeat.map((e) => ({
+      call: e.call,
+      tricksWon: e.tricksWon,
+      points: scoreRound(e.call, e.tricksWon),
+    }))
+
+    this.roomState.history.push(roundResult)
+    roundResult.forEach((r, seat) => {
+      this.roomState.totals[seat] = Math.round((this.roomState.totals[seat] + r.points) * 10) / 10
+    })
+    this.roomState.round += 1
+    this.roomState.phase = 'roundResult'
+
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private async handleContinue(connectionId: string): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'roundResult') throw new Error('There is no round result to continue from.')
+
+    this.roomState.phase = this.roomState.round >= this.roomState.roundCount ? 'gameOver' : 'roundEntry'
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private async handleRemovePlayer(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'lobby') throw new Error('Players can only be removed from the lobby.')
+
+    const body = payload as Record<string, unknown> | undefined
+    const seat = Number(body?.seat)
+    if (!Number.isInteger(seat) || seat < 0 || seat >= SEAT_COUNT) throw new Error('Invalid seat.')
+
+    const target = this.roomState.players[seat]
+    if (!target) return
+    if (target.connectionId !== null) throw new Error('Only a disconnected player can be removed.')
+
+    this.roomState.players[seat] = null
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private viewFor(seat: number | null) {
+    const { players, ...publicFields } = this.roomState
+    return {
+      ...publicFields,
+      players: players.map((p) =>
+        p ? { id: p.id, name: p.name, seat: p.seat, connected: p.connectionId !== null, isHost: p.isHost } : null,
+      ),
+      yourSeat: seat,
+      yourPlayerId: seat !== null ? (players[seat]?.id ?? null) : null,
+    }
+  }
+
+  private sendStateTo(ws: WebSocket, connectionId: string): void {
+    send(ws, 'state', this.viewFor(this.seatOf(connectionId)))
+  }
+
+  private broadcastState(): void {
+    for (const player of this.roomState.players) {
+      if (!player?.connectionId) continue
+      const sockets = this.ctx.getWebSockets(player.connectionId)
+      for (const ws of sockets) {
+        send(ws, 'state', this.viewFor(player.seat))
+      }
+    }
+  }
+}

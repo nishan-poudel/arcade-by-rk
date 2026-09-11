@@ -1,0 +1,23 @@
+{
+  "name": "callbreak",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Call Break — the Nepali trick-taking card game. Online 4-player game + in-person score-keeper, on Cloudflare Workers + Durable Objects.",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "workspaces": ["api", "web", "shared-logic"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev --workspace=@callbreak/api\" \"npm run dev --workspace=@callbreak/web\"",
+    "build": "npm run build --workspace=@callbreak/shared-logic --if-present && npm run build --workspace=@callbreak/web && npm run build --workspace=@callbreak/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "cf:api:deploy": "npx wrangler deploy --config api/wrangler.jsonc --env production",
+    "cf:web:deploy": "npm run build --workspace=@callbreak/web && npx wrangler deploy --config web/wrangler.jsonc --env production"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
