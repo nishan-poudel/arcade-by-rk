@@ -30,12 +30,22 @@
 	],
 	"env": {
 		"production": {
-			"name": "callbreak-api-production",
+			"name": "call-break-by-rk-api",
 			"vars": {
 				"ENVIRONMENT": "production",
 				// Update to the deployed web Worker's *.workers.dev URL (or custom
 				// domain, once you attach one) before your first production deploy.
-				"CORS_ALLOWED_ORIGINS": "https://callbreak-web-production.nishan-poudel.workers.dev"
+				"CORS_ALLOWED_ORIGINS": "https://call-break-by-rk.nishan-poudel.workers.dev"
+			},
+			// Bindings are NOT inherited from the top level by environments in
+			// wrangler — without this, `--env production` deploys a Worker with
+			// no Durable Object bindings at all (env.GAME_ROOM/SCORE_ROOM would
+			// be undefined at runtime, crashing on the first connection).
+			"durable_objects": {
+				"bindings": [
+					{ "name": "GAME_ROOM", "class_name": "GameRoom" },
+					{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" }
+				]
 			}
 			// Uncomment once you attach a custom domain (see callbreak/README.md):
 			// "routes": [{ "pattern": "callbreak-api.yourdomain.com", "custom_domain": true }]
@@ -45,6 +55,12 @@
 			"vars": {
 				"ENVIRONMENT": "preview",
 				"CORS_ALLOWED_ORIGINS": "https://callbreak-web-preview.workers.dev"
+			},
+			"durable_objects": {
+				"bindings": [
+					{ "name": "GAME_ROOM", "class_name": "GameRoom" },
+					{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" }
+				]
 			}
 		}
 	}

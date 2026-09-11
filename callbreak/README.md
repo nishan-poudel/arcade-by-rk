@@ -76,10 +76,39 @@ There's no automated UI test suite for `web` yet; the game and score-keeper
 flows were manually verified end-to-end (4 simulated players/phones each) as
 part of building this.
 
-## What you need to do in Cloudflare before deploying
+## Production URLs
+
+- Web (play the game): `https://call-break-by-rk.nishan-poudel.workers.dev`
+- API (Durable Objects, not visited directly): `https://call-break-by-rk-api.nishan-poudel.workers.dev`
+
+Both are set via `env.production.name` in each `wrangler.jsonc` — Worker
+names are what determine the `*.workers.dev` URL, so renaming either one
+(e.g. to move onto a custom domain later) means updating that file plus
+`CORS_ALLOWED_ORIGINS` in `api/wrangler.jsonc` to match. No `preview`
+environment is used for this project — production only.
+
+## Continuous deploy: Cloudflare Workers Builds
+
+Both Workers are Git-connected (dashboard → each Worker → **Settings →
+Builds**) to this repo's `imp-call-break` branch, so **every push to that
+branch deploys straight to production** — no manual `wrangler deploy` needed
+day to day, and no review step in between. Run `npm run check` locally
+before pushing if you want a safety net.
+
+Configuration for each Worker (Root directory matters — it's the `callbreak`
+npm workspace root, not a subfolder, so `@callbreak/shared-logic` resolves
+correctly):
+
+| Worker | Root directory | Build command | Deploy command |
+|---|---|---|---|
+| `call-break-by-rk` (web) | `callbreak` | `npm install` | `npm run cf:web:deploy` |
+| `call-break-by-rk-api` (api) | `callbreak` | `npm install` | `npm run cf:api:deploy` |
+
+## What you need to do in Cloudflare before deploying (manual, one-time / as-needed)
 
 Nothing beyond a Cloudflare account and the `wrangler` CLI — there's no
-database to provision.
+database to provision. This is the manual path (Workers Builds above covers
+day-to-day deploys automatically once set up).
 
 1. **Log in once, locally:**
    ```bash
@@ -95,25 +124,23 @@ database to provision.
    cd callbreak/api
    npx wrangler deploy --env production
    ```
-   Note the URL it prints (something like
-   `https://callbreak-api-production.<your-subdomain>.workers.dev`).
 
-3. **Point the web build at that API URL, then deploy it:**
+3. **Point the web build at the API URL, then deploy it:**
    ```bash
    cd callbreak/web
-   VITE_CALLBREAK_API_URL=wss://callbreak-api-production.<your-subdomain>.workers.dev npm run build
+   VITE_CALLBREAK_API_URL=wss://call-break-by-rk-api.nishan-poudel.workers.dev npm run build
    npx wrangler deploy --env production
    ```
 
-4. **Update CORS** — edit `api/wrangler.jsonc`'s `env.production.vars.CORS_ALLOWED_ORIGINS`
-   to the *exact* web Worker URL from step 3 (no trailing slash), then re-run
-   step 2's deploy so it takes effect.
+4. **CORS** — `api/wrangler.jsonc`'s `env.production.vars.CORS_ALLOWED_ORIGINS`
+   must exactly match the deployed web URL (no trailing slash). Already set
+   correctly for the URLs above; update both if either Worker is ever renamed.
 
-5. **That's it for a free `*.workers.dev` launch** — no DNS, no domain
-   required. If you want a custom domain later (e.g. a `callbreak.` subdomain
-   of a domain you already have on Cloudflare), add it to the `routes` in
-   both `wrangler.jsonc` files (commented examples are already there) and
-   redeploy both.
+5. **Custom domain (optional)** — not required to run on the free
+   `*.workers.dev` URLs above. If you attach one later (e.g. a `callbreak.`
+   subdomain of a domain you already have on Cloudflare), add it to the
+   `routes` in both `wrangler.jsonc` files (commented examples are already
+   there) and redeploy both.
 
 6. **No secrets to set** — this app has no login, no email, no PII, so there's
    nothing to `wrangler secret put`.

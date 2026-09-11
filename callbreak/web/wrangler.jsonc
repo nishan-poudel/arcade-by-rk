@@ -14,10 +14,10 @@
 	},
 	"env": {
 		"production": {
-			"name": "callbreak-web-production"
+			"name": "call-break-by-rk"
 			// Attach a custom domain once you have one on Cloudflare (see
 			// callbreak/README.md) — until then the free
-			// callbreak-web-production.<subdomain>.workers.dev URL works as-is:
+			// call-break-by-rk.<subdomain>.workers.dev URL works as-is:
 			// "routes": [{ "pattern": "callbreak.yourdomain.com", "custom_domain": true }]
 		},
 		"preview": {
