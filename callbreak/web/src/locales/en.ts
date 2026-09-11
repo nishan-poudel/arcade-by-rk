@@ -70,6 +70,7 @@ export const en = {
       title: (round: number) => `Round ${round} Result`,
       made: 'Made it!',
       missed: 'Missed',
+      instantWin: (name: string) => `🎉 ${name} called 8 and made it. Game over!`,
       nextRoundButton: 'Next Round',
       viewGameOverButton: 'See Final Scores',
       onlyHostCanContinue: 'Only the host can start the next round',
@@ -77,6 +78,7 @@ export const en = {
     gameOver: {
       title: 'Game Over',
       winner: (name: string) => `${name} wins!`,
+      instantWinNote: 'Called 8 and made it — game ended instantly',
       finalStandings: 'Final Standings',
       saveButton: 'Save Scoreboard',
       backToHub: 'Back to Hub',
@@ -138,6 +140,7 @@ export const en = {
     leaderboard: {
       title: 'Leaderboard',
       round: (n: number) => `After round ${n}`,
+      instantWin: (name: string) => `🎉 ${name} called 8 and made it. Session over!`,
       continueButton: 'Next Round',
       seeFinalButton: 'See Final Scores',
       made: 'Made it!',
@@ -146,6 +149,7 @@ export const en = {
     gameOver: {
       title: 'Session Complete',
       winner: (name: string) => `${name} wins!`,
+      instantWinNote: 'Called 8 and made it — session ended instantly',
       finalStandings: 'Final Standings',
       saveButton: 'Save Scoreboard',
       newSessionButton: 'New Session',

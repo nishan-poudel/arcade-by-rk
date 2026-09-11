@@ -46,6 +46,8 @@ export interface GameStateView {
   lastTrick: LastTrick | null
   roundHistory: RoundHistoryEntry[]
   totals: number[]
+  instantWinSeat: number | null
+  winnerSeat: number | null
   createdAt: number
   lastActivityAt: number
 }

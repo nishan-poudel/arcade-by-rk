@@ -24,6 +24,8 @@ export interface ScoreStateView {
   players: (PublicPlayer | null)[]
   history: RoundEntry[][]
   totals: number[]
+  instantWinSeat: number | null
+  winnerSeat: number | null
   yourSeat: number | null
   yourPlayerId: string | null
   createdAt: number

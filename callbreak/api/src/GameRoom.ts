@@ -2,6 +2,7 @@ import { DurableObject } from 'cloudflare:workers'
 import {
   DEFAULT_ROUND_COUNT,
   dealNewRound,
+  isInstantWin,
   isLegalPlay,
   resolveTrickWinner,
   scoreRoundForPlayers,
@@ -52,6 +53,13 @@ interface RoomState {
   lastTrick: LastTrick | null
   roundHistory: RoundHistoryEntry[]
   totals: number[]
+  /** Set when a player calls 8+ and makes it — that seat wins the game
+   * outright at the end of this round, regardless of point totals or
+   * rounds remaining (Nepali "instant win" rule). */
+  instantWinSeat: number | null
+  /** The declared winner once phase is 'gameOver': the instant-win seat if
+   * one occurred, otherwise whoever has the highest total. */
+  winnerSeat: number | null
   createdAt: number
   lastActivityAt: number
 }
@@ -75,6 +83,8 @@ function initialState(): RoomState {
     lastTrick: null,
     roundHistory: [],
     totals: [0, 0, 0, 0],
+    instantWinSeat: null,
+    winnerSeat: null,
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
   }
@@ -83,6 +93,11 @@ function initialState(): RoomState {
 function must<T>(result: ValidationResult<T>): T {
   if (!result.ok) throw new Error(result.error)
   return result.value
+}
+
+/** Ties broken by lowest seat index — rare with 0.1-granularity scoring. */
+function indexOfHighest(values: readonly number[]): number {
+  return values.reduce((best, v, i) => (v > values[best] ? i : best), 0)
 }
 
 export class GameRoom extends DurableObject<Env> {
@@ -281,6 +296,7 @@ export class GameRoom extends DurableObject<Env> {
     this.roomState.bids = [null, null, null, null]
     this.roomState.currentTrick = []
     this.roomState.tricksWon = [0, 0, 0, 0]
+    this.roomState.instantWinSeat = null
     this.roomState.phase = 'bidding'
   }
 
@@ -367,6 +383,10 @@ export class GameRoom extends DurableObject<Env> {
     scored.forEach((s, seat) => {
       this.roomState.totals[seat] = Math.round((this.roomState.totals[seat] + s.points) * 10) / 10
     })
+
+    const instantWinner = tallies.findIndex((t) => isInstantWin(t.call, t.tricksWon))
+    this.roomState.instantWinSeat = instantWinner === -1 ? null : instantWinner
+
     this.roomState.phase = 'roundEnd'
   }
 
@@ -374,8 +394,9 @@ export class GameRoom extends DurableObject<Env> {
     this.requireHost(connectionId)
     if (this.roomState.phase !== 'roundEnd') throw new Error('The current round is not finished yet.')
 
-    if (this.roomState.round >= this.roomState.roundCount) {
+    if (this.roomState.instantWinSeat !== null || this.roomState.round >= this.roomState.roundCount) {
       this.roomState.phase = 'gameOver'
+      this.roomState.winnerSeat = this.roomState.instantWinSeat ?? indexOfHighest(this.roomState.totals)
     } else {
       this.dealRound(this.roomState.round + 1, (this.roomState.dealerSeat + 1) % SEAT_COUNT)
     }

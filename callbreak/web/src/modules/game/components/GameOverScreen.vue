@@ -5,6 +5,9 @@
     <div class="text-center">
       <p class="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">{{ t.gameOver.title }}</p>
       <h2 class="mt-1 font-display text-3xl font-bold text-primary">🏆 {{ t.gameOver.winner(winnerName) }}</h2>
+      <p v-if="state.instantWinSeat !== null" class="mt-1 text-sm font-semibold text-flavor-melon-ink">
+        {{ t.gameOver.instantWinNote }}
+      </p>
     </div>
 
     <Card>
@@ -17,14 +20,14 @@
             v-for="(row, i) in ranked"
             :key="row.seat"
             class="flex items-center justify-between rounded-xl border-2 px-3 py-2.5"
-            :class="i === 0 ? 'border-primary bg-primary/10 animate-bounce-once' : 'border-border bg-secondary/30'"
+            :class="row.seat === state.winnerSeat ? 'border-primary bg-primary/10 animate-bounce-once' : 'border-border bg-secondary/30'"
           >
             <span class="flex items-center gap-2 font-display font-semibold">
               <span class="text-muted-foreground">{{ i + 1 }}.</span>
               {{ row.name }}
-              <Crown v-if="i === 0" class="h-4 w-4 text-primary" />
+              <Crown v-if="row.seat === state.winnerSeat" class="h-4 w-4 text-primary" />
             </span>
-            <span class="font-display text-lg font-bold">{{ row.total }}</span>
+            <span class="font-display text-lg font-bold">{{ formatPointsOT(row.split) }}</span>
           </div>
         </TransitionGroup>
       </CardContent>
@@ -43,9 +46,11 @@
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Crown } from '@lucide/vue'
+import { scoreRoundSplit, sumPointsOT } from '@callbreak/shared-logic'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ConfettiBurst from '@/components/decor/ConfettiBurst.vue'
+import { formatPointsOT } from '@/lib/utils'
 import { en } from '@/locales/en'
 import { useGame } from '../composables/useGame'
 import ShareCard from './ShareCard.vue'
@@ -56,12 +61,26 @@ const state = computed(() => game.state.value)
 
 const ranked = computed(() => {
   if (!state.value) return []
-  return state.value.players
-    .map((p, seat) => (p ? { seat, name: p.name, total: state.value!.totals[seat] } : null))
-    .filter((r): r is { seat: number; name: string; total: number } => r !== null)
+  const s = state.value
+  return s.players
+    .map((p, seat) =>
+      p
+        ? {
+            seat,
+            name: p.name,
+            total: s.totals[seat],
+            split: sumPointsOT(s.roundHistory.map((r) => scoreRoundSplit(r.bids[seat] ?? 0, r.tricksWon[seat]))),
+          }
+        : null,
+    )
+    .filter((r): r is { seat: number; name: string; total: number; split: { points: number; ot: number } } => r !== null)
     .sort((a, b) => b.total - a.total)
 })
-const winnerName = computed(() => ranked.value[0]?.name ?? '')
+const winnerName = computed(() => {
+  if (!state.value?.players) return ''
+  const seat = state.value.winnerSeat
+  return seat !== null ? (state.value.players[seat]?.name ?? '') : ''
+})
 
 const shareCardRef = ref<InstanceType<typeof ShareCard> | null>(null)
 const saveLabel = ref(t.gameOver.saveButton)

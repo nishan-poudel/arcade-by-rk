@@ -9,6 +9,8 @@ interface ScoreStateView {
   players: ({ id: string; name: string; seat: number; connected: boolean; isHost: boolean } | null)[]
   history: { call: number; tricksWon: number; points: number }[][]
   totals: number[]
+  instantWinSeat: number | null
+  winnerSeat: number | null
 }
 
 function asState(msg: { type: string; payload: unknown }): ScoreStateView {
@@ -145,7 +147,8 @@ describe('ScoreRoom', () => {
           { seat: 0, call: 1, tricksWon: 1 },
           { seat: 1, call: 1, tricksWon: 1 },
           { seat: 2, call: 1, tricksWon: 1 },
-          { seat: 3, call: 10, tricksWon: 10 },
+          { seat: 3, call: 7, tricksWon: 10 }, // under the instant-win threshold of 8
+
         ],
       })
       await collectAll(sockets)
@@ -155,5 +158,31 @@ describe('ScoreRoom', () => {
 
     expect(state.phase).toBe('gameOver')
     expect(state.round).toBe(3)
+  })
+
+  it('calling 8+ and making it ends the session instantly, regardless of rounds remaining', async () => {
+    const room = await createRoom('score')
+    const { sockets } = await joinFour(room, 'score')
+    sockets[0].send('set_round_count', { roundCount: 5 })
+    await collectAll(sockets)
+    sockets[0].send('start_game')
+    await collectAll(sockets)
+
+    sockets[0].send('submit_round', {
+      entries: [
+        { seat: 0, call: 8, tricksWon: 8 },
+        { seat: 1, call: 1, tricksWon: 2 },
+        { seat: 2, call: 1, tricksWon: 2 },
+        { seat: 3, call: 1, tricksWon: 1 },
+      ],
+    })
+    let state = asState((await collectAll(sockets))[0])
+    expect(state.instantWinSeat).toBe(0)
+
+    sockets[0].send('continue')
+    state = asState((await collectAll(sockets))[0])
+    expect(state.phase).toBe('gameOver')
+    expect(state.winnerSeat).toBe(0)
+    expect(state.round).toBe(1) // ended after round 1, not all 5 configured rounds
   })
 })

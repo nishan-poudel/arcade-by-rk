@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers'
-import { DEFAULT_ROUND_COUNT, scoreRound, type RoundCount } from '@callbreak/shared-logic'
+import { DEFAULT_ROUND_COUNT, isInstantWin, scoreRound, type RoundCount } from '@callbreak/shared-logic'
 import type { Env } from './env'
 import { RateLimiter } from './rateLimiter'
 import { type InboundMessage, parseMessage, send, sendError } from './roomSocket'
@@ -37,6 +37,12 @@ interface RoomState {
   players: (Player | null)[]
   history: RoundEntry[][] // [roundIndex][seat]
   totals: number[]
+  /** Set when a player calls 8+ and makes it — that seat wins outright at
+   * the end of this round, regardless of point totals or rounds remaining
+   * (Nepali "instant win" rule). */
+  instantWinSeat: number | null
+  /** The declared winner once phase is 'gameOver'. */
+  winnerSeat: number | null
   createdAt: number
   lastActivityAt: number
 }
@@ -53,6 +59,8 @@ function initialState(): RoomState {
     players: [null, null, null, null],
     history: [],
     totals: [0, 0, 0, 0],
+    instantWinSeat: null,
+    winnerSeat: null,
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
   }
@@ -61,6 +69,11 @@ function initialState(): RoomState {
 function must<T>(result: ValidationResult<T>): T {
   if (!result.ok) throw new Error(result.error)
   return result.value
+}
+
+/** Ties broken by lowest seat index — rare with 0.1-granularity scoring. */
+function indexOfHighest(values: readonly number[]): number {
+  return values.reduce((best, v, i) => (v > values[best] ? i : best), 0)
 }
 
 interface RawRoundEntryInput {
@@ -315,6 +328,10 @@ export class ScoreRoom extends DurableObject<Env> {
       this.roomState.totals[seat] = Math.round((this.roomState.totals[seat] + r.points) * 10) / 10
     })
     this.roomState.round += 1
+
+    const instantWinner = bySeat.findIndex((e) => isInstantWin(e.call, e.tricksWon))
+    this.roomState.instantWinSeat = instantWinner === -1 ? null : instantWinner
+
     this.roomState.phase = 'roundResult'
 
     await this.persist()
@@ -325,7 +342,12 @@ export class ScoreRoom extends DurableObject<Env> {
     this.requireHost(connectionId)
     if (this.roomState.phase !== 'roundResult') throw new Error('There is no round result to continue from.')
 
-    this.roomState.phase = this.roomState.round >= this.roomState.roundCount ? 'gameOver' : 'roundEntry'
+    if (this.roomState.instantWinSeat !== null || this.roomState.round >= this.roomState.roundCount) {
+      this.roomState.phase = 'gameOver'
+      this.roomState.winnerSeat = this.roomState.instantWinSeat ?? indexOfHighest(this.roomState.totals)
+    } else {
+      this.roomState.phase = 'roundEntry'
+    }
     await this.persist()
     this.broadcastState()
   }
