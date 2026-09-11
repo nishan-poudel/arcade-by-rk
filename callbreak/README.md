@@ -95,14 +95,28 @@ branch deploys straight to production** — no manual `wrangler deploy` needed
 day to day, and no review step in between. Run `npm run check` locally
 before pushing if you want a safety net.
 
-Configuration for each Worker (Root directory matters — it's the `callbreak`
-npm workspace root, not a subfolder, so `@callbreak/shared-logic` resolves
-correctly):
+Configuration for each Worker — **Root directory must be the exact folder
+containing that Worker's `wrangler.jsonc`** (not the `callbreak` workspace
+root, and not the repo root). If Cloudflare can't find a wrangler config
+directly in Root directory, it silently falls back to framework
+auto-detection instead of using your build/deploy commands — which is what
+happens if this is set wrong: it'll pick up the *other* app's
+`vite.config.ts` at the repo root and misidentify this as a Vite frontend
+project. Verified locally that `npm install` from either folder below still
+correctly resolves `@callbreak/shared-logic` by walking up to
+`callbreak/package.json`, and that plain `wrangler deploy` needs no
+`--config` flag once it's sitting next to its own `wrangler.jsonc`:
 
 | Worker | Root directory | Build command | Deploy command |
 |---|---|---|---|
-| `call-break-by-rk` (web) | `callbreak` | `npm install` | `npm run cf:web:deploy` |
-| `call-break-by-rk-api` (api) | `callbreak` | `npm install` | `npm run cf:api:deploy` |
+| `call-break-by-rk` (web) | `callbreak/web` | `npm install && npm run build` | `npx wrangler deploy --env production` |
+| `call-break-by-rk-api` (api) | `callbreak/api` | `npm install` | `npx wrangler deploy --env production` |
+
+The **web** Worker also needs a build variable (same Settings → Builds page)
+so the built app knows where to connect:
+```
+VITE_CALLBREAK_API_URL = wss://call-break-by-rk-api.nishan-poudel.workers.dev
+```
 
 ## What you need to do in Cloudflare before deploying (manual, one-time / as-needed)
 
