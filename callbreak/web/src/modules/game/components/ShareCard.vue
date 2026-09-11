@@ -13,7 +13,7 @@
     "
   >
     <p style="font-family: 'Fredoka Variable', sans-serif; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: #8a7f6a; margin: 0">
-      Call Break — Final Scores
+      Call Break: Final Scores
     </p>
     <h1 style="font-family: 'Fredoka Variable', sans-serif; font-size: 32px; margin: 8px 0 24px; color: #e8695a">
       🏆 {{ winnerName }}

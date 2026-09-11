@@ -34,13 +34,13 @@ const routes: RouteRecordRaw[] = [
     path: '/play/:roomCode?',
     component: CallBreakGame,
     name: ROUTE_NAMES.GAME,
-    meta: { title: 'Call Break — Play Online' },
+    meta: { title: 'Call Break: Play Online' },
   },
   {
     path: '/score/:roomCode?',
     component: ScoreKeeper,
     name: ROUTE_NAMES.SCORE,
-    meta: { title: 'Call Break — Score Keeper' },
+    meta: { title: 'Call Break: Score Keeper' },
   },
   {
     path: '/:pathMatch(.*)*',

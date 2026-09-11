@@ -140,7 +140,7 @@ export async function createRoomOnServer(mode: RoomMode): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode }),
   })
-  if (!res.ok) throw new Error('Could not reach the server — try again.')
+  if (!res.ok) throw new Error('Could not reach the server. Try again?')
   const data = (await res.json()) as { roomCode: string }
   return data.roomCode
 }

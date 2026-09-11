@@ -7,7 +7,7 @@
     <span class="h-1.5 w-1.5 rounded-full" :class="player.connected ? 'bg-flavor-melon' : 'bg-muted-foreground/40'" />
     {{ player.name }}{{ isMe ? ` (${t.common.you})` : '' }}
     <Badge v-if="bidValue !== undefined" variant="outline" class="px-1.5 py-0 text-[0.65rem]">
-      {{ t.trickPlay.call }} {{ bidValue ?? '—' }}
+      {{ t.trickPlay.call }} {{ bidValue ?? '?' }}
     </Badge>
     <Badge v-if="tricksValue !== undefined" variant="secondary" class="px-1.5 py-0 text-[0.65rem]">
       {{ t.trickPlay.tricksWon }} {{ tricksValue }}

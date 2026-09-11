@@ -110,7 +110,7 @@ async function createRoom(name: string): Promise<void> {
     conn.connect(roomCode)
     conn.send('join', { name })
   } catch {
-    errorMessage.value = 'Could not reach the server — try again.'
+    errorMessage.value = 'Could not reach the server. Try again?'
     pendingAction.value = null
   }
 }

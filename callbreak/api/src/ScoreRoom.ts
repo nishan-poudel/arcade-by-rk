@@ -123,7 +123,7 @@ export class ScoreRoom extends DurableObject<Env> {
     }
 
     if (!this.rateLimiter.check(connectionId, message.type)) {
-      sendError(ws, 'Slow down — too many actions.')
+      sendError(ws, "Slow down, you're doing that too fast.")
       return
     }
 
@@ -250,7 +250,7 @@ export class ScoreRoom extends DurableObject<Env> {
     if (!playerId) throw new Error('Missing player id.')
 
     const player = this.roomState.players.find((p) => p?.id === playerId)
-    if (!player) throw new Error('Player not found in this session — please rejoin.')
+    if (!player) throw new Error('Player not found in this session. Please rejoin.')
 
     player.connectionId = connectionId
     await this.persist()
