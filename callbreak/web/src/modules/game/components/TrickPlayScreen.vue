@@ -1,30 +1,52 @@
 <template>
-  <div v-if="state" class="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 animate-slide-up">
+  <div v-if="state" class="mx-auto flex w-full max-w-md flex-1 flex-col gap-3 animate-slide-up">
+    <!-- Big, unmissable turn indicator — first thing on the screen. -->
+    <div
+      class="rounded-2xl px-4 py-3 text-center font-display text-base font-bold shadow-pop transition-colors"
+      :class="isMyTurn ? 'animate-pulse-slow bg-primary text-primary-foreground' : 'bg-secondary/70 text-muted-foreground'"
+    >
+      {{ isMyTurn ? t.trickPlay.yourTurn : t.trickPlay.waitingFor(turnPlayerName) }}
+    </div>
+
     <div class="flex flex-wrap justify-center gap-2">
       <SeatBadge v-for="(p, seat) in state.players" :key="seat" :player="p" :seat="seat" :state="state" show-tricks />
     </div>
 
-    <div class="relative flex flex-1 items-center justify-center rounded-3xl border-2 border-dashed border-border/60 bg-secondary/20 p-6">
+    <div class="relative flex flex-1 items-center justify-center rounded-3xl border-2 border-dashed border-border/60 bg-secondary/20 p-4">
       <Transition name="pop">
-        <div v-if="wonBanner" class="absolute top-3 rounded-full bg-primary px-4 py-1.5 font-display text-sm font-bold text-primary-foreground shadow-pop">
+        <div v-if="wonBanner" class="absolute top-3 z-10 rounded-full bg-primary px-4 py-1.5 font-display text-sm font-bold text-primary-foreground shadow-pop">
           {{ t.trickPlay.wonTrick(wonBanner) }}
         </div>
       </Transition>
 
-      <div class="grid w-full max-w-[16rem] grid-cols-2 gap-3">
-        <div v-for="(p, seat) in state.players" :key="seat" class="flex flex-col items-center gap-1">
-          <span class="text-xs font-display font-semibold text-muted-foreground">{{ p?.name ?? '' }}</span>
-          <div class="w-16">
-            <PlayingCard v-if="cardFor(seat)" :card="cardFor(seat)!" />
-            <div v-else class="aspect-[5/7] w-full rounded-lg border-2 border-dashed border-border/40" />
+      <!-- The trick table: one big card per seat, each clearly labeled with
+           who played it. The current player's slot pulses (card or empty
+           placeholder) so it's obvious who the group is waiting on. -->
+      <div class="grid w-full max-w-[24rem] grid-cols-2 gap-4">
+        <div v-for="(p, seat) in state.players" :key="seat" class="flex flex-col items-center gap-1.5">
+          <span
+            class="rounded-full px-3 py-1 text-xs font-display font-bold transition-colors"
+            :class="
+              seat === state.turnSeat
+                ? 'animate-pulse bg-primary text-primary-foreground'
+                : seat === state.yourSeat
+                  ? 'bg-flavor-melon/25 text-flavor-melon-ink'
+                  : 'bg-card text-foreground'
+            "
+          >
+            {{ p?.name ?? '' }}{{ seat === state.yourSeat ? ` (${t.common.you})` : '' }}
+          </span>
+          <div class="w-24 sm:w-28">
+            <PlayingCard v-if="cardFor(seat)" :card="cardFor(seat)!" class="animate-pop-in" />
+            <div
+              v-else
+              class="aspect-[5/7] w-full rounded-lg border-2 border-dashed"
+              :class="seat === state.turnSeat ? 'animate-pulse border-primary' : 'border-border/40'"
+            />
           </div>
         </div>
       </div>
     </div>
-
-    <p class="text-center text-sm font-medium" :class="isMyTurn ? 'text-primary' : 'text-muted-foreground'">
-      {{ isMyTurn ? t.trickPlay.yourTurn : t.trickPlay.waitingFor(turnPlayerName) }}
-    </p>
 
     <div class="scroll-area -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2">
       <button

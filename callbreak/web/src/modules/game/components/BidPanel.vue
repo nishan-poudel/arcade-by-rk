@@ -6,6 +6,13 @@
       <p class="text-sm text-muted-foreground">{{ t.bidding.subtitle }}</p>
     </div>
 
+    <div
+      class="rounded-2xl px-4 py-3 text-center font-display text-base font-bold shadow-pop transition-colors"
+      :class="isMyTurn ? 'animate-pulse-slow bg-primary text-primary-foreground' : 'bg-secondary/70 text-muted-foreground'"
+    >
+      {{ isMyTurn ? t.bidding.yourTurn : t.bidding.waitingFor(turnPlayerName) }}
+    </div>
+
     <div class="flex flex-wrap justify-center gap-2">
       <SeatBadge v-for="(p, seat) in state.players" :key="seat" :player="p" :seat="seat" :state="state" show-bid />
     </div>
@@ -18,7 +25,6 @@
 
     <Card v-if="isMyTurn">
       <CardContent class="flex flex-col items-center gap-4 pt-6">
-        <p class="font-display text-sm font-semibold text-primary">{{ t.bidding.yourTurn }}</p>
         <div class="flex items-center gap-4">
           <Button variant="outline" size="icon" class="h-12 w-12 rounded-full text-xl" @click="dec">−</Button>
           <span class="w-16 text-center font-display text-5xl font-bold">{{ callValue }}</span>
@@ -27,7 +33,6 @@
         <Button size="lg" class="w-full" @click="submit">{{ t.bidding.callButton }}</Button>
       </CardContent>
     </Card>
-    <p v-else class="text-center text-sm text-muted-foreground">{{ t.bidding.waitingFor(turnPlayerName) }}</p>
   </div>
 </template>
 

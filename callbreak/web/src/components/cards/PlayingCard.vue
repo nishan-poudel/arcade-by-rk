@@ -18,7 +18,18 @@
       <SuitGlyph :suit="card.suit" class="h-[9cqw] w-[9cqw]" />
     </div>
 
-    <div class="flex h-full w-full items-center justify-center">
+    <!-- Number cards (2-10) show one pip per rank in the real-deck layout;
+         face cards and the Ace keep a single big center glyph. -->
+    <div v-if="pips" class="absolute inset-0">
+      <SuitGlyph
+        v-for="(pip, i) in pips"
+        :key="i"
+        :suit="card.suit"
+        class="absolute h-[13cqw] w-[13cqw]"
+        :style="{ left: `${pip.x}%`, top: `${pip.y}%`, transform: `translate(-50%, -50%) rotate(${pip.rotate ? 180 : 0}deg)` }"
+      />
+    </div>
+    <div v-else class="flex h-full w-full items-center justify-center">
       <SuitGlyph :suit="card.suit" class="h-[38%] w-[38%] opacity-90" />
     </div>
 
@@ -34,6 +45,7 @@ import { computed } from 'vue'
 import type { Card } from '@callbreak/shared-logic'
 import { cn } from '@/lib/utils'
 import SuitGlyph from './SuitGlyph.vue'
+import { PIP_LAYOUTS } from './pipLayout'
 import { isRedSuit, rankLabel } from './suitPaths'
 
 const props = defineProps<{
@@ -45,4 +57,5 @@ const props = defineProps<{
 
 const label = computed(() => rankLabel(props.card.rank))
 const textColor = computed(() => (isRedSuit(props.card.suit) ? 'hsl(var(--flavor-berry))' : 'hsl(var(--foreground))'))
+const pips = computed(() => PIP_LAYOUTS[props.card.rank] ?? null)
 </script>

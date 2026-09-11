@@ -2,7 +2,11 @@
   <div
     v-if="player"
     class="flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-display font-semibold transition-all duration-200"
-    :class="isTurn ? 'border-primary bg-primary/15 text-primary shadow-pop scale-105' : 'border-border bg-secondary/40'"
+    :class="
+      isTurn
+        ? 'scale-105 border-primary bg-primary/15 text-primary shadow-pop ring-2 ring-primary/40 ring-offset-2 ring-offset-background animate-pulse-slow'
+        : 'border-border bg-secondary/40'
+    "
   >
     <span class="h-1.5 w-1.5 rounded-full" :class="player.connected ? 'bg-flavor-melon' : 'bg-muted-foreground/40'" />
     {{ player.name }}{{ isMe ? ` (${t.common.you})` : '' }}
