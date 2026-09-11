@@ -31,6 +31,56 @@ describe('ScoreRoom', () => {
     expect(await errorOf(await a.next())).toMatch(/4 players/i)
   })
 
+  it('lets the host add all 3 other players by name, with no one else connecting', async () => {
+    const room = await createRoom('score')
+    const host = await connect(room, 'score')
+    host.send('join', { name: 'Solo Host' })
+    let state = asState(await host.next())
+    expect(state.players[0]?.connected).toBe(true)
+
+    for (const name of ['Bina', 'Chirag', 'Deepa']) {
+      host.send('add_player', { name })
+      state = asState(await host.next())
+    }
+
+    expect(state.players.map((p) => p?.name)).toEqual(['Solo Host', 'Bina', 'Chirag', 'Deepa'])
+    expect(state.players.slice(1).every((p) => p?.connected === false)).toBe(true)
+
+    host.send('start_game')
+    state = asState(await host.next())
+    expect(state.phase).toBe('roundEntry')
+
+    // Scoring works identically for name-only seats.
+    host.send('submit_round', {
+      entries: [
+        { seat: 0, call: 3, tricksWon: 3 },
+        { seat: 1, call: 4, tricksWon: 6 },
+        { seat: 2, call: 4, tricksWon: 2 },
+        { seat: 3, call: 2, tricksWon: 2 },
+      ],
+    })
+    state = asState(await host.next())
+    expect(state.history[0].map((h) => h.points)).toEqual([3, 4.2, -4, 2])
+  })
+
+  it('rejects a 5th add_player once the session has 4 players, and a mistyped name can be removed', async () => {
+    const room = await createRoom('score')
+    const host = await connect(room, 'score')
+    host.send('join', { name: 'Host' })
+    await host.next()
+    for (const name of ['B', 'C', 'D']) {
+      host.send('add_player', { name })
+      await host.next()
+    }
+
+    host.send('add_player', { name: 'Extra' })
+    expect(await errorOf(await host.next())).toMatch(/already has 4 players/i)
+
+    host.send('remove_player', { seat: 1 })
+    const state = asState(await host.next())
+    expect(state.players[1]).toBeNull()
+  })
+
   it('only the host can set the round count or start', async () => {
     const room = await createRoom('score')
     const { sockets } = await joinFour(room, 'score')

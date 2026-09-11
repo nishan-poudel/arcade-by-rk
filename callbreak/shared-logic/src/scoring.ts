@@ -10,7 +10,7 @@ export function isValidCall(call: number): boolean {
 }
 
 /**
- * Nepali Call Break scoring for one round:
+ * Call Break scoring for one round:
  * - Made the call exactly or more: `call` points, plus 0.1 per overtrick.
  * - Missed the call: `-call` points.
  * Rounded to 1 decimal to avoid floating-point artifacts (e.g. 4 + 0.1*2).

@@ -162,6 +162,9 @@ function continueGame(): void {
 function removePlayer(seat: number): void {
   conn.send('remove_player', { seat })
 }
+function addPlayer(name: string): void {
+  conn.send('add_player', { name })
+}
 
 export function useScoreRoom() {
   return {
@@ -182,5 +185,6 @@ export function useScoreRoom() {
     submitRound,
     continueGame,
     removePlayer,
+    addPlayer,
   }
 }

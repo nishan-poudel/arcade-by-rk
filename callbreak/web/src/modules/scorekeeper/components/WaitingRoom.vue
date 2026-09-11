@@ -50,6 +50,21 @@
               </Button>
             </span>
           </template>
+          <form
+            v-else-if="score.isHost.value"
+            class="flex w-full items-center gap-2"
+            @submit.prevent="addPlayer(seat - 1)"
+          >
+            <Input
+              v-model="newNames[seat - 1]"
+              :placeholder="t.waitingRoom.addPlayerPlaceholder"
+              maxlength="24"
+              class="h-9 min-h-0"
+            />
+            <Button type="submit" size="sm" :disabled="!newNames[seat - 1]?.trim()">
+              {{ t.waitingRoom.addButton }}
+            </Button>
+          </form>
           <span v-else class="text-sm text-muted-foreground">…</span>
         </div>
       </CardContent>
@@ -79,6 +94,7 @@ import { ROUND_COUNT_OPTIONS, type RoundCount } from '@callbreak/shared-logic'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { en } from '@/locales/en'
 import { useScoreRoom } from '../composables/useScoreRoom'
@@ -87,6 +103,14 @@ const t = en.scoreKeeper
 const score = useScoreRoom()
 const state = computed(() => score.state.value)
 const seatedCount = computed(() => state.value?.players.filter((p) => p !== null).length ?? 0)
+
+const newNames = ref<string[]>(['', '', '', ''])
+function addPlayer(seat: number) {
+  const name = newNames.value[seat]?.trim()
+  if (!name) return
+  score.addPlayer(name)
+  newNames.value[seat] = ''
+}
 
 const copied = ref(false)
 function copyCode() {

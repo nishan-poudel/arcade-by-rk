@@ -45,9 +45,9 @@
       </div>
     </main>
 
-    <footer class="pb-[max(1rem,env(safe-area-inset-bottom))] text-center text-xs text-muted-foreground">
-      {{ t.footerMadeBy }} <span class="font-semibold">{{ t.footerName }}</span> ({{ t.footerRealName }})
-    </footer>
+    <div class="pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <AppFooter />
+    </div>
   </div>
 </template>
 
@@ -57,6 +57,7 @@ import { ClipboardList, Gamepad2 } from '@lucide/vue'
 import { Card, CardContent } from '@/components/ui/card'
 import ThemeToggle from '@/components/ui/theme-toggle/ThemeToggle.vue'
 import AppBlob from '@/components/decor/AppBlob.vue'
+import AppFooter from '@/components/AppFooter.vue'
 import SuitGlyph from '@/components/cards/SuitGlyph.vue'
 import { en } from '@/locales/en'
 

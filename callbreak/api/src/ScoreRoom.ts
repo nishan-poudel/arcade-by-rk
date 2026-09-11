@@ -157,6 +157,8 @@ export class ScoreRoom extends DurableObject<Env> {
         return this.handleJoin(connectionId, message.payload)
       case 'rejoin':
         return this.handleRejoin(connectionId, message.payload)
+      case 'add_player':
+        return this.handleAddPlayer(connectionId, message.payload)
       case 'set_round_count':
         return this.handleSetRoundCount(connectionId, message.payload)
       case 'start_game':
@@ -209,6 +211,36 @@ export class ScoreRoom extends DurableObject<Env> {
     await this.persist()
     // broadcastState() already covers the just-joined player — no separate
     // sendStateTo needed, that would just double-send them the same state.
+    this.broadcastState()
+  }
+
+  /**
+   * Host adds a player by name only, with no connection of their own — the
+   * usual case for this feature: one person runs the whole session on their
+   * phone and everyone else just plays with a physical deck. A name-only
+   * seat is indistinguishable from a disconnected one (`connected: false`),
+   * so it can still be edited via `remove_player` if the host mistypes a
+   * name, and nothing else needs to special-case it.
+   */
+  private async handleAddPlayer(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'lobby') throw new Error('Players can only be added in the lobby.')
+
+    const body = payload as Record<string, unknown> | undefined
+    const name = must(validateName(body?.name))
+
+    const freeSeat = this.roomState.players.findIndex((p) => p === null)
+    if (freeSeat === -1) throw new Error('This session already has 4 players.')
+
+    this.roomState.players[freeSeat] = {
+      id: crypto.randomUUID(),
+      name,
+      seat: freeSeat,
+      connectionId: null,
+      isHost: false,
+    }
+
+    await this.persist()
     this.broadcastState()
   }
 

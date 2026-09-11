@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Call Break — the Nepali trick-taking card game. Online 4-player game + in-person score-keeper, on Cloudflare Workers + Durable Objects.",
+  "description": "Call Break — the trick-taking card game. Online 4-player game + in-person score-keeper, on Cloudflare Workers + Durable Objects.",
   "engines": {
     "node": ">=20.19.0"
   },

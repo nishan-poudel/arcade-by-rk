@@ -1,7 +1,7 @@
 export const en = {
   hub: {
     brandTitle: 'Call Break',
-    brandTagline: 'The Nepali trick-taking card game • Spades are always trump • 4 players',
+    brandTagline: 'The trick-taking card game • Spades are always trump • 4 players',
     playOnline: 'Play Online',
     playOnlineDesc: 'Deal virtual cards and play a full 4-player game together, live.',
     scoreKeeper: 'In-Person Score Keeper',
@@ -98,7 +98,7 @@ export const en = {
     },
     landing: {
       heading: 'In-Person Score Keeper',
-      subheading: "Playing with a real deck? Track everyone's calls and tricks here — 4 players, live on every phone.",
+      subheading: "Playing with a real deck? One person tracks everyone's calls and tricks here — no one else needs to join.",
       createHeading: 'Start a Session',
       hostNameLabel: 'Your Name (Host)',
       namePlaceholder: 'Enter your name',
@@ -115,13 +115,15 @@ export const en = {
       title: 'Waiting Room',
       copied: 'Copied!',
       tapToCopy: 'Tap to copy',
-      shareCode: 'Share this code with the other 3 players',
+      shareCode: "Optional — share this code if anyone else wants to follow along on their own phone",
       playersHeading: 'Players',
       playersCount: (count: number) => `${count}/4`,
       roundsLabel: 'Rounds',
       startButton: 'Start Session',
       onlyHostCanStart: 'Only the host can start the session',
       removePlayer: 'Remove',
+      addPlayerPlaceholder: 'Player name',
+      addButton: 'Add',
     },
     roundEntry: {
       title: (round: number) => `Round ${round}`,

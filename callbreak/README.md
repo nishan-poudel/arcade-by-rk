@@ -1,6 +1,6 @@
 # Call Break
 
-The Nepali trick-taking card game — spades are always trump, 4 players, calls
+The trick-taking card game — spades are always trump, 4 players, calls
 and tricks decide your score. Two ways to play:
 
 - **Online** (`/play`) — deal virtual cards and play a full 4-player game
@@ -20,7 +20,7 @@ game costs nothing beyond the Workers Free plan's generous daily limits.
 ```
 callbreak/
 ├── shared-logic/   Framework-free TS: deck/shuffle/deal, trick legality
-│                   (incl. the "must trump if void" rule), Nepali scoring.
+│                   (incl. the "must trump if void" rule), scoring.
 │                   Used by both the online game and the score keeper.
 ├── api/            Cloudflare Worker — GameRoom + ScoreRoom Durable Objects,
 │                   WebSocket Hibernation, rate limiting, input validation.
@@ -164,7 +164,7 @@ the web Worker's URL ever changes).
 
 ## Design notes
 
-- **Rules**: one fixed Nepali ruleset (spades always trump, must-trump-if-void,
+- **Rules**: one fixed ruleset (spades always trump, must-trump-if-void,
   calls 1–13, make = call + 0.1/overtrick, miss = −call). The only
   host-configurable setting is round count (3/5/7, default 5).
 - **Cards**: hand-drawn flat vector SVGs (`web/src/components/cards/`) — no
