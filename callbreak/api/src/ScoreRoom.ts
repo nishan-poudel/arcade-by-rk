@@ -128,7 +128,10 @@ export class ScoreRoom extends DurableObject<Env> {
 
   private async persist(): Promise<void> {
     this.roomState.lastActivityAt = Date.now()
-    await this.ctx.storage.put(STORAGE_KEY, this.roomState)
+    // allowUnconfirmed: see the matching comment in GameRoom.ts — opts this
+    // write out of the platform's output gate so broadcastState() doesn't
+    // wait on a storage round trip for every lock/unlock/edit.
+    await this.ctx.storage.put(STORAGE_KEY, this.roomState, { allowUnconfirmed: true })
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -537,15 +540,25 @@ export class ScoreRoom extends DurableObject<Env> {
     this.broadcastState()
   }
 
-  private viewFor(seat: number | null) {
+  /** The parts of the view that are identical for every recipient —
+   * computed once per broadcast rather than once per connected player. */
+  private sharedViewFields() {
     const { players, ...publicFields } = this.roomState
     return {
-      ...publicFields,
+      publicFields,
       players: players.map((p) =>
         p ? { id: p.id, name: p.name, seat: p.seat, connected: p.connectionId !== null, isHost: p.isHost } : null,
       ),
+    }
+  }
+
+  private viewFor(seat: number | null) {
+    const shared = this.sharedViewFields()
+    return {
+      ...shared.publicFields,
+      players: shared.players,
       yourSeat: seat,
-      yourPlayerId: seat !== null ? (players[seat]?.id ?? null) : null,
+      yourPlayerId: seat !== null ? (this.roomState.players[seat]?.id ?? null) : null,
     }
   }
 
@@ -554,11 +567,19 @@ export class ScoreRoom extends DurableObject<Env> {
   }
 
   private broadcastState(): void {
+    const shared = this.sharedViewFields()
     for (const player of this.roomState.players) {
       if (!player?.connectionId) continue
       const sockets = this.ctx.getWebSockets(player.connectionId)
+      if (sockets.length === 0) continue
+      const view = {
+        ...shared.publicFields,
+        players: shared.players,
+        yourSeat: player.seat,
+        yourPlayerId: player.id,
+      }
       for (const ws of sockets) {
-        send(ws, 'state', this.viewFor(player.seat))
+        send(ws, 'state', view)
       }
     }
   }

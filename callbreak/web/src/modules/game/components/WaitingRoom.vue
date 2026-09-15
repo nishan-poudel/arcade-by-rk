@@ -75,11 +75,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ROUND_COUNT_OPTIONS, type RoundCount } from '@callbreak/shared-logic'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { prefetchCardSprite } from '@/components/cards/cardSprite'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { en } from '@/locales/en'
 import { useGame } from '../composables/useGame'
@@ -88,6 +89,11 @@ const t = en.callBreak
 const game = useGame()
 const state = computed(() => game.state.value)
 const seatedCount = computed(() => state.value?.players.filter((p) => p !== null).length ?? 0)
+
+// Everyone here is about to see real cards (bidding is next) — get the
+// card-art sprite downloading now, during the dead time waiting for
+// players, instead of only once the first card actually needs to render.
+onMounted(prefetchCardSprite)
 
 const copied = ref(false)
 function copyCode() {

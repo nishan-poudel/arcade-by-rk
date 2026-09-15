@@ -36,3 +36,23 @@ export function cardSymbolId(card: Card): string {
 export function cardSpriteHref(card: Card): string {
   return `${CARD_SPRITE_URL}#${cardSymbolId(card)}`
 }
+
+let prefetchStarted = false
+
+/**
+ * The sprite is otherwise only discovered by the browser when a card's
+ * `<use>` first renders — i.e. once bidding starts, after join + waiting
+ * for players. Call this as soon as the waiting room mounts instead, so the
+ * ~330KB (gzipped) download overlaps with that already-dead waiting time
+ * rather than blocking the first card paint. Safe to call more than once
+ * (e.g. if the waiting room remounts) — only fires the request once.
+ */
+export function prefetchCardSprite(): void {
+  if (prefetchStarted || typeof fetch !== 'function') return
+  prefetchStarted = true
+  fetch(CARD_SPRITE_URL, { priority: 'low' } as RequestInit).catch(() => {
+    // A failed prefetch is just a missed optimization, not an error — the
+    // normal <use> reference will fetch it again (and retry) when needed.
+    prefetchStarted = false
+  })
+}

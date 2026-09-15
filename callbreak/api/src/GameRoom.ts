@@ -127,7 +127,16 @@ export class GameRoom extends DurableObject<Env> {
 
   private async persist(): Promise<void> {
     this.roomState.lastActivityAt = Date.now()
-    await this.ctx.storage.put(STORAGE_KEY, this.roomState)
+    // allowUnconfirmed: the platform's output gate would otherwise hold the
+    // broadcastState() that follows every persist() call until this write
+    // is confirmed durable on disk — fine for correctness, but it puts a
+    // storage round trip on the critical path of every single bid/card
+    // play/lock. Opting out trades a vanishingly small durability window
+    // (a literal crash between the write and its disk confirmation) for
+    // lower latency on every real-time action; a reconnecting player is
+    // already covered by the existing resync-on-reconnect + periodic
+    // request_state poll if that window is ever actually hit.
+    await this.ctx.storage.put(STORAGE_KEY, this.roomState, { allowUnconfirmed: true })
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -441,17 +450,30 @@ export class GameRoom extends DurableObject<Env> {
 
   // ─── Broadcast ─────────────────────────────────────────────────────────
 
-  private redactedStateFor(seat: number | null) {
+  /** The parts of the redacted state that are identical for every
+   * recipient — computed once per broadcast rather than once per
+   * connected player. */
+  private sharedRedactedFields() {
     const { hands, players, ...publicFields } = this.roomState
     return {
-      ...publicFields,
+      publicFields,
       players: players.map((p) =>
         p ? { id: p.id, name: p.name, seat: p.seat, connected: p.connectionId !== null, isHost: p.isHost } : null,
       ),
-      yourSeat: seat,
-      yourPlayerId: seat !== null ? (players[seat]?.id ?? null) : null,
-      hand: seat !== null ? hands[seat] : [],
+      hands,
       handCounts: hands.map((h) => h.length),
+    }
+  }
+
+  private redactedStateFor(seat: number | null) {
+    const shared = this.sharedRedactedFields()
+    return {
+      ...shared.publicFields,
+      players: shared.players,
+      yourSeat: seat,
+      yourPlayerId: seat !== null ? (this.roomState.players[seat]?.id ?? null) : null,
+      hand: seat !== null ? shared.hands[seat] : [],
+      handCounts: shared.handCounts,
     }
   }
 
@@ -460,11 +482,21 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   private broadcastState(): void {
+    const shared = this.sharedRedactedFields()
     for (const player of this.roomState.players) {
       if (!player?.connectionId) continue
       const sockets = this.ctx.getWebSockets(player.connectionId)
+      if (sockets.length === 0) continue
+      const view = {
+        ...shared.publicFields,
+        players: shared.players,
+        yourSeat: player.seat,
+        yourPlayerId: player.id,
+        hand: shared.hands[player.seat],
+        handCounts: shared.handCounts,
+      }
       for (const ws of sockets) {
-        send(ws, 'state', this.redactedStateFor(player.seat))
+        send(ws, 'state', view)
       }
     }
   }

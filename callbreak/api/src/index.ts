@@ -14,13 +14,28 @@ function namespaceFor(env: Env, mode: Mode) {
   return mode === 'score' ? env.SCORE_ROOM : env.GAME_ROOM
 }
 
+// env.CORS_ALLOWED_ORIGINS is fixed for the Worker's lifetime — parse it
+// into a Set once per distinct value instead of on every single request
+// (every OPTIONS preflight, every /api/rooms POST, every /ws upgrade).
+// Keyed by the raw string since `env` isn't available at module load time,
+// so there's nothing to precompute ahead of the first request.
+const allowedOriginsCache = new Map<string, ReadonlySet<string>>()
+function parseAllowedOrigins(allowedOrigins: string): ReadonlySet<string> {
+  let parsed = allowedOriginsCache.get(allowedOrigins)
+  if (!parsed) {
+    parsed = new Set(allowedOrigins.split(',').map((o) => o.trim()))
+    allowedOriginsCache.set(allowedOrigins, parsed)
+  }
+  return parsed
+}
+
 function corsHeaders(origin: string | null, allowedOrigins: string): HeadersInit {
-  const allowed = allowedOrigins.split(',').map((o) => o.trim())
+  const allowed = parseAllowedOrigins(allowedOrigins)
   const headers: Record<string, string> = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   }
-  if (origin && allowed.includes(origin)) {
+  if (origin && allowed.has(origin)) {
     headers['Access-Control-Allow-Origin'] = origin
     headers.Vary = 'Origin'
   }
