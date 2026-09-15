@@ -9,6 +9,9 @@
       <p v-if="state.instantWinSeat !== null" class="mt-1 text-sm font-semibold text-flavor-melon-ink">
         {{ t.gameOver.instantWinNote }}
       </p>
+      <p v-else-if="state.dhoosEnd" class="mt-1 text-sm font-semibold text-destructive">
+        {{ t.gameOver.dhoosEndNote }}
+      </p>
     </div>
 
     <Card>

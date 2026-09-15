@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addPointsOT,
+  allBidsMissed,
   cumulativeTotals,
   isInstantWin,
   isValidCall,
@@ -82,6 +83,36 @@ describe('isInstantWin', () => {
     expect(isInstantWin(9, 13)).toBe(true)
     expect(isInstantWin(8, 7)).toBe(false) // missed
     expect(isInstantWin(7, 13)).toBe(false) // call too low, even though made big
+  })
+})
+
+describe('allBidsMissed', () => {
+  it('is true only when every player misses their call', () => {
+    expect(
+      allBidsMissed([
+        { call: 3, tricksWon: 2 },
+        { call: 4, tricksWon: 1 },
+        { call: 2, tricksWon: 0 },
+        { call: 4, tricksWon: 10 }, // this one made it -> not a "Dhoos"
+      ]),
+    ).toBe(false)
+
+    expect(
+      allBidsMissed([
+        { call: 3, tricksWon: 2 },
+        { call: 4, tricksWon: 3 },
+        { call: 2, tricksWon: 1 },
+        { call: 4, tricksWon: 3 },
+      ]),
+    ).toBe(true)
+  })
+
+  it('an exact make counts as made, not missed', () => {
+    expect(allBidsMissed([{ call: 3, tricksWon: 3 }])).toBe(false)
+  })
+
+  it('is false for an empty list', () => {
+    expect(allBidsMissed([])).toBe(false)
   })
 })
 

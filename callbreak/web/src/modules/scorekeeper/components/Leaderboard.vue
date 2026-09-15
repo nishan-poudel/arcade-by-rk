@@ -8,6 +8,12 @@
     >
       {{ t.leaderboard.instantWin(state.players[state.instantWinSeat]?.name ?? '') }}
     </div>
+    <div
+      v-else-if="state.dhoosEnd"
+      class="animate-pop-in rounded-2xl bg-destructive px-4 py-3 text-center font-display text-sm font-bold text-destructive-foreground shadow-pop"
+    >
+      {{ t.leaderboard.dhoosEnd }}
+    </div>
 
     <Card>
       <CardContent class="flex flex-col gap-2 pt-4">
@@ -71,7 +77,9 @@ const score = useScoreRoom()
 const state = computed(() => score.state.value)
 const lastRound = computed(() => state.value?.history[state.value.history.length - 1] ?? null)
 const isLastRound = computed(() =>
-  state.value ? state.value.instantWinSeat !== null || state.value.round >= state.value.roundCount : false,
+  state.value
+    ? state.value.instantWinSeat !== null || state.value.dhoosEnd || state.value.round >= state.value.roundCount
+    : false,
 )
 
 const ranked = computed(() => {

@@ -44,9 +44,13 @@ export interface GameStateView {
   currentTrick: TrickCardPlay[]
   tricksWon: number[]
   lastTrick: LastTrick | null
+  /** Every card played so far this round, in play order — the "cards
+   * tracker" so you can see what's already out. */
+  playedThisRound: TrickCardPlay[]
   roundHistory: RoundHistoryEntry[]
   totals: number[]
   instantWinSeat: number | null
+  dhoosEnd: boolean
   winnerSeat: number | null
   createdAt: number
   lastActivityAt: number

@@ -17,6 +17,7 @@ interface ScoreStateView {
   history: { call: number; tricksWon: number; points: number }[][]
   totals: number[]
   instantWinSeat: number | null
+  dhoosEnd: boolean
   winnerSeat: number | null
 }
 
@@ -358,5 +359,32 @@ describe('ScoreRoom', () => {
     const state = asState((await collectAll(sockets))[0])
     expect(state.winnerSeat).toBe(0) // instant-win seat, untouched by the correction
     expect(state.totals[0]).toBe(8.1)
+  })
+
+  it('everyone missing their call in the same round ends the session instantly ("Dhoos Dismiss")', async () => {
+    const room = await createRoom('score')
+    const { sockets } = await joinFour(room, 'score')
+    sockets[0].send('set_round_count', { roundCount: 5 })
+    await collectAll(sockets)
+    sockets[0].send('start_game')
+    await collectAll(sockets)
+
+    // Every seat falls short of its call (5<6, 4<5, 3<4, 1<3).
+    const state1 = await lockRound(sockets, [
+      { call: 6, tricksWon: 5 },
+      { call: 5, tricksWon: 4 },
+      { call: 4, tricksWon: 3 },
+      { call: 3, tricksWon: 1 },
+    ])
+    expect(state1.instantWinSeat).toBeNull()
+    expect(state1.dhoosEnd).toBe(true)
+
+    sockets[0].send('continue')
+    const state2 = asState((await collectAll(sockets))[0])
+    expect(state2.phase).toBe('gameOver') // ended instantly, not because of roundCount
+    expect(state2.round).toBe(1)
+    // No special winner - totals are [-6,-5,-4,-3], so seat3's -3 is "least bad".
+    expect(state2.totals).toEqual([-6, -5, -4, -3])
+    expect(state2.winnerSeat).toBe(3)
   })
 })

@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers'
-import { DEFAULT_ROUND_COUNT, isInstantWin, scoreRound, type RoundCount } from '@callbreak/shared-logic'
+import { allBidsMissed, DEFAULT_ROUND_COUNT, isInstantWin, scoreRound, type RoundCount } from '@callbreak/shared-logic'
 import type { Env } from './env'
 import { RateLimiter } from './rateLimiter'
 import { type InboundMessage, parseMessage, send, sendError } from './roomSocket'
@@ -62,6 +62,10 @@ interface RoomState {
    * the end of this round, regardless of point totals or rounds remaining
    * (Nepali "instant win" rule). */
   instantWinSeat: number | null
+  /** Set when every single player misses their call in the same round —
+   * "Dhoos Dismiss" forces the session to end right there too, same as
+   * reaching the last configured round. */
+  dhoosEnd: boolean
   /** The declared winner once phase is 'gameOver'. */
   winnerSeat: number | null
   createdAt: number
@@ -82,6 +86,7 @@ function initialState(): RoomState {
     history: [],
     totals: [0, 0, 0, 0],
     instantWinSeat: null,
+    dhoosEnd: false,
     winnerSeat: null,
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
@@ -380,6 +385,8 @@ export class ScoreRoom extends DurableObject<Env> {
 
     const instantWinner = entries.findIndex((e) => isInstantWin(e.call!, e.tricksWon!))
     this.roomState.instantWinSeat = instantWinner === -1 ? null : instantWinner
+    this.roomState.dhoosEnd =
+      instantWinner === -1 && allBidsMissed(entries.map((e) => ({ call: e.call!, tricksWon: e.tricksWon! })))
 
     this.roomState.phase = 'roundResult'
   }
@@ -388,7 +395,7 @@ export class ScoreRoom extends DurableObject<Env> {
     this.requireHost(connectionId)
     if (this.roomState.phase !== 'roundResult') throw new Error('There is no round result to continue from.')
 
-    if (this.roomState.instantWinSeat !== null || this.roomState.round >= this.roomState.roundCount) {
+    if (this.roomState.instantWinSeat !== null || this.roomState.dhoosEnd || this.roomState.round >= this.roomState.roundCount) {
       this.roomState.phase = 'gameOver'
       this.roomState.winnerSeat = this.roomState.instantWinSeat ?? indexOfHighest(this.roomState.totals)
     } else {

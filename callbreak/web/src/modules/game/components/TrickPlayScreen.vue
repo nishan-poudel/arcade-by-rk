@@ -8,9 +8,48 @@
       {{ isMyTurn ? t.trickPlay.yourTurn : t.trickPlay.waitingFor(turnPlayerName) }}
     </div>
 
-    <div class="flex flex-wrap justify-center gap-2">
+    <div class="flex flex-wrap items-center justify-center gap-2">
       <SeatBadge v-for="(p, seat) in state.players" :key="seat" :player="p" :seat="seat" :state="state" show-tricks />
+      <button
+        type="button"
+        class="rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-display font-bold text-foreground shadow-hard-sm transition-transform active:scale-95"
+        @click="showTracker = true"
+      >
+        🗂️ {{ t.trickPlay.trackerButton }}
+      </button>
     </div>
+
+    <Transition name="pop">
+      <div
+        v-if="showTracker"
+        class="fixed inset-0 z-20 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+        @click.self="showTracker = false"
+      >
+        <div class="w-full max-w-sm rounded-3xl border-2 border-border bg-card p-4 shadow-pop">
+          <div class="mb-3 flex items-center justify-between">
+            <h3 class="font-display text-base font-bold">{{ t.trickPlay.trackerTitle }}</h3>
+            <button type="button" class="text-sm font-semibold text-muted-foreground" @click="showTracker = false">
+              {{ t.trickPlay.trackerClose }}
+            </button>
+          </div>
+          <p v-if="!state.playedThisRound.length" class="text-sm text-muted-foreground">{{ t.trickPlay.trackerEmpty }}</p>
+          <div v-else class="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto scroll-area">
+            <div v-for="suit in suitOrder" :key="suit" v-show="cardsBySuit[suit].length" class="flex items-start gap-2">
+              <SuitGlyph :suit="suit" class="mt-0.5 h-5 w-5 shrink-0" />
+              <div class="flex flex-wrap gap-1.5">
+                <span
+                  v-for="play in cardsBySuit[suit]"
+                  :key="`${play.card.suit}${play.card.rank}-${play.seat}`"
+                  class="rounded-md border border-border bg-secondary/30 px-1.5 py-0.5 text-xs font-display font-bold"
+                >
+                  {{ rankLabel(play.card.rank) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <div class="relative flex flex-1 items-center justify-center rounded-3xl border-2 border-dashed border-border/60 bg-secondary/20 p-4">
       <Transition name="pop">
@@ -64,8 +103,10 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { legalPlays, type Card } from '@callbreak/shared-logic'
+import { legalPlays, type Card, type Suit } from '@callbreak/shared-logic'
 import PlayingCard from '@/components/cards/PlayingCard.vue'
+import { rankLabel } from '@/components/cards/suitPaths'
+import SuitGlyph from '@/components/cards/SuitGlyph.vue'
 import { en } from '@/locales/en'
 import { useGame } from '../composables/useGame'
 import SeatBadge from './SeatBadge.vue'
@@ -74,6 +115,19 @@ const t = en.callBreak
 const game = useGame()
 const state = computed(() => game.state.value)
 const isMyTurn = computed(() => game.isMyTurn.value)
+
+const showTracker = ref(false)
+const suitOrder: Suit[] = ['S', 'H', 'D', 'C']
+const cardsBySuit = computed(() => {
+  const groups: Record<Suit, { seat: number; card: Card }[]> = { S: [], H: [], D: [], C: [] }
+  for (const play of state.value?.playedThisRound ?? []) {
+    groups[play.card.suit].push(play)
+  }
+  for (const suit of suitOrder) {
+    groups[suit].sort((a, b) => a.card.rank - b.card.rank)
+  }
+  return groups
+})
 
 const sortedHand = computed(() => {
   const order = { S: 0, H: 1, D: 2, C: 3 }

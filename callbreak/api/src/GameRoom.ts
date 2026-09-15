@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 import {
+  allBidsMissed,
   DEFAULT_ROUND_COUNT,
   dealNewRound,
   isInstantWin,
@@ -51,12 +52,21 @@ interface RoomState {
   currentTrick: TrickPlay[]
   tricksWon: number[]
   lastTrick: LastTrick | null
+  /** Every card played so far this round (all completed tricks plus the
+   * current one), in play order — a "cards tracker" so players can see
+   * what's already out. Reset at the start of each round. */
+  playedThisRound: TrickPlay[]
   roundHistory: RoundHistoryEntry[]
   totals: number[]
   /** Set when a player calls 8+ and makes it — that seat wins the game
    * outright at the end of this round, regardless of point totals or
    * rounds remaining (Nepali "instant win" rule). */
   instantWinSeat: number | null
+  /** Set when every single player misses their call in the same round —
+   * "Dhoos Dismiss" forces the game to end right there too, same as
+   * reaching the last configured round (no special winner, highest total
+   * as usual). */
+  dhoosEnd: boolean
   /** The declared winner once phase is 'gameOver': the instant-win seat if
    * one occurred, otherwise whoever has the highest total. */
   winnerSeat: number | null
@@ -81,9 +91,11 @@ function initialState(): RoomState {
     currentTrick: [],
     tricksWon: [0, 0, 0, 0],
     lastTrick: null,
+    playedThisRound: [],
     roundHistory: [],
     totals: [0, 0, 0, 0],
     instantWinSeat: null,
+    dhoosEnd: false,
     winnerSeat: null,
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
@@ -296,7 +308,10 @@ export class GameRoom extends DurableObject<Env> {
     this.roomState.bids = [null, null, null, null]
     this.roomState.currentTrick = []
     this.roomState.tricksWon = [0, 0, 0, 0]
+    this.roomState.lastTrick = null
+    this.roomState.playedThisRound = []
     this.roomState.instantWinSeat = null
+    this.roomState.dhoosEnd = false
     this.roomState.phase = 'bidding'
   }
 
@@ -342,6 +357,7 @@ export class GameRoom extends DurableObject<Env> {
 
     hand.splice(handIndex, 1)
     this.roomState.currentTrick.push({ seat, card })
+    this.roomState.playedThisRound.push({ seat, card })
 
     if (this.roomState.currentTrick.length === SEAT_COUNT) {
       const winnerSeat = resolveTrickWinner(this.roomState.currentTrick)
@@ -386,6 +402,7 @@ export class GameRoom extends DurableObject<Env> {
 
     const instantWinner = tallies.findIndex((t) => isInstantWin(t.call, t.tricksWon))
     this.roomState.instantWinSeat = instantWinner === -1 ? null : instantWinner
+    this.roomState.dhoosEnd = instantWinner === -1 && allBidsMissed(tallies)
 
     this.roomState.phase = 'roundEnd'
   }
@@ -394,7 +411,7 @@ export class GameRoom extends DurableObject<Env> {
     this.requireHost(connectionId)
     if (this.roomState.phase !== 'roundEnd') throw new Error('The current round is not finished yet.')
 
-    if (this.roomState.instantWinSeat !== null || this.roomState.round >= this.roomState.roundCount) {
+    if (this.roomState.instantWinSeat !== null || this.roomState.dhoosEnd || this.roomState.round >= this.roomState.roundCount) {
       this.roomState.phase = 'gameOver'
       this.roomState.winnerSeat = this.roomState.instantWinSeat ?? indexOfHighest(this.roomState.totals)
     } else {

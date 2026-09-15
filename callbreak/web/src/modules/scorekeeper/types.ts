@@ -34,6 +34,7 @@ export interface ScoreStateView {
   history: RoundEntry[][]
   totals: number[]
   instantWinSeat: number | null
+  dhoosEnd: boolean
   winnerSeat: number | null
   yourSeat: number | null
   yourPlayerId: string | null

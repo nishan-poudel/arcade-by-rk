@@ -20,6 +20,7 @@ interface GameStateView {
   totals: number[]
   roundHistory: { round: number; bids: (number | null)[]; tricksWon: number[]; points: number[] }[]
   instantWinSeat: number | null
+  dhoosEnd: boolean
   winnerSeat: number | null
 }
 
@@ -270,5 +271,40 @@ describe('GameRoom full round → scoring → next round', () => {
     expect(state.phase).toBe('gameOver')
     expect(state.winnerSeat).toBe(0)
     expect(state.round).toBe(1) // ended after round 1, not all 5 configured rounds
+  })
+
+  it('everyone missing their call in the same round ends the game instantly ("Dhoos Dismiss")', async () => {
+    const room = await createRoom('game')
+    const { sockets } = await joinFour(room)
+    sockets[0].send('start_game')
+    await collectAll(sockets)
+    await bidAll(sockets, [6, 5, 4, 3])
+
+    // Directly set a trick outcome where every seat falls short of its call
+    // (5<6, 4<5, 3<4, 1<3) and trigger the same round-completion path
+    // play_card would, without needing to simulate all 13 tricks.
+    const stub = env.GAME_ROOM.getByName(room)
+    const result = await runInDurableObject(stub, async (instance: GameRoom) => {
+      const s = (instance as unknown as { roomState: { tricksWon: number[] } }).roomState
+      s.tricksWon = [5, 4, 3, 1]
+      ;(instance as unknown as { finishRound: () => void }).finishRound()
+      return {
+        phase: (instance as unknown as { roomState: { phase: string } }).roomState.phase,
+        instantWinSeat: (instance as unknown as { roomState: { instantWinSeat: number | null } }).roomState
+          .instantWinSeat,
+        dhoosEnd: (instance as unknown as { roomState: { dhoosEnd: boolean } }).roomState.dhoosEnd,
+      }
+    })
+    expect(result.phase).toBe('roundEnd')
+    expect(result.instantWinSeat).toBeNull()
+    expect(result.dhoosEnd).toBe(true)
+
+    sockets[0].send('next_round')
+    const state = asState((await collectAll(sockets))[0])
+    expect(state.phase).toBe('gameOver') // ended instantly, not because of roundCount
+    expect(state.round).toBe(1)
+    // No special winner - totals are [-6,-5,-4,-3], so seat3's -3 is "least bad".
+    expect(state.totals).toEqual([-6, -5, -4, -3])
+    expect(state.winnerSeat).toBe(3)
   })
 })

@@ -17,6 +17,14 @@ export function isInstantWin(call: number, tricksWon: number): boolean {
   return call >= INSTANT_WIN_CALL && tricksWon >= call
 }
 
+/** "Dhoos Dismiss": if every single player misses their call in the same
+ * round, the game ends immediately right there — no one gets a special
+ * win, it just forces game-over the same way reaching the last configured
+ * round would (highest total wins as usual). */
+export function allBidsMissed(tallies: readonly { call: number; tricksWon: number }[]): boolean {
+  return tallies.length > 0 && tallies.every((t) => t.tricksWon < t.call)
+}
+
 /**
  * Call Break scoring for one round:
  * - Made the call exactly or more: `call` points, plus 0.1 per overtrick.
