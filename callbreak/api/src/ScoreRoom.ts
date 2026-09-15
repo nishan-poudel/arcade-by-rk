@@ -31,22 +31,26 @@ interface RoundEntry {
 
 /**
  * One seat's not-yet-finalized entry for the round currently being entered.
- * Locking is deliberate: the host enters a player's call/tricks, locks it
- * in (it stops being editable), moves to the next player, and so on. The
- * round only finalizes once all 4 are locked and the tricks add up to 13 —
- * if they don't, the host has to unlock and fix one before it can finish.
- * There is no casual mid-round editing after a lock; the only way to
- * change an already-recorded round is `edit_round`, and only once the
- * whole session is over (see handleEditRound).
+ * Entry is a guided two-pass flow, same shape as the real game's own
+ * bid-then-play phases: every seat's call is asked and locked in turn
+ * first, then — once all 4 calls are in — every seat's tricks won is asked
+ * and locked in turn. Each lock is deliberate and final until explicitly
+ * unlocked; there is no casual mid-round editing after a lock. The round
+ * only finalizes once all 4 tricks are locked and add up to 13 (the client
+ * caps each pick at what's still available, so in practice this always
+ * holds by the last seat). The only way to change an already-recorded
+ * round is `edit_round`, and only once the whole session is over (see
+ * handleEditRound).
  */
 interface PendingEntry {
   call: number | null
+  callLocked: boolean
   tricksWon: number | null
-  locked: boolean
+  tricksLocked: boolean
 }
 
 function emptyPendingEntries(): PendingEntry[] {
-  return Array.from({ length: SEAT_COUNT }, () => ({ call: null, tricksWon: null, locked: false }))
+  return Array.from({ length: SEAT_COUNT }, () => ({ call: null, callLocked: false, tricksWon: null, tricksLocked: false }))
 }
 
 interface RoomState {
@@ -203,10 +207,14 @@ export class ScoreRoom extends DurableObject<Env> {
         return this.handleSetRoundCount(connectionId, message.payload)
       case 'start_game':
         return this.handleStartGame(connectionId)
-      case 'lock_entry':
-        return this.handleLockEntry(connectionId, message.payload)
-      case 'unlock_entry':
-        return this.handleUnlockEntry(connectionId, message.payload)
+      case 'lock_call':
+        return this.handleLockCall(connectionId, message.payload)
+      case 'unlock_call':
+        return this.handleUnlockCall(connectionId, message.payload)
+      case 'lock_tricks':
+        return this.handleLockTricks(connectionId, message.payload)
+      case 'unlock_tricks':
+        return this.handleUnlockTricks(connectionId, message.payload)
       case 'continue':
         return this.handleContinue(connectionId)
       case 'edit_round':
@@ -322,32 +330,74 @@ export class ScoreRoom extends DurableObject<Env> {
     this.broadcastState()
   }
 
-  /**
-   * Locks in one seat's call + tricks for the round in progress. Once
-   * locked, that seat can't be changed except by explicitly unlocking it
-   * first (handleUnlockEntry) — there's no casual mid-round editing. Once
-   * all 4 seats are locked, the round finalizes automatically as long as
-   * the tricks add up to 13; if they don't, everything stays locked as-is
-   * and the host has to unlock one seat to fix it (checked client-side —
-   * broadcasting the mismatched pendingEntries is itself the signal, not a
-   * rejected request, since every individual lock was valid).
-   */
-  private async handleLockEntry(connectionId: string, payload: unknown): Promise<void> {
-    this.requireHost(connectionId)
-    if (this.roomState.phase !== 'roundEntry') throw new Error('Round entry is not open right now.')
-
+  private seatFromPayload(payload: unknown): number {
     const body = payload as Record<string, unknown> | undefined
     const seat = Number(body?.seat)
     if (!Number.isInteger(seat) || seat < 0 || seat >= SEAT_COUNT) throw new Error('Invalid seat.')
-    if (this.roomState.pendingEntries[seat].locked) {
-      throw new Error('That entry is already locked — unlock it first to change it.')
-    }
+    return seat
+  }
 
+  private allCallsLocked(): boolean {
+    return this.roomState.pendingEntries.every((e) => e.callLocked)
+  }
+
+  /**
+   * Pass 1 of round entry: lock in one seat's call. Once every seat's call
+   * is locked, the round moves on to pass 2 (tricks) automatically — there
+   * is no separate "phase" field for this, the client derives which pass
+   * it's in from whether every call is locked yet.
+   */
+  private async handleLockCall(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'roundEntry') throw new Error('Round entry is not open right now.')
+    if (this.allCallsLocked()) throw new Error('Every call is already locked in for this round.')
+
+    const seat = this.seatFromPayload(payload)
+    const entry = this.roomState.pendingEntries[seat]
+    if (entry.callLocked) throw new Error('That call is already locked in — unlock it first to change it.')
+
+    const body = payload as Record<string, unknown> | undefined
     const call = must(validateCall(body?.call))
-    const tricksWon = must(validateTricksWon(body?.tricksWon))
-    this.roomState.pendingEntries[seat] = { call, tricksWon, locked: true }
+    this.roomState.pendingEntries[seat] = { ...entry, call, callLocked: true }
 
-    if (this.roomState.pendingEntries.every((e) => e.locked)) {
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private async handleUnlockCall(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'roundEntry') throw new Error('Round entry is not open right now.')
+
+    const seat = this.seatFromPayload(payload)
+    const entry = this.roomState.pendingEntries[seat]
+    if (entry.tricksLocked) throw new Error('Unlock the tricks entry first before changing the call.')
+
+    this.roomState.pendingEntries[seat] = { call: null, callLocked: false, tricksWon: null, tricksLocked: false }
+    await this.persist()
+    this.broadcastState()
+  }
+
+  /**
+   * Pass 2: lock in one seat's tricks won, only once every seat's call is
+   * already locked. Once all 4 are locked, the round finalizes automatically
+   * as long as the tricks add up to 13; the client caps each pick at
+   * what's still available so this holds by construction, but the check
+   * stays here too since the server never trusts client-side arithmetic.
+   */
+  private async handleLockTricks(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'roundEntry') throw new Error('Round entry is not open right now.')
+    if (!this.allCallsLocked()) throw new Error("Lock in everyone's call before entering tricks won.")
+
+    const seat = this.seatFromPayload(payload)
+    const entry = this.roomState.pendingEntries[seat]
+    if (entry.tricksLocked) throw new Error('That entry is already locked — unlock it first to change it.')
+
+    const body = payload as Record<string, unknown> | undefined
+    const tricksWon = must(validateTricksWon(body?.tricksWon))
+    this.roomState.pendingEntries[seat] = { ...entry, tricksWon, tricksLocked: true }
+
+    if (this.roomState.pendingEntries.every((e) => e.tricksLocked)) {
       const totalTricks = this.roomState.pendingEntries.reduce((sum, e) => sum + (e.tricksWon ?? 0), 0)
       if (totalTricks === 13) this.finalizeRound()
     }
@@ -356,15 +406,13 @@ export class ScoreRoom extends DurableObject<Env> {
     this.broadcastState()
   }
 
-  private async handleUnlockEntry(connectionId: string, payload: unknown): Promise<void> {
+  private async handleUnlockTricks(connectionId: string, payload: unknown): Promise<void> {
     this.requireHost(connectionId)
     if (this.roomState.phase !== 'roundEntry') throw new Error('Round entry is not open right now.')
 
-    const body = payload as Record<string, unknown> | undefined
-    const seat = Number(body?.seat)
-    if (!Number.isInteger(seat) || seat < 0 || seat >= SEAT_COUNT) throw new Error('Invalid seat.')
-
-    this.roomState.pendingEntries[seat] = { call: null, tricksWon: null, locked: false }
+    const seat = this.seatFromPayload(payload)
+    const entry = this.roomState.pendingEntries[seat]
+    this.roomState.pendingEntries[seat] = { ...entry, tricksWon: null, tricksLocked: false }
     await this.persist()
     this.broadcastState()
   }

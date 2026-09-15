@@ -3,8 +3,9 @@ import { collectAll, connect, createRoom, joinFour, type TestSocket } from './he
 
 interface PendingEntry {
   call: number | null
+  callLocked: boolean
   tricksWon: number | null
-  locked: boolean
+  tricksLocked: boolean
 }
 
 interface ScoreStateView {
@@ -31,17 +32,22 @@ async function errorOf(msg: { type: string; payload: unknown }): Promise<string>
   return (msg.payload as { message: string }).message
 }
 
-/** Locks in all 4 seats' entries in order via the host, one at a time —
- * the real flow (turn by turn, each one locked as soon as it's entered). If
- * the tricks add up to 13, the 4th lock finalizes the round and this
- * returns the resulting (roundResult) state. */
+/** Locks in all 4 seats' calls, then all 4 seats' tricks, via the host, one
+ * at a time — the real guided flow (every call first, turn by turn, then
+ * every tricks-won, turn by turn). If the tricks add up to 13, the 4th
+ * tricks lock finalizes the round and this returns the resulting
+ * (roundResult) state. */
 async function lockRound(
   sockets: TestSocket[],
   entries: { call: number; tricksWon: number }[],
 ): Promise<ScoreStateView> {
   let state: ScoreStateView | undefined
   for (let seat = 0; seat < 4; seat++) {
-    sockets[0].send('lock_entry', { seat, call: entries[seat].call, tricksWon: entries[seat].tricksWon })
+    sockets[0].send('lock_call', { seat, call: entries[seat].call })
+    state = asState((await collectAll(sockets))[0])
+  }
+  for (let seat = 0; seat < 4; seat++) {
+    sockets[0].send('lock_tricks', { seat, tricksWon: entries[seat].tricksWon })
     state = asState((await collectAll(sockets))[0])
   }
   return state!
@@ -77,13 +83,18 @@ describe('ScoreRoom', () => {
     expect(state.phase).toBe('roundEntry')
 
     // Scoring works identically for name-only seats.
-    for (const [seat, entry] of [
+    const soloEntries = [
       { call: 3, tricksWon: 3 },
       { call: 4, tricksWon: 6 },
       { call: 4, tricksWon: 2 },
       { call: 2, tricksWon: 2 },
-    ].entries()) {
-      host.send('lock_entry', { seat, ...entry })
+    ]
+    for (const [seat, entry] of soloEntries.entries()) {
+      host.send('lock_call', { seat, call: entry.call })
+      state = asState(await host.next())
+    }
+    for (const [seat, entry] of soloEntries.entries()) {
+      host.send('lock_tricks', { seat, tricksWon: entry.tricksWon })
       state = asState(await host.next())
     }
     expect(state.history[0].map((h) => h.points)).toEqual([3, 4.2, -4, 2])
@@ -118,41 +129,84 @@ describe('ScoreRoom', () => {
     expect(state.roundCount).toBe(3)
   })
 
-  it('only the host can lock or unlock an entry', async () => {
+  it('only the host can lock or unlock a call or a tricks entry', async () => {
     const room = await createRoom('score')
     const { sockets } = await joinFour(room, 'score')
     sockets[0].send('start_game')
     await collectAll(sockets)
 
-    sockets[1].send('lock_entry', { seat: 1, call: 3, tricksWon: 3 })
+    sockets[1].send('lock_call', { seat: 1, call: 3 })
     expect(await errorOf(await sockets[1].next())).toMatch(/host/i)
 
-    sockets[0].send('lock_entry', { seat: 0, call: 3, tricksWon: 3 })
+    sockets[0].send('lock_call', { seat: 0, call: 3 })
     await collectAll(sockets)
 
-    sockets[1].send('unlock_entry', { seat: 0 })
+    sockets[1].send('unlock_call', { seat: 0 })
+    expect(await errorOf(await sockets[1].next())).toMatch(/host/i)
+
+    for (const seat of [1, 2, 3]) {
+      sockets[0].send('lock_call', { seat, call: 3 })
+      await collectAll(sockets)
+    }
+
+    sockets[1].send('lock_tricks', { seat: 1, tricksWon: 3 })
+    expect(await errorOf(await sockets[1].next())).toMatch(/host/i)
+
+    sockets[0].send('lock_tricks', { seat: 0, tricksWon: 3 })
+    await collectAll(sockets)
+
+    sockets[1].send('unlock_tricks', { seat: 0 })
     expect(await errorOf(await sockets[1].next())).toMatch(/host/i)
   })
 
-  it('rejects locking an already-locked seat until it is unlocked', async () => {
+  it('rejects locking an already-locked call or tricks entry until it is unlocked', async () => {
     const room = await createRoom('score')
     const { sockets } = await joinFour(room, 'score')
     sockets[0].send('start_game')
     await collectAll(sockets)
 
-    sockets[0].send('lock_entry', { seat: 2, call: 4, tricksWon: 4 })
+    sockets[0].send('lock_call', { seat: 2, call: 4 })
     await collectAll(sockets)
 
-    sockets[0].send('lock_entry', { seat: 2, call: 5, tricksWon: 5 })
+    sockets[0].send('lock_call', { seat: 2, call: 5 })
     expect(await errorOf(await sockets[0].next())).toMatch(/already locked/i)
 
-    sockets[0].send('unlock_entry', { seat: 2 })
+    sockets[0].send('unlock_call', { seat: 2 })
     let state = asState((await collectAll(sockets))[0])
-    expect(state.pendingEntries[2].locked).toBe(false)
+    expect(state.pendingEntries[2].callLocked).toBe(false)
 
-    sockets[0].send('lock_entry', { seat: 2, call: 5, tricksWon: 5 })
+    sockets[0].send('lock_call', { seat: 2, call: 5 })
     state = asState((await collectAll(sockets))[0])
-    expect(state.pendingEntries[2]).toEqual({ call: 5, tricksWon: 5, locked: true })
+    expect(state.pendingEntries[2]).toEqual({ call: 5, callLocked: true, tricksWon: null, tricksLocked: false })
+
+    // Lock the remaining calls so tricks entry opens up.
+    for (const seat of [0, 1, 3]) {
+      sockets[0].send('lock_call', { seat, call: 3 })
+      state = asState((await collectAll(sockets))[0])
+    }
+
+    sockets[0].send('lock_tricks', { seat: 2, tricksWon: 5 })
+    await collectAll(sockets)
+
+    sockets[0].send('lock_tricks', { seat: 2, tricksWon: 6 })
+    expect(await errorOf(await sockets[0].next())).toMatch(/already locked/i)
+
+    sockets[0].send('unlock_tricks', { seat: 2 })
+    state = asState((await collectAll(sockets))[0])
+    expect(state.pendingEntries[2].tricksLocked).toBe(false)
+  })
+
+  it('will not open tricks entry until every seat has a locked-in call', async () => {
+    const room = await createRoom('score')
+    const { sockets } = await joinFour(room, 'score')
+    sockets[0].send('start_game')
+    await collectAll(sockets)
+
+    sockets[0].send('lock_call', { seat: 0, call: 3 })
+    await collectAll(sockets)
+
+    sockets[0].send('lock_tricks', { seat: 0, tricksWon: 3 })
+    expect(await errorOf(await sockets[0].next())).toMatch(/lock in everyone's call/i)
   })
 
   it('does not finalize a round whose tricks do not add up to 13 until an entry is unlocked and fixed', async () => {
@@ -167,18 +221,23 @@ describe('ScoreRoom', () => {
       { call: 4, tricksWon: 4 },
       { call: 2, tricksWon: 1 }, // sums to 12, not 13
     ]
+    for (const [seat, entry] of bad.entries()) {
+      sockets[0].send('lock_call', { seat, call: entry.call })
+      await collectAll(sockets)
+    }
+
     let state: ScoreStateView | undefined
     for (let seat = 0; seat < 4; seat++) {
-      sockets[0].send('lock_entry', { seat, ...bad[seat] })
+      sockets[0].send('lock_tricks', { seat, tricksWon: bad[seat].tricksWon })
       state = asState((await collectAll(sockets))[0])
     }
     // All 4 locked, but the mismatch means the round hasn't finalized.
     expect(state?.phase).toBe('roundEntry')
-    expect(state?.pendingEntries.every((e) => e.locked)).toBe(true)
+    expect(state?.pendingEntries.every((e) => e.tricksLocked)).toBe(true)
 
-    sockets[0].send('unlock_entry', { seat: 3 })
+    sockets[0].send('unlock_tricks', { seat: 3 })
     await collectAll(sockets)
-    sockets[0].send('lock_entry', { seat: 3, call: 2, tricksWon: 2 }) // now sums to 13
+    sockets[0].send('lock_tricks', { seat: 3, tricksWon: 2 }) // now sums to 13
     state = asState((await collectAll(sockets))[0])
     expect(state.phase).toBe('roundResult')
     // seat1 (call4/won4) and seat2 (call4/won4) both made their call exactly.

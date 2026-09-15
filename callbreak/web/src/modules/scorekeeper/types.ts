@@ -16,12 +16,14 @@ export interface RoundEntry {
   points: number
 }
 
-/** One seat's not-yet-finalized entry for the round in progress. Locked
- * entries can't be changed except by explicitly unlocking first. */
+/** One seat's not-yet-finalized entry for the round in progress: a guided
+ * two-pass flow, calls first then tricks, each locked in turn and unlocked
+ * only explicitly. */
 export interface PendingEntry {
   call: number | null
+  callLocked: boolean
   tricksWon: number | null
-  locked: boolean
+  tricksLocked: boolean
 }
 
 export interface ScoreStateView {

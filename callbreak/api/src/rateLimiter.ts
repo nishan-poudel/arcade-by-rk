@@ -12,17 +12,20 @@ interface Bucket {
   windowStart: number
 }
 
-const GLOBAL_LIMIT = 60
+const GLOBAL_LIMIT = 120
 const WINDOW_MS = 5_000
 const BURST_PER_EVENT = 5
 
 const BURST_OVERRIDES: Record<string, number> = {
   play_card: 15,
   request_state: 12,
-  // The in-person score-keeper's host legitimately locks in 4 entries per
-  // round, round after round, all from one connection — 5 would get them
-  // rate-limited partway through round 2.
-  lock_entry: 30,
+  // The in-person score-keeper's host legitimately locks in 8 entries per
+  // round (4 calls, then 4 tricks), round after round, all from one
+  // connection — 5 would get them rate-limited partway through round 1.
+  lock_call: 30,
+  unlock_call: 15,
+  lock_tricks: 30,
+  unlock_tricks: 15,
 }
 
 export class RateLimiter {
