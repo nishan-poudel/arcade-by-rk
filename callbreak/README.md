@@ -167,10 +167,13 @@ updating if the web Worker's URL ever changes).
 - **Rules**: one fixed ruleset (spades always trump, must-trump-if-void,
   calls 1–13, make = call + 0.1/overtrick, miss = −call). The only
   host-configurable setting is round count (3/5/7, default 5).
-- **Cards**: hand-drawn flat vector SVGs (`web/src/components/cards/`), no
-  external card-asset library. Suit glyphs are built from simple circle/path
-  primitives, sized with CSS container-query units so one card component
-  works at every size (hand fan vs. the trick table).
+- **Cards**: classic illustrated French-deck faces from the
+  [htdebeer/SVG-cards](https://github.com/htdebeer/SVG-cards) sprite (LGPL
+  2.1, credited in `web/public/cards/CREDITS.md`), referenced by symbol id
+  via SVG `<use>` so the whole 52-card deck is one small cached asset shared
+  across every card on screen (`web/src/components/cards/PlayingCard.vue`,
+  `cardSprite.ts`). The card back stays a hand-drawn brand pattern
+  (`CardBack.vue`) rather than the sprite's own back design.
 - **Real-time**: plain WebSocket + JSON messages over the WebSocket
   Hibernation API, not Socket.IO (Durable Objects don't speak that
   protocol). Workers never sleep the way a free Render instance does, so
