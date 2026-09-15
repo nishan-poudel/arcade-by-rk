@@ -27,7 +27,7 @@
             <p class="text-xs text-muted-foreground">
               {{ lastRound[seat].call }} called ·
               <span :class="lastRound[seat].tricksWon >= lastRound[seat].call ? 'text-flavor-melon-ink' : 'text-destructive'">
-                {{ lastRound[seat].tricksWon >= lastRound[seat].call ? t.leaderboard.made : t.leaderboard.missed }}
+                {{ outcomeLabel(seat) }}
               </span>
             </p>
           </div>
@@ -99,6 +99,13 @@ const ranked = computed(() => {
     .filter((r): r is { seat: number; name: string; total: number; split: { points: number; ot: number } } => r !== null)
     .sort((a, b) => b.total - a.total)
 })
+
+function outcomeLabel(seat: number): string {
+  if (!lastRound.value) return ''
+  const { call, tricksWon } = lastRound.value[seat]
+  if (tricksWon < call) return t.leaderboard.missed
+  return tricksWon === call ? t.leaderboard.perfectCall : t.leaderboard.made
+}
 </script>
 
 <style scoped>

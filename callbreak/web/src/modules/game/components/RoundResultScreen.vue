@@ -28,7 +28,7 @@
               {{ t.trickPlay.call }} {{ lastRound.bids[seat] }} · {{ t.trickPlay.tricksWon }} {{ lastRound.tricksWon[seat] }}
               ·
               <span :class="lastRound.points[seat] >= (lastRound.bids[seat] ?? 0) ? 'text-flavor-melon-ink' : 'text-destructive'">
-                {{ lastRound.tricksWon[seat] >= (lastRound.bids[seat] ?? 0) ? t.roundResult.made : t.roundResult.missed }}
+                {{ outcomeLabel(seat) }}
               </span>
             </p>
           </div>
@@ -67,6 +67,14 @@ const isLastRound = computed(() =>
     ? state.value.instantWinSeat !== null || state.value.dhoosEnd || state.value.round >= state.value.roundCount
     : false,
 )
+
+function outcomeLabel(seat: number): string {
+  if (!lastRound.value) return ''
+  const bid = lastRound.value.bids[seat] ?? 0
+  const won = lastRound.value.tricksWon[seat]
+  if (won < bid) return t.roundResult.missed
+  return won === bid ? t.roundResult.perfectCall : t.roundResult.made
+}
 
 function roundSplit(seat: number): PointsOT {
   if (!lastRound.value) return { points: 0, ot: 0 }

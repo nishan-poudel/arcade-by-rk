@@ -1,5 +1,15 @@
 <template>
   <div v-if="state" class="mx-auto flex w-full max-w-md flex-1 flex-col gap-3 animate-slide-up">
+    <div class="flex justify-end">
+      <button
+        type="button"
+        class="rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-display font-bold text-foreground shadow-hard-sm transition-transform active:scale-95"
+        @click="showTracker = true"
+      >
+        🗂️ {{ t.trickPlay.trackerButton }}
+      </button>
+    </div>
+
     <!-- Big, unmissable turn indicator — first thing on the screen. -->
     <div
       class="rounded-2xl px-4 py-3 text-center font-display text-base font-bold shadow-pop transition-colors"
@@ -10,13 +20,6 @@
 
     <div class="flex flex-wrap items-center justify-center gap-2">
       <SeatBadge v-for="(p, seat) in state.players" :key="seat" :player="p" :seat="seat" :state="state" show-tricks />
-      <button
-        type="button"
-        class="rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-display font-bold text-foreground shadow-hard-sm transition-transform active:scale-95"
-        @click="showTracker = true"
-      >
-        🗂️ {{ t.trickPlay.trackerButton }}
-      </button>
     </div>
 
     <Transition name="pop">
