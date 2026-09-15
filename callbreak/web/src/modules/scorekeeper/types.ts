@@ -16,12 +16,21 @@ export interface RoundEntry {
   points: number
 }
 
+/** One seat's not-yet-finalized entry for the round in progress. Locked
+ * entries can't be changed except by explicitly unlocking first. */
+export interface PendingEntry {
+  call: number | null
+  tricksWon: number | null
+  locked: boolean
+}
+
 export interface ScoreStateView {
   code: string
   phase: ScorePhase
   roundCount: RoundCount
   round: number
   players: (PublicPlayer | null)[]
+  pendingEntries: PendingEntry[]
   history: RoundEntry[][]
   totals: number[]
   instantWinSeat: number | null

@@ -5,38 +5,70 @@
       <p class="text-sm text-muted-foreground">{{ t.roundEntry.subtitle }}</p>
     </div>
 
-    <template v-if="score.isHost.value">
-      <Card v-for="(p, seat) in state.players" :key="seat">
-        <CardContent class="flex flex-col gap-3 pt-4">
-          <p class="font-display font-semibold">{{ p?.name }}</p>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <Label>{{ t.roundEntry.callLabel }}</Label>
-              <div class="flex items-center gap-2">
-                <Button variant="outline" size="icon" class="h-9 w-9 shrink-0" :data-testid="`call-dec-${seat}`" @click="dec(entries[seat], 'call')">−</Button>
-                <span class="w-8 text-center font-display text-xl font-bold">{{ entries[seat].call }}</span>
-                <Button variant="outline" size="icon" class="h-9 w-9 shrink-0" :data-testid="`call-inc-${seat}`" @click="inc(entries[seat], 'call')">+</Button>
-              </div>
-            </div>
-            <div>
-              <Label>{{ t.roundEntry.tricksLabel }}</Label>
-              <div class="flex items-center gap-2">
-                <Button variant="outline" size="icon" class="h-9 w-9 shrink-0" :data-testid="`tricks-dec-${seat}`" @click="dec(entries[seat], 'tricksWon')">−</Button>
-                <span class="w-8 text-center font-display text-xl font-bold">{{ entries[seat].tricksWon }}</span>
-                <Button variant="outline" size="icon" class="h-9 w-9 shrink-0" :data-testid="`tricks-inc-${seat}`" @click="inc(entries[seat], 'tricksWon')">+</Button>
-              </div>
+    <div class="flex flex-col gap-2">
+      <div
+        v-for="(p, seat) in state.players"
+        :key="seat"
+        class="flex items-center justify-between rounded-xl border-2 px-3 py-2.5 transition-colors"
+        :class="rowClass(seat)"
+      >
+        <span class="font-display font-semibold">{{ p?.name }}</span>
+
+        <template v-if="state.pendingEntries[seat].locked">
+          <span class="flex items-center gap-2 text-sm">
+            <span class="text-muted-foreground">
+              {{ t.roundEntry.callLabel }} {{ state.pendingEntries[seat].call }} · {{ t.roundEntry.tricksLabel }}
+              {{ state.pendingEntries[seat].tricksWon }}
+            </span>
+            <Check class="h-4 w-4 text-flavor-melon-ink" />
+            <Button v-if="score.isHost.value" size="sm" variant="ghost" @click="score.unlockEntry(seat)">
+              {{ t.roundEntry.unlockButton }}
+            </Button>
+          </span>
+        </template>
+        <span v-else-if="seat !== currentSeat" class="text-sm text-muted-foreground">{{ t.roundEntry.waitingTurn }}</span>
+      </div>
+    </div>
+
+    <Card v-if="score.isHost.value && currentSeat !== -1">
+      <CardContent class="flex flex-col gap-4 pt-4">
+        <p class="text-center font-display text-sm font-semibold text-primary">
+          {{ t.roundEntry.nowEntering(state.players[currentSeat]?.name ?? '') }}
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <Label>{{ t.roundEntry.callLabel }}</Label>
+            <div class="flex items-center gap-2">
+              <Button variant="outline" size="icon" class="h-9 w-9 shrink-0" @click="dec('call')">−</Button>
+              <span class="w-8 text-center font-display text-xl font-bold">{{ draft.call }}</span>
+              <Button variant="outline" size="icon" class="h-9 w-9 shrink-0" @click="inc('call')">+</Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <Label>{{ t.roundEntry.tricksLabel }}</Label>
+            <div class="flex items-center gap-2">
+              <Button variant="outline" size="icon" class="h-9 w-9 shrink-0" @click="dec('tricksWon')">−</Button>
+              <span class="w-8 text-center font-display text-xl font-bold">{{ draft.tricksWon }}</span>
+              <Button variant="outline" size="icon" class="h-9 w-9 shrink-0" @click="inc('tricksWon')">+</Button>
+            </div>
+          </div>
+        </div>
+        <Button size="lg" @click="lockIn">{{ t.roundEntry.lockInButton }}</Button>
+      </CardContent>
+    </Card>
 
-      <p class="text-center text-sm font-medium" :class="remaining === 0 ? 'text-flavor-melon-ink' : 'text-muted-foreground'">
-        {{ remaining >= 0 ? t.roundEntry.tricksRemaining(remaining) : t.roundEntry.tricksOver(remaining) }}
-      </p>
+    <!-- All 4 locked but the tricks don't add up to 13 — the round hasn't
+         finalized (server-side), so guide the host to unlock and fix one. -->
+    <p v-else-if="allLocked && !score.isHost.value" class="text-center text-sm text-muted-foreground">
+      {{ t.roundEntry.onlyHostCanSubmit }}
+    </p>
+    <div v-if="allLocked" class="rounded-2xl bg-destructive/10 px-4 py-3 text-center text-sm font-medium text-destructive">
+      {{ t.roundEntry.tricksMismatch(tricksTotal) }}
+    </div>
 
-      <Button size="lg" :disabled="remaining !== 0" @click="submit">{{ t.roundEntry.submitButton }}</Button>
-    </template>
-    <p v-else class="text-center text-sm text-muted-foreground">{{ t.roundEntry.onlyHostCanSubmit }}</p>
+    <p v-if="!score.isHost.value && currentSeat !== -1" class="text-center text-sm text-muted-foreground">
+      {{ t.roundEntry.onlyHostCanSubmit }}
+    </p>
 
     <p v-if="score.errorMessage.value" class="text-center text-sm font-medium text-destructive">
       {{ score.errorMessage.value }}
@@ -45,7 +77,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
+import { Check } from '@lucide/vue'
 import { MAX_CALL, MIN_CALL } from '@callbreak/shared-logic'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -57,26 +90,33 @@ const t = en.scoreKeeper
 const score = useScoreRoom()
 const state = computed(() => score.state.value)
 
-const entries = reactive(
-  Array.from({ length: 4 }, () => ({ call: MIN_CALL, tricksWon: 0 })),
-)
+const currentSeat = computed(() => state.value?.pendingEntries.findIndex((e) => !e.locked) ?? -1)
+const allLocked = computed(() => currentSeat.value === -1)
+const tricksTotal = computed(() => state.value?.pendingEntries.reduce((sum, e) => sum + (e.tricksWon ?? 0), 0) ?? 0)
 
-const remaining = computed(() => 13 - entries.reduce((sum, e) => sum + e.tricksWon, 0))
+function rowClass(seat: number): string {
+  if (state.value?.pendingEntries[seat].locked) return 'border-flavor-melon/50 bg-flavor-melon/10'
+  if (seat === currentSeat.value) return 'border-primary bg-primary/10 shadow-pop'
+  return 'border-border bg-secondary/20'
+}
 
-function inc(entry: { call: number; tricksWon: number }, field: 'call' | 'tricksWon') {
+const draft = reactive({ call: MIN_CALL, tricksWon: 0 })
+watch(currentSeat, () => {
+  draft.call = MIN_CALL
+  draft.tricksWon = 0
+})
+
+function inc(field: 'call' | 'tricksWon') {
   const max = field === 'call' ? MAX_CALL : 13
-  if (entry[field] < max) entry[field]++
+  if (draft[field] < max) draft[field]++
 }
-function dec(entry: { call: number; tricksWon: number }, field: 'call' | 'tricksWon') {
+function dec(field: 'call' | 'tricksWon') {
   const min = field === 'call' ? MIN_CALL : 0
-  if (entry[field] > min) entry[field]--
+  if (draft[field] > min) draft[field]--
 }
 
-function submit() {
-  score.submitRound(entries.map((e, seat) => ({ seat, call: e.call, tricksWon: e.tricksWon })))
-  entries.forEach((e) => {
-    e.call = MIN_CALL
-    e.tricksWon = 0
-  })
+function lockIn() {
+  if (currentSeat.value === -1) return
+  score.lockEntry(currentSeat.value, draft.call, draft.tricksWon)
 }
 </script>

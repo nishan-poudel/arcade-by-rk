@@ -29,12 +29,33 @@ interface RoundEntry {
   points: number
 }
 
+/**
+ * One seat's not-yet-finalized entry for the round currently being entered.
+ * Locking is deliberate: the host enters a player's call/tricks, locks it
+ * in (it stops being editable), moves to the next player, and so on. The
+ * round only finalizes once all 4 are locked and the tricks add up to 13 —
+ * if they don't, the host has to unlock and fix one before it can finish.
+ * There is no casual mid-round editing after a lock; the only way to
+ * change an already-recorded round is `edit_round`, and only once the
+ * whole session is over (see handleEditRound).
+ */
+interface PendingEntry {
+  call: number | null
+  tricksWon: number | null
+  locked: boolean
+}
+
+function emptyPendingEntries(): PendingEntry[] {
+  return Array.from({ length: SEAT_COUNT }, () => ({ call: null, tricksWon: null, locked: false }))
+}
+
 interface RoomState {
   code: string
   phase: Phase
   roundCount: RoundCount
   round: number // rounds completed so far
   players: (Player | null)[]
+  pendingEntries: PendingEntry[] // this round's in-progress, seat-locked entries
   history: RoundEntry[][] // [roundIndex][seat]
   totals: number[]
   /** Set when a player calls 8+ and makes it — that seat wins outright at
@@ -57,6 +78,7 @@ function initialState(): RoomState {
     roundCount: DEFAULT_ROUND_COUNT,
     round: 0,
     players: [null, null, null, null],
+    pendingEntries: emptyPendingEntries(),
     history: [],
     totals: [0, 0, 0, 0],
     instantWinSeat: null,
@@ -176,10 +198,14 @@ export class ScoreRoom extends DurableObject<Env> {
         return this.handleSetRoundCount(connectionId, message.payload)
       case 'start_game':
         return this.handleStartGame(connectionId)
-      case 'submit_round':
-        return this.handleSubmitRound(connectionId, message.payload)
+      case 'lock_entry':
+        return this.handleLockEntry(connectionId, message.payload)
+      case 'unlock_entry':
+        return this.handleUnlockEntry(connectionId, message.payload)
       case 'continue':
         return this.handleContinue(connectionId)
+      case 'edit_round':
+        return this.handleEditRound(connectionId, message.payload)
       case 'remove_player':
         return this.handleRemovePlayer(connectionId, message.payload)
       case 'request_state':
@@ -285,16 +311,116 @@ export class ScoreRoom extends DurableObject<Env> {
     if (this.roomState.phase !== 'lobby') throw new Error('This session has already started.')
     if (this.roomState.players.some((p) => p === null)) throw new Error('Call Break needs exactly 4 players.')
 
+    this.roomState.pendingEntries = emptyPendingEntries()
     this.roomState.phase = 'roundEntry'
     await this.persist()
     this.broadcastState()
   }
 
-  private async handleSubmitRound(connectionId: string, payload: unknown): Promise<void> {
+  /**
+   * Locks in one seat's call + tricks for the round in progress. Once
+   * locked, that seat can't be changed except by explicitly unlocking it
+   * first (handleUnlockEntry) — there's no casual mid-round editing. Once
+   * all 4 seats are locked, the round finalizes automatically as long as
+   * the tricks add up to 13; if they don't, everything stays locked as-is
+   * and the host has to unlock one seat to fix it (checked client-side —
+   * broadcasting the mismatched pendingEntries is itself the signal, not a
+   * rejected request, since every individual lock was valid).
+   */
+  private async handleLockEntry(connectionId: string, payload: unknown): Promise<void> {
     this.requireHost(connectionId)
     if (this.roomState.phase !== 'roundEntry') throw new Error('Round entry is not open right now.')
 
     const body = payload as Record<string, unknown> | undefined
+    const seat = Number(body?.seat)
+    if (!Number.isInteger(seat) || seat < 0 || seat >= SEAT_COUNT) throw new Error('Invalid seat.')
+    if (this.roomState.pendingEntries[seat].locked) {
+      throw new Error('That entry is already locked — unlock it first to change it.')
+    }
+
+    const call = must(validateCall(body?.call))
+    const tricksWon = must(validateTricksWon(body?.tricksWon))
+    this.roomState.pendingEntries[seat] = { call, tricksWon, locked: true }
+
+    if (this.roomState.pendingEntries.every((e) => e.locked)) {
+      const totalTricks = this.roomState.pendingEntries.reduce((sum, e) => sum + (e.tricksWon ?? 0), 0)
+      if (totalTricks === 13) this.finalizeRound()
+    }
+
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private async handleUnlockEntry(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'roundEntry') throw new Error('Round entry is not open right now.')
+
+    const body = payload as Record<string, unknown> | undefined
+    const seat = Number(body?.seat)
+    if (!Number.isInteger(seat) || seat < 0 || seat >= SEAT_COUNT) throw new Error('Invalid seat.')
+
+    this.roomState.pendingEntries[seat] = { call: null, tricksWon: null, locked: false }
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private finalizeRound(): void {
+    const entries = this.roomState.pendingEntries
+    const roundResult: RoundEntry[] = entries.map((e) => ({
+      call: e.call!,
+      tricksWon: e.tricksWon!,
+      points: scoreRound(e.call!, e.tricksWon!),
+    }))
+
+    this.roomState.history.push(roundResult)
+    roundResult.forEach((r, seat) => {
+      this.roomState.totals[seat] = Math.round((this.roomState.totals[seat] + r.points) * 10) / 10
+    })
+    this.roomState.round += 1
+
+    const instantWinner = entries.findIndex((e) => isInstantWin(e.call!, e.tricksWon!))
+    this.roomState.instantWinSeat = instantWinner === -1 ? null : instantWinner
+
+    this.roomState.phase = 'roundResult'
+  }
+
+  private async handleContinue(connectionId: string): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'roundResult') throw new Error('There is no round result to continue from.')
+
+    if (this.roomState.instantWinSeat !== null || this.roomState.round >= this.roomState.roundCount) {
+      this.roomState.phase = 'gameOver'
+      this.roomState.winnerSeat = this.roomState.instantWinSeat ?? indexOfHighest(this.roomState.totals)
+    } else {
+      this.roomState.pendingEntries = emptyPendingEntries()
+      this.roomState.phase = 'roundEntry'
+    }
+    await this.persist()
+    this.broadcastState()
+  }
+
+  /**
+   * Post-game correction: once the session is fully over, the host can go
+   * back and fix a past round if it was entered wrong (a miscount noticed
+   * later, say). This is the *only* way to change a round after it was
+   * locked in — never mid-session. Recomputes that round's points and every
+   * player's cumulative total from scratch. An instant-win ending is left
+   * alone — that's a fact about what happened at the table, not something a
+   * stats correction should undo — but the winner is recomputed from the
+   * corrected totals when the session ended normally.
+   */
+  private async handleEditRound(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'gameOver') {
+      throw new Error('Rounds can only be corrected after the session is complete.')
+    }
+
+    const body = payload as Record<string, unknown> | undefined
+    const roundNumber = Number(body?.round)
+    if (!Number.isInteger(roundNumber) || roundNumber < 1 || roundNumber > this.roomState.history.length) {
+      throw new Error('Invalid round number.')
+    }
+
     const rawEntries = body?.entries
     if (!Array.isArray(rawEntries) || rawEntries.length !== SEAT_COUNT) {
       throw new Error('Expected an entry for all 4 players.')
@@ -317,37 +443,24 @@ export class ScoreRoom extends DurableObject<Env> {
     const totalTricks = bySeat.reduce((sum, e) => sum + e.tricksWon, 0)
     if (totalTricks !== 13) throw new Error(`Tricks won must add up to 13 across all 4 players (got ${totalTricks}).`)
 
-    const roundResult: RoundEntry[] = bySeat.map((e) => ({
+    this.roomState.history[roundNumber - 1] = bySeat.map((e) => ({
       call: e.call,
       tricksWon: e.tricksWon,
       points: scoreRound(e.call, e.tricksWon),
     }))
 
-    this.roomState.history.push(roundResult)
-    roundResult.forEach((r, seat) => {
-      this.roomState.totals[seat] = Math.round((this.roomState.totals[seat] + r.points) * 10) / 10
-    })
-    this.roomState.round += 1
-
-    const instantWinner = bySeat.findIndex((e) => isInstantWin(e.call, e.tricksWon))
-    this.roomState.instantWinSeat = instantWinner === -1 ? null : instantWinner
-
-    this.roomState.phase = 'roundResult'
-
-    await this.persist()
-    this.broadcastState()
-  }
-
-  private async handleContinue(connectionId: string): Promise<void> {
-    this.requireHost(connectionId)
-    if (this.roomState.phase !== 'roundResult') throw new Error('There is no round result to continue from.')
-
-    if (this.roomState.instantWinSeat !== null || this.roomState.round >= this.roomState.roundCount) {
-      this.roomState.phase = 'gameOver'
-      this.roomState.winnerSeat = this.roomState.instantWinSeat ?? indexOfHighest(this.roomState.totals)
-    } else {
-      this.roomState.phase = 'roundEntry'
+    const totals = [0, 0, 0, 0]
+    for (const round of this.roomState.history) {
+      round.forEach((r, seat) => {
+        totals[seat] = Math.round((totals[seat] + r.points) * 10) / 10
+      })
     }
+    this.roomState.totals = totals
+
+    if (this.roomState.instantWinSeat === null) {
+      this.roomState.winnerSeat = indexOfHighest(this.roomState.totals)
+    }
+
     await this.persist()
     this.broadcastState()
   }

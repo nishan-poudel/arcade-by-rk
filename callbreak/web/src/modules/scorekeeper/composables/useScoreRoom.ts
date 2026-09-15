@@ -153,11 +153,17 @@ function setRoundCount(roundCount: RoundCount): void {
 function startGame(): void {
   conn.send('start_game')
 }
-function submitRound(entries: { seat: number; call: number; tricksWon: number }[]): void {
-  conn.send('submit_round', { entries })
+function lockEntry(seat: number, call: number, tricksWon: number): void {
+  conn.send('lock_entry', { seat, call, tricksWon })
+}
+function unlockEntry(seat: number): void {
+  conn.send('unlock_entry', { seat })
 }
 function continueGame(): void {
   conn.send('continue')
+}
+function editRound(round: number, entries: { seat: number; call: number; tricksWon: number }[]): void {
+  conn.send('edit_round', { round, entries })
 }
 function removePlayer(seat: number): void {
   conn.send('remove_player', { seat })
@@ -182,8 +188,10 @@ export function useScoreRoom() {
     leaveRoom,
     setRoundCount,
     startGame,
-    submitRound,
+    lockEntry,
+    unlockEntry,
     continueGame,
+    editRound,
     removePlayer,
     addPlayer,
   }

@@ -1,5 +1,6 @@
 <template>
-  <div v-if="state" class="relative mx-auto flex w-full max-w-sm flex-col gap-6 animate-slide-up">
+  <EditRoundsScreen v-if="state && showEditHistory" @close="showEditHistory = false" />
+  <div v-else-if="state" class="relative mx-auto flex w-full max-w-sm flex-col gap-6 animate-slide-up">
     <ConfettiBurst />
 
     <div class="text-center">
@@ -35,6 +36,9 @@
 
     <div class="flex flex-col gap-2">
       <Button size="lg" variant="outline" @click="onSave">{{ saveLabel }}</Button>
+      <Button v-if="score.isHost.value" size="lg" variant="outline" @click="showEditHistory = true">
+        {{ t.gameOver.reviewScoresButton }}
+      </Button>
       <RouterLink to="/score"><Button size="lg" variant="secondary" class="w-full">{{ t.gameOver.newSessionButton }}</Button></RouterLink>
       <RouterLink to="/"><Button size="lg" class="w-full">{{ t.gameOver.backToHub }}</Button></RouterLink>
     </div>
@@ -54,11 +58,13 @@ import ConfettiBurst from '@/components/decor/ConfettiBurst.vue'
 import { formatPointsOT } from '@/lib/utils'
 import { en } from '@/locales/en'
 import { useScoreRoom } from '../composables/useScoreRoom'
+import EditRoundsScreen from './EditRoundsScreen.vue'
 import ShareCard from './ShareCard.vue'
 
 const t = en.scoreKeeper
 const score = useScoreRoom()
 const state = computed(() => score.state.value)
+const showEditHistory = ref(false)
 
 const ranked = computed(() => {
   if (!state.value) return []
