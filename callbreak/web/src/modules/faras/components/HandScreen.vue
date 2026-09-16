@@ -34,7 +34,7 @@
           :delay-ms="i * stepMs"
           :peek-offset-rem="i * peekStepRem"
           :final-offset-rem="i * finalStepRem"
-          :z-index="myHand.length - i"
+          :base-z-index="myHand.length - i"
           :width-rem="cardWidthRem"
           :height-rem="cardHeightRem"
         />

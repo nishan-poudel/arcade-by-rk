@@ -1,7 +1,7 @@
 <template>
   <div
     class="absolute top-0 transition-[left] duration-700 ease-out"
-    :style="{ left: `${position}rem`, width: `${widthRem}rem`, height: `${heightRem}rem`, zIndex }"
+    :style="{ left: `${position}rem`, width: `${widthRem}rem`, height: `${heightRem}rem`, zIndex: currentZIndex }"
   >
     <PlayingCard :card="card" class="absolute inset-0 h-full w-full" :class="stage === 'revealed' ? 'animate-pop-in' : ''" />
     <div
@@ -35,7 +35,10 @@ const props = defineProps<{
   /** Fanned-out position (rem from the left) once this card starts
    * revealing — it slides out to here while it peels. */
   finalOffsetRem: number
-  zIndex: number
+  /** Stacking order before this card's own turn — earlier cards (lower
+   * index) sit on top of later ones, so the untouched stack reads as
+   * "first card in front, the rest tucked behind it." */
+  baseZIndex: number
   widthRem: number
   heightRem: number
 }>()
@@ -46,6 +49,12 @@ const props = defineProps<{
 type Stage = 'hidden' | 'rubbing' | 'peeling' | 'revealed'
 const stage = ref<Stage>(props.trigger ? 'revealed' : 'hidden')
 const position = computed(() => (stage.value === 'hidden' ? props.peekOffsetRem : props.finalOffsetRem))
+
+// Once a card starts its own reveal it lifts above the whole stack, so it
+// visibly slides out and "rubs past" the card(s) already in front of it —
+// otherwise a later card sliding out from underneath would stay hidden
+// behind the earlier one for the whole animation instead of emerging.
+const currentZIndex = computed(() => (stage.value === 'hidden' ? props.baseZIndex : 100 + props.baseZIndex))
 
 watch(
   () => props.trigger,
