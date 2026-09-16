@@ -54,6 +54,15 @@
         <p v-if="state.players.length === 0" class="text-center text-sm text-muted-foreground">
           {{ t.waitingRoom.needMorePlayers }}
         </p>
+        <Button
+          v-if="faras.isHost.value"
+          variant="outline"
+          size="sm"
+          :disabled="state.players.length >= 10"
+          @click="faras.addBot()"
+        >
+          {{ t.waitingRoom.addBotButton }}
+        </Button>
       </CardContent>
     </Card>
 

@@ -20,6 +20,7 @@ export const en = {
       backToHub: 'Back to hub',
       you: 'You',
       host: 'Host',
+      botBadge: '🤖 Bot',
       resyncButton: 'Refresh',
       categoryLabel: {
         trail: 'Trail',
@@ -56,6 +57,7 @@ export const en = {
       onlyHostCanStart: 'Only the host can deal',
       needMorePlayers: 'Need at least 2 players to deal',
       removePlayer: 'Remove',
+      addBotButton: '🤖 Add Bot',
       modeLabel: 'Mode',
       modeBetting: 'Betting',
       modeShow: 'Show Mode',

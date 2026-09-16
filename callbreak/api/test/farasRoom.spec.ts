@@ -1,4 +1,4 @@
-import { env, runInDurableObject } from 'cloudflare:test'
+import { env, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
 import type { Card } from '@callbreak/shared-logic'
 import type { FarasRoom } from '../src/FarasRoom'
@@ -11,6 +11,7 @@ interface FarasPlayerView {
   connected: boolean
   chips: number
   score: number
+  isBot: boolean
 }
 
 interface FarasStateView {
@@ -405,5 +406,97 @@ describe('FarasRoom next hand / end session', () => {
     sockets[0].send('end_session')
     const state = asState((await collectAll(sockets))[0])
     expect(state.phase).toBe('gameOver')
+  })
+})
+
+describe('FarasRoom bots (solo play)', () => {
+  it('only the host can add a bot, and only in the lobby', async () => {
+    const room = await createRoom('faras')
+    const { sockets } = await joinN(room, 'faras', 2)
+
+    sockets[1].send('add_bot')
+    expect(await errorOf(await sockets[1].next())).toMatch(/host/i)
+
+    sockets[0].send('add_bot')
+    await collectAll(sockets)
+    sockets[0].send('start_hand')
+    await collectAll(sockets)
+
+    sockets[0].send('add_bot')
+    expect(await errorOf(await sockets[0].next())).toMatch(/lobby/i)
+  })
+
+  it('adds a chip-holding, never-connected bot with a friendly name', async () => {
+    const room = await createRoom('faras')
+    const { sockets } = await joinN(room, 'faras', 1)
+
+    sockets[0].send('add_bot')
+    const state = asState((await collectAll(sockets))[0])
+
+    const bot = state.players.find((p) => p.isBot)
+    expect(bot).toBeDefined()
+    expect(bot?.connected).toBe(false)
+    expect(bot?.chips).toBe(100)
+    expect(bot?.name).toBeTruthy()
+  })
+
+  it("a bot's turn resolves on its own via the DO's alarm, with no second socket involved", async () => {
+    const room = await createRoom('faras')
+    const { sockets, playerIds } = await joinN(room, 'faras', 1)
+    sockets[0].send('add_bot')
+    const afterAddBot = asState((await collectAll(sockets))[0])
+    const botId = afterAddBot.players.find((p) => p.isBot)!.id
+
+    sockets[0].send('start_hand')
+    let state = asState((await collectAll(sockets))[0])
+    expect(state.turnPlayerId).toBe(botId) // dealerIndex 0 -> left of dealer (seat0/human) is seat1/bot
+
+    // Give the bot a trail — BOT_STAY_CHANCE.trail is 1, so it deterministically stays.
+    await setHands(room, {
+      [playerIds[0]]: [
+        { suit: 'S', rank: 2 },
+        { suit: 'H', rank: 9 },
+        { suit: 'D', rank: 4 },
+      ],
+      [botId]: [
+        { suit: 'S', rank: 7 },
+        { suit: 'H', rank: 7 },
+        { suit: 'D', rank: 7 },
+      ],
+    })
+
+    const stub = env.FARAS_ROOM.getByName(room)
+    const ran = await runDurableObjectAlarm(stub)
+    expect(ran).toBe(true)
+
+    state = asState(await sockets[0].next())
+    expect(state.turnPlayerId).toBe(playerIds[0]) // stayed and passed the turn back
+    expect(state.players.find((p) => p.id === botId)?.chips).toBeLessThan(100) // paid to stay
+
+    // No alarm left pending once it's a human's turn.
+    expect(await runDurableObjectAlarm(stub)).toBe(false)
+  })
+
+  it("a bot forced to fold (can't afford to stay) hands the human the pot", async () => {
+    const room = await createRoom('faras')
+    const { sockets, playerIds } = await joinN(room, 'faras', 1)
+    sockets[0].send('add_bot')
+    const afterAddBot = asState((await collectAll(sockets))[0])
+    const botId = afterAddBot.players.find((p) => p.isBot)!.id
+
+    sockets[0].send('start_hand')
+    await collectAll(sockets) // pot=4, both at 98, bot's turn
+
+    const stub = env.FARAS_ROOM.getByName(room)
+    await runInDurableObject(stub, async (instance: FarasRoom) => {
+      const state = (instance as unknown as { roomState: { players: { id: string; chips: number }[] } }).roomState
+      state.players.find((p) => p.id === botId)!.chips = 1 // can't afford the $2 blind stay
+    })
+
+    expect(await runDurableObjectAlarm(stub)).toBe(true)
+    const state = asState(await sockets[0].next())
+
+    expect(state.phase).toBe('handResult')
+    expect(state.lastResult?.winnerIds).toEqual([playerIds[0]])
   })
 })

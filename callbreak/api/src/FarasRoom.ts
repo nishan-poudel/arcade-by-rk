@@ -42,6 +42,10 @@ interface FarasPlayer {
   chips: number
   /** Show mode's running total. Always present, only meaningful in that mode. */
   score: number
+  /** Bots always have connectionId: null and act on their own turn via the
+   * DO's alarm (see currentTurnBot/syncBotAlarm) instead of a message from
+   * a client — no socket involved at all. */
+  isBot: boolean
 }
 
 interface HandPlayerState {
@@ -80,6 +84,21 @@ interface RoomState {
 const STORAGE_KEY = 'state'
 const STARTING_CHIPS = 100
 const BOOT_AMOUNT = 2
+/** How long a bot "thinks" before acting on its own turn — purely pacing,
+ * so it doesn't feel instant/robotic. */
+const BOT_THINK_MS = 1500
+const BOT_NAME_POOL = ['Kancha Bot', 'Kanchi Bot', 'Bhai Bot', 'Didi Bot']
+
+/** Per-hand-category odds a bot chooses to Stay rather than Fold — a
+ * casual opponent's rough gut feel, not a solver. */
+const BOT_STAY_CHANCE: Record<FarasCategory, number> = {
+  trail: 1,
+  pureSequence: 0.95,
+  sequence: 0.85,
+  color: 0.75,
+  pair: 0.55,
+  highCard: 0.25,
+}
 
 function initialState(): RoomState {
   return {
@@ -197,6 +216,8 @@ export class FarasRoom extends DurableObject<Env> {
         return this.handleRejoin(connectionId, message.payload)
       case 'remove_player':
         return this.handleRemovePlayer(connectionId, message.payload)
+      case 'add_bot':
+        return this.handleAddBot(connectionId)
       case 'set_mode':
         return this.handleSetMode(connectionId, message.payload)
       case 'start_hand':
@@ -277,11 +298,36 @@ export class FarasRoom extends DurableObject<Env> {
       isHost: this.roomState.players.length === 0,
       chips: STARTING_CHIPS,
       score: 0,
+      isBot: false,
     }
     this.roomState.players.push(player)
 
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
+  }
+
+  /** Adds a bot for solo/short-handed play — no connection, ever; it acts
+   * on its own turn via the DO's alarm (see botDecideAndAct/alarm). */
+  private async handleAddBot(connectionId: string): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'lobby') throw new Error('Bots can only be added in the lobby.')
+    if (this.roomState.players.length >= FARAS_MAX_PLAYERS) throw new Error(`This table is full (${FARAS_MAX_PLAYERS} max).`)
+
+    const botCount = this.roomState.players.filter((p) => p.isBot).length
+    const name =
+      botCount < BOT_NAME_POOL.length ? BOT_NAME_POOL[botCount] : `${BOT_NAME_POOL[botCount % BOT_NAME_POOL.length]} ${botCount + 1}`
+
+    const bot: FarasPlayer = {
+      id: crypto.randomUUID(),
+      name,
+      connectionId: null,
+      isHost: this.roomState.players.length === 0,
+      chips: STARTING_CHIPS,
+      score: 0,
+      isBot: true,
+    }
+    this.roomState.players.push(bot)
+
+    await this.finishTurn()
   }
 
   private async handleRejoin(connectionId: string, payload: unknown): Promise<void> {
@@ -293,8 +339,7 @@ export class FarasRoom extends DurableObject<Env> {
     if (!player) throw new Error('Player not found in this session. Please rejoin.')
 
     player.connectionId = connectionId
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private async handleRemovePlayer(connectionId: string, payload: unknown): Promise<void> {
@@ -310,8 +355,7 @@ export class FarasRoom extends DurableObject<Env> {
     if (target.connectionId !== null) throw new Error('Only a disconnected player can be removed.')
 
     this.roomState.players = this.roomState.players.filter((p) => p.id !== playerId)
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private async handleSetMode(connectionId: string, payload: unknown): Promise<void> {
@@ -323,8 +367,7 @@ export class FarasRoom extends DurableObject<Env> {
     if (mode !== 'betting' && mode !== 'show') throw new Error('Invalid mode.')
 
     this.roomState.mode = mode
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private dealHand(): void {
@@ -368,8 +411,7 @@ export class FarasRoom extends DurableObject<Env> {
     }
 
     this.dealHand()
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private async handleGhotchu(connectionId: string): Promise<void> {
@@ -379,8 +421,7 @@ export class FarasRoom extends DurableObject<Env> {
     if (!hs || hs.folded) throw new Error('You are not in this hand.')
 
     hs.seen = true
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private resolveHand(winnerIds: string[], category: FarasCategory | null, revealedHands: Record<string, Card[]>): void {
@@ -433,8 +474,7 @@ export class FarasRoom extends DurableObject<Env> {
     this.roomState.handState[player.id].folded = true
     this.advanceTurnOrResolve(player.id)
 
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private async handleStay(connectionId: string): Promise<void> {
@@ -451,8 +491,7 @@ export class FarasRoom extends DurableObject<Env> {
 
     this.advanceTurnOrResolve(player.id)
 
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private async handleRequestShow(connectionId: string): Promise<void> {
@@ -478,8 +517,7 @@ export class FarasRoom extends DurableObject<Env> {
     const winnerIds = cmp === 0 ? [idA, idB] : cmp > 0 ? [idA] : [idB]
 
     this.resolveHand(winnerIds, category, revealedHands)
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   /** Show mode only: host reveals every dealt hand at once and the best
@@ -506,8 +544,7 @@ export class FarasRoom extends DurableObject<Env> {
     const category = rankFarasHand(this.roomState.hands[bestIds[0]] as [Card, Card, Card]).category
 
     this.resolveHand(bestIds, category, revealedHands)
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private async handleNextHand(connectionId: string): Promise<void> {
@@ -516,22 +553,19 @@ export class FarasRoom extends DurableObject<Env> {
 
     if (this.roomState.players.length < FARAS_MIN_PLAYERS) {
       this.roomState.phase = 'lobby'
-      await this.persist()
-      this.broadcastState()
+      await this.finishTurn()
       return
     }
 
     if (this.roomState.mode === 'betting' && this.eligiblePlayers().length < FARAS_MIN_PLAYERS) {
       this.roomState.phase = 'gameOver'
-      await this.persist()
-      this.broadcastState()
+      await this.finishTurn()
       return
     }
 
     this.roomState.dealerIndex += 1
     this.dealHand()
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   private async handleEndSession(connectionId: string): Promise<void> {
@@ -540,8 +574,7 @@ export class FarasRoom extends DurableObject<Env> {
 
     this.roomState.phase = 'gameOver'
     this.roomState.turnPlayerId = null
-    await this.persist()
-    this.broadcastState()
+    await this.finishTurn()
   }
 
   /**
@@ -591,8 +624,76 @@ export class FarasRoom extends DurableObject<Env> {
       this.roomState.pot = 0
     }
 
+    await this.finishTurn()
+  }
+
+  // ─── Bots ──────────────────────────────────────────────────────────────
+
+  /** The bot whose turn it is right now, if any — only meaningful mid-hand
+   * in betting mode, since Show Mode has no turns at all. */
+  private currentTurnBot(): FarasPlayer | null {
+    if (this.roomState.phase !== 'hand' || this.roomState.mode !== 'betting') return null
+    if (!this.roomState.turnPlayerId) return null
+    const player = this.roomState.players.find((p) => p.id === this.roomState.turnPlayerId)
+    return player?.isBot ? player : null
+  }
+
+  /** Keeps the DO's alarm in sync with whether it's currently a bot's
+   * turn — schedules one if so, cancels any pending one otherwise, so a
+   * stale alarm never fires after the hand's already moved on some other
+   * way (a human folding/staying, leaving, the hand resolving, etc). */
+  private async syncBotAlarm(): Promise<void> {
+    if (this.currentTurnBot()) {
+      await this.ctx.storage.setAlarm(Date.now() + BOT_THINK_MS)
+    } else {
+      await this.ctx.storage.deleteAlarm()
+    }
+  }
+
+  /** Common tail for every mutating handler: keep the bot alarm in sync,
+   * persist, then broadcast — one place instead of threading the alarm
+   * sync through each handler by hand. */
+  private async finishTurn(): Promise<void> {
+    await this.syncBotAlarm()
     await this.persist()
     this.broadcastState()
+  }
+
+  /** A casual opponent's rough gut feel, not a Teen Patti solver: maybe
+   * peeks first, then leans on hand strength (with a little randomness)
+   * to decide fold vs. stay, folding outright if it can't afford to stay
+   * — the same rule a human is held to. Never proactively calls Show; a
+   * human at the table can always do that once eligible. */
+  private botDecideAndAct(bot: FarasPlayer): void {
+    const hs = this.roomState.handState[bot.id]
+    if (!hs) return
+
+    if (!hs.seen && Math.random() < 0.5) hs.seen = true
+
+    const hand = this.roomState.hands[bot.id] as [Card, Card, Card]
+    const category = rankFarasHand(hand).category
+    const bet = this.requiredBet(bot.id)
+    const canAfford = bot.chips >= bet
+    const wantsToStay = canAfford && Math.random() < BOT_STAY_CHANCE[category]
+
+    if (wantsToStay) {
+      bot.chips -= bet
+      this.roomState.pot += bet
+    } else {
+      hs.folded = true
+    }
+    this.advanceTurnOrResolve(bot.id)
+  }
+
+  /** Runs when a bot's scheduled "thinking" time is up — see
+   * syncBotAlarm(). No client, no socket, no message: the DO wakes
+   * itself and acts on the bot's behalf. */
+  async alarm(): Promise<void> {
+    await this.ready
+    const bot = this.currentTurnBot()
+    if (!bot) return // state moved on since this alarm was scheduled
+    this.botDecideAndAct(bot)
+    await this.finishTurn()
   }
 
   // ─── Broadcast ─────────────────────────────────────────────────────────
@@ -608,6 +709,7 @@ export class FarasRoom extends DurableObject<Env> {
         connected: p.connectionId !== null,
         chips: p.chips,
         score: p.score,
+        isBot: p.isBot,
       })),
     }
   }

@@ -4,11 +4,18 @@
     :class="isTurn ? 'border-primary bg-primary/10 shadow-pop' : 'border-border bg-secondary/30'"
   >
     <div class="flex items-center gap-2">
-      <span class="h-2 w-2 shrink-0 rounded-full" :class="player.connected ? 'bg-flavor-melon' : 'bg-muted-foreground/40'" />
+      <span
+        v-if="!player.isBot"
+        class="h-2 w-2 shrink-0 rounded-full"
+        :class="player.connected ? 'bg-flavor-melon' : 'bg-muted-foreground/40'"
+      />
       <span class="font-display font-semibold">
         {{ player.name }}
         <span v-if="isMe" class="text-muted-foreground">({{ t.common.you }})</span>
         <span v-if="player.isHost" class="ml-1 text-xs font-normal text-muted-foreground">· {{ t.common.host }}</span>
+      </span>
+      <span v-if="player.isBot" class="rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+        {{ t.common.botBadge }}
       </span>
     </div>
 

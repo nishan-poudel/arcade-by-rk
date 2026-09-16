@@ -13,6 +13,8 @@ export interface FarasPublicPlayer {
   chips: number
   /** Show mode's running total. Always present, only meaningful in that mode. */
   score: number
+  /** Never connects, acts on its own turn server-side. */
+  isBot: boolean
 }
 
 export interface FarasHandPlayerState {

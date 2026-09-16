@@ -214,6 +214,9 @@ function endSession(): void {
 function removePlayer(playerId: string): void {
   conn.send('remove_player', { playerId })
 }
+function addBot(): void {
+  conn.send('add_bot')
+}
 function requestState(): void {
   conn.send('request_state')
 }
@@ -246,6 +249,7 @@ export function useFaras() {
     nextHand,
     endSession,
     removePlayer,
+    addBot,
     requestState,
   }
 }
