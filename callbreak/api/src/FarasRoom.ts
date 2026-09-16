@@ -14,21 +14,33 @@ import { type InboundMessage, parseMessage, send, sendError } from './roomSocket
 import { validateName, type ValidationResult } from './validate'
 
 /**
- * Faras (Teen Patti), no chips: 2-10 players, 3 cards each, fold/stay/show,
- * a point per hand won. Unlike GameRoom/ScoreRoom's fixed 4 seats, the
- * roster here is a dynamic array — players can explicitly leave the table
- * (permanent) as distinct from merely disconnecting (temporary, rejoinable,
- * same pattern as the other rooms), and the game just continues with
- * whoever's left as long as at least 2 remain.
+ * Faras (Teen Patti): 2-10 players, 3 cards each. Two modes, chosen by the
+ * host before the first hand:
+ *  - 'betting': real stakes — $100 starting chips, a boot every hand, Stay
+ *    costs the boot (blind) or double (once you've Ghotchu'd/seen), Show
+ *    costs the same and is only available between the last 2, the winner
+ *    takes the whole pot. Hitting $0 puts you out of future hands; the
+ *    session ends when only one player still has chips.
+ *  - 'show': no betting, no folding, no turns at all — everyone can
+ *    Ghotchu whenever they like and the host reveals every hand at once
+ *    for comparison; the best hand gets a point.
+ * Unlike GameRoom/ScoreRoom's fixed 4 seats, the roster here is a dynamic
+ * array — players can explicitly leave the table (permanent) as distinct
+ * from merely disconnecting (temporary, rejoinable), and the game just
+ * continues with whoever's left as long as at least 2 remain.
  */
 
 type Phase = 'lobby' | 'hand' | 'handResult' | 'gameOver'
+type FarasMode = 'betting' | 'show'
 
 interface FarasPlayer {
   id: string
   name: string
   connectionId: string | null
   isHost: boolean
+  /** Betting mode currency. Always present, only meaningful in that mode. */
+  chips: number
+  /** Show mode's running total. Always present, only meaningful in that mode. */
   score: number
 }
 
@@ -42,32 +54,45 @@ interface LastResult {
   /** null for a fold-out win — nobody's hand had to be revealed. */
   category: FarasCategory | null
   revealedHands: Record<string, Card[]>
+  /** Betting mode only: the pot the winner(s) just split. */
+  potWon?: number
 }
 
 interface RoomState {
   code: string
   phase: Phase
+  mode: FarasMode
   players: FarasPlayer[] // join order = turn order; 2-10 long, or empty pre-join
   hands: Record<string, Card[]> // playerId -> this hand's 3 cards
   handState: Record<string, HandPlayerState>
   turnPlayerId: string | null
   dealerIndex: number
+  /** Betting mode only. */
+  pot: number
+  /** Betting mode only: this hand's boot/base bet unit — fixed for the
+   * whole hand since there's no raising in v1. */
+  stake: number
   lastResult: LastResult | null
   createdAt: number
   lastActivityAt: number
 }
 
 const STORAGE_KEY = 'state'
+const STARTING_CHIPS = 100
+const BOOT_AMOUNT = 2
 
 function initialState(): RoomState {
   return {
     code: '',
     phase: 'lobby',
+    mode: 'betting',
     players: [],
     hands: {},
     handState: {},
     turnPlayerId: null,
     dealerIndex: 0,
+    pot: 0,
+    stake: BOOT_AMOUNT,
     lastResult: null,
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
@@ -172,16 +197,20 @@ export class FarasRoom extends DurableObject<Env> {
         return this.handleRejoin(connectionId, message.payload)
       case 'remove_player':
         return this.handleRemovePlayer(connectionId, message.payload)
+      case 'set_mode':
+        return this.handleSetMode(connectionId, message.payload)
       case 'start_hand':
         return this.handleStartHand(connectionId)
       case 'ghotchu':
         return this.handleGhotchu(connectionId)
       case 'fold':
-        return this.handleFoldOrStay(connectionId, true)
+        return this.handleFold(connectionId)
       case 'stay':
-        return this.handleFoldOrStay(connectionId, false)
+        return this.handleStay(connectionId)
       case 'request_show':
         return this.handleRequestShow(connectionId)
+      case 'reveal_all':
+        return this.handleRevealAll(connectionId)
       case 'next_hand':
         return this.handleNextHand(connectionId)
       case 'end_session':
@@ -208,12 +237,22 @@ export class FarasRoom extends DurableObject<Env> {
     return player
   }
 
+  /** Players who can be dealt into the next hand — everyone in show mode,
+   * only chip-holders in betting mode (a $0 player is out until the
+   * session ends). */
+  private eligiblePlayers(): FarasPlayer[] {
+    return this.roomState.mode === 'show' ? this.roomState.players : this.roomState.players.filter((p) => p.chips > 0)
+  }
+
+  /** Who's still in the *current* hand — derived from handState (only
+   * players actually dealt this hand appear there at all), not the full
+   * roster, so eliminated/ineligible players are never candidates. */
   private activePlayerIds(): string[] {
-    return this.roomState.players.filter((p) => !this.roomState.handState[p.id]?.folded).map((p) => p.id)
+    return Object.keys(this.roomState.handState).filter((id) => !this.roomState.handState[id].folded)
   }
 
   private nextActivePlayerId(afterId: string): string | null {
-    const ids = this.roomState.players.map((p) => p.id)
+    const ids = this.roomState.players.map((p) => p.id).filter((id) => this.roomState.handState[id])
     const startIdx = ids.indexOf(afterId)
     if (startIdx === -1) return null
     for (let step = 1; step <= ids.length; step++) {
@@ -236,6 +275,7 @@ export class FarasRoom extends DurableObject<Env> {
       name,
       connectionId,
       isHost: this.roomState.players.length === 0,
+      chips: STARTING_CHIPS,
       score: 0,
     }
     this.roomState.players.push(player)
@@ -274,14 +314,28 @@ export class FarasRoom extends DurableObject<Env> {
     this.broadcastState()
   }
 
+  private async handleSetMode(connectionId: string, payload: unknown): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.phase !== 'lobby') throw new Error('Mode can only be changed in the lobby.')
+
+    const body = payload as Record<string, unknown> | undefined
+    const mode = body?.mode
+    if (mode !== 'betting' && mode !== 'show') throw new Error('Invalid mode.')
+
+    this.roomState.mode = mode
+    await this.persist()
+    this.broadcastState()
+  }
+
   private dealHand(): void {
-    const n = this.roomState.players.length
+    const eligible = this.eligiblePlayers()
+    const n = eligible.length
     this.roomState.dealerIndex = this.roomState.dealerIndex % n
     const dealt = dealFaras(n)
 
     const hands: Record<string, Card[]> = {}
     const handState: Record<string, HandPlayerState> = {}
-    this.roomState.players.forEach((p, i) => {
+    eligible.forEach((p, i) => {
       hands[p.id] = dealt[i]
       handState[p.id] = { folded: false, seen: false }
     })
@@ -289,7 +343,20 @@ export class FarasRoom extends DurableObject<Env> {
     this.roomState.hands = hands
     this.roomState.handState = handState
     this.roomState.lastResult = null
-    this.roomState.turnPlayerId = this.roomState.players[(this.roomState.dealerIndex + 1) % n].id
+
+    if (this.roomState.mode === 'betting') {
+      this.roomState.stake = BOOT_AMOUNT
+      this.roomState.pot = 0
+      for (const p of eligible) {
+        const boot = Math.min(BOOT_AMOUNT, p.chips)
+        p.chips -= boot
+        this.roomState.pot += boot
+      }
+      this.roomState.turnPlayerId = eligible[(this.roomState.dealerIndex + 1) % n].id
+    } else {
+      this.roomState.turnPlayerId = null
+    }
+
     this.roomState.phase = 'hand'
   }
 
@@ -317,28 +384,72 @@ export class FarasRoom extends DurableObject<Env> {
   }
 
   private resolveHand(winnerIds: string[], category: FarasCategory | null, revealedHands: Record<string, Card[]>): void {
-    for (const id of winnerIds) {
-      const player = this.roomState.players.find((p) => p.id === id)
-      if (player) player.score += 1
+    if (this.roomState.mode === 'betting') {
+      const share = Math.floor((this.roomState.pot / winnerIds.length) * 100) / 100
+      for (const id of winnerIds) {
+        const player = this.roomState.players.find((p) => p.id === id)
+        if (player) player.chips += share
+      }
+      const remainder = Math.round((this.roomState.pot - share * winnerIds.length) * 100) / 100
+      if (remainder > 0) {
+        const firstWinner = this.roomState.players.find((p) => p.id === winnerIds[0])
+        if (firstWinner) firstWinner.chips += remainder
+      }
+      this.roomState.lastResult = { winnerIds, category, revealedHands, potWon: this.roomState.pot }
+      this.roomState.pot = 0
+    } else {
+      for (const id of winnerIds) {
+        const player = this.roomState.players.find((p) => p.id === id)
+        if (player) player.score += 1
+      }
+      this.roomState.lastResult = { winnerIds, category, revealedHands }
     }
-    this.roomState.lastResult = { winnerIds, category, revealedHands }
     this.roomState.turnPlayerId = null
     this.roomState.phase = 'handResult'
   }
 
-  private async handleFoldOrStay(connectionId: string, folding: boolean): Promise<void> {
-    if (this.roomState.phase !== 'hand') throw new Error('There is no hand in progress.')
-    const player = this.playerByConnection(connectionId)
-    if (player.id !== this.roomState.turnPlayerId) throw new Error('It is not your turn.')
-
-    if (folding) this.roomState.handState[player.id].folded = true
-
+  private advanceTurnOrResolve(afterId: string): void {
     const active = this.activePlayerIds()
     if (active.length === 1) {
       this.resolveHand(active, null, {})
     } else {
-      this.roomState.turnPlayerId = this.nextActivePlayerId(player.id)
+      this.roomState.turnPlayerId = this.nextActivePlayerId(afterId)
     }
+  }
+
+  /** The Stay/Show cost for a player right now: the hand's stake, doubled
+   * once they've Ghotchu'd — the real rule's core idea (seeing costs
+   * more) without a variable player-chosen raise range. */
+  private requiredBet(playerId: string): number {
+    const seen = this.roomState.handState[playerId]?.seen ?? false
+    return seen ? this.roomState.stake * 2 : this.roomState.stake
+  }
+
+  private async handleFold(connectionId: string): Promise<void> {
+    if (this.roomState.phase !== 'hand') throw new Error('There is no hand in progress.')
+    const player = this.playerByConnection(connectionId)
+    if (player.id !== this.roomState.turnPlayerId) throw new Error('It is not your turn.')
+
+    this.roomState.handState[player.id].folded = true
+    this.advanceTurnOrResolve(player.id)
+
+    await this.persist()
+    this.broadcastState()
+  }
+
+  private async handleStay(connectionId: string): Promise<void> {
+    if (this.roomState.phase !== 'hand') throw new Error('There is no hand in progress.')
+    const player = this.playerByConnection(connectionId)
+    if (player.id !== this.roomState.turnPlayerId) throw new Error('It is not your turn.')
+
+    if (this.roomState.mode === 'betting') {
+      const bet = this.requiredBet(player.id)
+      if (player.chips < bet) throw new Error("You don't have enough chips to stay — fold instead.")
+      player.chips -= bet
+      this.roomState.pot += bet
+    }
+
+    this.advanceTurnOrResolve(player.id)
 
     await this.persist()
     this.broadcastState()
@@ -350,6 +461,13 @@ export class FarasRoom extends DurableObject<Env> {
     const active = this.activePlayerIds()
     if (active.length !== 2) throw new Error('Show is only available once exactly 2 players are left in the hand.')
     if (!active.includes(player.id)) throw new Error('You have already folded this hand.')
+
+    if (this.roomState.mode === 'betting') {
+      const bet = this.requiredBet(player.id)
+      if (player.chips < bet) throw new Error("You don't have enough chips to call for a show.")
+      player.chips -= bet
+      this.roomState.pot += bet
+    }
 
     const [idA, idB] = active
     const handA = this.roomState.hands[idA] as [Card, Card, Card]
@@ -364,11 +482,47 @@ export class FarasRoom extends DurableObject<Env> {
     this.broadcastState()
   }
 
+  /** Show mode only: host reveals every dealt hand at once and the best
+   * one (ties split) wins the point. No turns, no folding, so every id in
+   * `hands` is always "in" for this comparison. */
+  private async handleRevealAll(connectionId: string): Promise<void> {
+    this.requireHost(connectionId)
+    if (this.roomState.mode !== 'show') throw new Error('This action is only available in Show Mode.')
+    if (this.roomState.phase !== 'hand') throw new Error('There is no hand in progress.')
+
+    const ids = Object.keys(this.roomState.hands)
+    const revealedHands: Record<string, Card[]> = {}
+    for (const id of ids) revealedHands[id] = this.roomState.hands[id]
+
+    let bestIds: string[] = [ids[0]]
+    for (const id of ids.slice(1)) {
+      const cmp = compareFarasHands(
+        this.roomState.hands[id] as [Card, Card, Card],
+        this.roomState.hands[bestIds[0]] as [Card, Card, Card],
+      )
+      if (cmp > 0) bestIds = [id]
+      else if (cmp === 0) bestIds.push(id)
+    }
+    const category = rankFarasHand(this.roomState.hands[bestIds[0]] as [Card, Card, Card]).category
+
+    this.resolveHand(bestIds, category, revealedHands)
+    await this.persist()
+    this.broadcastState()
+  }
+
   private async handleNextHand(connectionId: string): Promise<void> {
     this.requireHost(connectionId)
     if (this.roomState.phase !== 'handResult') throw new Error('There is no hand result to continue from.')
+
     if (this.roomState.players.length < FARAS_MIN_PLAYERS) {
       this.roomState.phase = 'lobby'
+      await this.persist()
+      this.broadcastState()
+      return
+    }
+
+    if (this.roomState.mode === 'betting' && this.eligiblePlayers().length < FARAS_MIN_PLAYERS) {
+      this.roomState.phase = 'gameOver'
       await this.persist()
       this.broadcastState()
       return
@@ -393,8 +547,8 @@ export class FarasRoom extends DurableObject<Env> {
   /**
    * Explicit, permanent departure — distinct from a disconnect (which just
    * marks connectionId null and stays rejoinable). The game continues with
-   * whoever's left as long as at least 2 players remain; otherwise it
-   * pauses back to the lobby without losing anyone's score.
+   * whoever's left as long as at least 2 remain; otherwise it pauses back
+   * to the lobby without losing anyone's chips/score.
    */
   private async handleLeaveTable(connectionId: string): Promise<void> {
     const player = this.playerByConnection(connectionId)
@@ -403,7 +557,7 @@ export class FarasRoom extends DurableObject<Env> {
 
     let forcedFold = false
     let nextTurnId = this.roomState.turnPlayerId
-    if (inLiveHand && !this.roomState.handState[player.id]?.folded) {
+    if (inLiveHand && this.roomState.handState[player.id] && !this.roomState.handState[player.id].folded) {
       this.roomState.handState[player.id].folded = true
       forcedFold = true
     }
@@ -434,6 +588,7 @@ export class FarasRoom extends DurableObject<Env> {
       this.roomState.handState = {}
       this.roomState.turnPlayerId = null
       this.roomState.lastResult = null
+      this.roomState.pot = 0
     }
 
     await this.persist()
@@ -446,7 +601,14 @@ export class FarasRoom extends DurableObject<Env> {
     const { hands, players, ...publicFields } = this.roomState
     return {
       publicFields,
-      players: players.map((p) => ({ id: p.id, name: p.name, isHost: p.isHost, connected: p.connectionId !== null, score: p.score })),
+      players: players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        isHost: p.isHost,
+        connected: p.connectionId !== null,
+        chips: p.chips,
+        score: p.score,
+      })),
     }
   }
 

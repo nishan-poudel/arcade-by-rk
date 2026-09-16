@@ -2,7 +2,12 @@
   <div
     :class="
       cn(
-        'aspect-[0.691] w-full select-none overflow-hidden rounded-lg shadow-hard-sm',
+        // No overflow-hidden/rounded-lg here — the sprite already draws its
+        // own complete card shape, border, and corner rounding, right up to
+        // the true edge (that's where the corner index sits). Clipping on
+        // top of that with our own CSS radius double-rounds the corners and
+        // can cut into that artwork depending on the renderer.
+        'aspect-[0.691] w-full select-none shadow-hard-sm',
         interactive && 'cursor-pointer transition-transform duration-200 ease-bounce hover:-translate-y-1',
         disabled && 'cursor-not-allowed opacity-40 grayscale',
         props.class,

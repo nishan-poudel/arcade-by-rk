@@ -16,6 +16,24 @@
       </CardContent>
     </Card>
 
+    <Card v-if="faras.isHost.value">
+      <CardHeader>
+        <CardTitle class="text-base">{{ t.waitingRoom.modeLabel }}</CardTitle>
+      </CardHeader>
+      <CardContent class="flex flex-col gap-2 pt-0">
+        <ToggleGroup :model-value="state.mode" class="grid grid-cols-2 gap-2" @update:model-value="onModeChange">
+          <ToggleGroupItem value="betting" class="h-11">{{ t.waitingRoom.modeBetting }}</ToggleGroupItem>
+          <ToggleGroupItem value="show" class="h-11">{{ t.waitingRoom.modeShow }}</ToggleGroupItem>
+        </ToggleGroup>
+        <p class="text-center text-xs text-muted-foreground">
+          {{ state.mode === 'betting' ? t.waitingRoom.modeBettingDesc : t.waitingRoom.modeShowDesc }}
+        </p>
+      </CardContent>
+    </Card>
+    <p v-else class="text-center text-sm text-muted-foreground">
+      {{ t.waitingRoom.modeReadOnly(state.mode === 'betting' ? t.waitingRoom.modeBetting : t.waitingRoom.modeShow) }}
+    </p>
+
     <Card>
       <CardHeader>
         <CardTitle class="flex items-center justify-between text-base">
@@ -28,6 +46,7 @@
           v-for="player in state.players"
           :key="player.id"
           :player="player"
+          :mode="state.mode"
           :is-me="player.id === faras.myPlayerId.value"
           :removable="faras.isHost.value && !player.connected && player.id !== faras.myPlayerId.value"
           @remove="faras.removePlayer(player.id)"
@@ -53,6 +72,7 @@ import { computed, ref } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { en } from '@/locales/en'
 import { useFaras } from '../composables/useFaras'
 import PlayerRow from './PlayerRow.vue'
@@ -68,5 +88,9 @@ function copyCode() {
     copied.value = true
     setTimeout(() => (copied.value = false), 1500)
   })
+}
+
+function onModeChange(value: unknown) {
+  if (value === 'betting' || value === 'show') faras.setMode(value)
 }
 </script>

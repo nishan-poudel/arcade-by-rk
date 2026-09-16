@@ -13,10 +13,13 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <span v-if="statusLabel" class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass">
+      <span v-if="isOut" class="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive">
+        {{ t.hand.outBadge }}
+      </span>
+      <span v-else-if="statusLabel" class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="statusClass">
         {{ statusLabel }}
       </span>
-      <span class="font-display text-sm font-bold">{{ player.score }}</span>
+      <span class="font-display text-sm font-bold">{{ mode === 'betting' ? `$${player.chips}` : player.score }}</span>
       <Button v-if="removable" size="sm" variant="ghost" @click="$emit('remove')">{{ t.waitingRoom.removePlayer }}</Button>
     </div>
   </div>
@@ -26,12 +29,13 @@
 import { computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { en } from '@/locales/en'
-import type { FarasHandPlayerState, FarasPublicPlayer } from '../types'
+import type { FarasHandPlayerState, FarasMode, FarasPublicPlayer } from '../types'
 
 const t = en.faras
 
 const props = defineProps<{
   player: FarasPublicPlayer
+  mode: FarasMode
   handState?: FarasHandPlayerState | null
   isTurn?: boolean
   isMe?: boolean
@@ -39,6 +43,8 @@ const props = defineProps<{
 }>()
 
 defineEmits<{ remove: [] }>()
+
+const isOut = computed(() => props.mode === 'betting' && props.player.chips === 0)
 
 const statusLabel = computed(() => {
   if (!props.handState) return ''

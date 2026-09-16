@@ -184,6 +184,9 @@ function disconnectOnly(): void {
   pendingAction.value = null
 }
 
+function setMode(mode: 'betting' | 'show'): void {
+  conn.send('set_mode', { mode })
+}
 function startHand(): void {
   conn.send('start_hand')
 }
@@ -198,6 +201,9 @@ function stay(): void {
 }
 function requestShow(): void {
   conn.send('request_show')
+}
+function revealAll(): void {
+  conn.send('reveal_all')
 }
 function nextHand(): void {
   conn.send('next_hand')
@@ -230,11 +236,13 @@ export function useFaras() {
     attemptRejoin,
     leaveRoom,
     disconnectOnly,
+    setMode,
     startHand,
     ghotchu,
     fold,
     stay,
     requestShow,
+    revealAll,
     nextHand,
     endSession,
     removePlayer,

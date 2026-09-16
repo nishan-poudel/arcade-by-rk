@@ -20,7 +20,9 @@
     </CardPanel>
 
     <div class="flex flex-col gap-2">
-      <Button v-if="faras.isHost.value" size="lg" @click="faras.nextHand()">{{ t.handResult.nextHandButton }}</Button>
+      <Button v-if="faras.isHost.value" size="lg" @click="faras.nextHand()">
+        {{ isLastHand ? t.handResult.seeFinalButton : t.handResult.nextHandButton }}
+      </Button>
       <p v-else class="text-center text-sm text-muted-foreground">{{ t.handResult.onlyHostCanContinue }}</p>
       <Button v-if="faras.isHost.value" size="lg" variant="ghost" @click="faras.endSession()">
         {{ t.handResult.endSessionButton }}
@@ -75,8 +77,21 @@ const revealedEntries = computed(() => {
 const announceLine = computed(() => {
   const result = state.value?.lastResult
   if (!result) return ''
+  if (state.value?.mode === 'betting' && result.potWon !== undefined) {
+    if (result.winnerIds.length > 1) return t.handResult.tiePotAnnounce(result.potWon)
+    return t.handResult.wonPotAnnounce(playerName(result.winnerIds[0]), result.potWon)
+  }
   if (result.winnerIds.length > 1) return t.handResult.tieAnnounce
   return t.handResult.winnerAnnounce(playerName(result.winnerIds[0]))
+})
+
+// Client-side mirror of the server's "one chip-holder left" end condition —
+// only changes which button label shows; the server is still the one that
+// actually decides on the next_hand click.
+const isLastHand = computed(() => {
+  if (state.value?.mode !== 'betting') return false
+  const withChips = state.value?.players.filter((p) => p.chips > 0).length ?? 0
+  return withChips < 2
 })
 
 function flourishFor(category: FarasCategory, cards: Card[]): string {

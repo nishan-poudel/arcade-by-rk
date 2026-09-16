@@ -24,7 +24,7 @@
               {{ row.name }}
               <Crown v-if="i === 0" class="h-4 w-4 text-primary" />
             </span>
-            <span class="font-display text-lg font-bold">{{ row.score }}</span>
+            <span class="font-display text-lg font-bold">{{ state?.mode === 'betting' ? `$${row.chips}` : row.score }}</span>
           </div>
         </TransitionGroup>
       </CardContent>
@@ -50,7 +50,8 @@ const state = computed(() => faras.state.value)
 
 const ranked = computed(() => {
   if (!state.value) return []
-  return [...state.value.players].sort((a, b) => b.score - a.score)
+  const key = state.value.mode === 'betting' ? 'chips' : 'score'
+  return [...state.value.players].sort((a, b) => b[key] - a[key])
 })
 const winnerName = computed(() => ranked.value[0]?.name ?? '')
 </script>
