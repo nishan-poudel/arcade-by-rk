@@ -12,7 +12,7 @@
           <p class="font-display text-sm font-semibold" :class="isWinner(entry.playerId) ? 'text-primary' : 'text-muted-foreground'">
             {{ playerName(entry.playerId) }}<span v-if="isWinner(entry.playerId)"> 🏆</span>
           </p>
-          <div class="grid max-w-[12rem] grid-cols-3 gap-1.5">
+          <div class="grid max-w-[15rem] grid-cols-3 gap-2">
             <PlayingCard v-for="card in entry.cards" :key="`${card.suit}${card.rank}`" :card="card" />
           </div>
         </div>

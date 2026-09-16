@@ -22,13 +22,21 @@
       <p class="mb-1.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {{ t.hand.yourHandLabel }}
       </p>
-      <div class="mx-auto grid max-w-[16rem] grid-cols-3 gap-2">
+      <!-- Stacked like a real hand: all three tucked behind the front card
+           until Ghotchu is tapped, then each slides out and peels open in
+           turn, left to right. -->
+      <div class="relative mx-auto" :style="{ width: `${handWidthRem}rem`, height: `${cardHeightRem}rem` }">
         <GhotchuCard
           v-for="(card, i) in myHand"
           :key="`${card.suit}${card.rank}`"
           :card="card"
           :trigger="hasSeen"
-          :delay-ms="i * 900"
+          :delay-ms="i * stepMs"
+          :peek-offset-rem="i * peekStepRem"
+          :final-offset-rem="i * finalStepRem"
+          :z-index="myHand.length - i"
+          :width-rem="cardWidthRem"
+          :height-rem="cardHeightRem"
         />
       </div>
     </div>
@@ -59,6 +67,14 @@ import { computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { en } from '@/locales/en'
 import { useFaras } from '../composables/useFaras'
+import {
+  GHOTCHU_CARD_HEIGHT_REM,
+  GHOTCHU_CARD_WIDTH_REM,
+  GHOTCHU_FINAL_STEP_REM,
+  GHOTCHU_HAND_WIDTH_REM,
+  GHOTCHU_PEEK_STEP_REM,
+  GHOTCHU_STEP_MS,
+} from './ghotchuTiming'
 import GhotchuCard from './GhotchuCard.vue'
 import PlayerRow from './PlayerRow.vue'
 
@@ -66,6 +82,13 @@ const t = en.faras
 const faras = useFaras()
 const state = computed(() => faras.state.value)
 const isMyTurn = computed(() => faras.isMyTurn.value)
+
+const cardWidthRem = GHOTCHU_CARD_WIDTH_REM
+const cardHeightRem = GHOTCHU_CARD_HEIGHT_REM
+const peekStepRem = GHOTCHU_PEEK_STEP_REM
+const finalStepRem = GHOTCHU_FINAL_STEP_REM
+const handWidthRem = GHOTCHU_HAND_WIDTH_REM
+const stepMs = GHOTCHU_STEP_MS
 
 const myHand = computed(() => state.value?.yourHand ?? [])
 const folded = computed(() => faras.myHandState.value?.folded ?? false)

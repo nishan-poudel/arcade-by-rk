@@ -1,6 +1,9 @@
 <template>
-  <div class="relative aspect-[0.691] w-full">
-    <PlayingCard :card="card" class="absolute inset-0" :class="stage === 'revealed' ? 'animate-pop-in' : ''" />
+  <div
+    class="absolute top-0 transition-[left] duration-700 ease-out"
+    :style="{ left: `${position}rem`, width: `${widthRem}rem`, height: `${heightRem}rem`, zIndex }"
+  >
+    <PlayingCard :card="card" class="absolute inset-0 h-full w-full" :class="stage === 'revealed' ? 'animate-pop-in' : ''" />
     <div
       v-if="stage !== 'revealed'"
       class="absolute inset-0 overflow-hidden rounded-lg"
@@ -12,13 +15,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Card } from '@callbreak/shared-logic'
 import CardBack from '@/components/cards/CardBack.vue'
 import PlayingCard from '@/components/cards/PlayingCard.vue'
-
-const RUB_MS = 700
-const PEEL_MS = 900
+import { GHOTCHU_PEEL_MS, GHOTCHU_RUB_MS } from './ghotchuTiming'
 
 const props = defineProps<{
   card: Card
@@ -28,13 +29,23 @@ const props = defineProps<{
   /** How long to wait before this specific card starts its own rub+peel,
    * so a 3-card hand reveals one card after another, not all at once. */
   delayMs: number
+  /** Tucked-behind position (rem from the left) before this card's own
+   * turn — small, so only a sliver peeks out from the stack. */
+  peekOffsetRem: number
+  /** Fanned-out position (rem from the left) once this card starts
+   * revealing — it slides out to here while it peels. */
+  finalOffsetRem: number
+  zIndex: number
+  widthRem: number
+  heightRem: number
 }>()
 
 // If we mount already "seen" (e.g. a page reload after already peeking),
-// jump straight to revealed — only a live false->true transition plays the
-// suspense animation.
+// jump straight to revealed and fanned-out — only a live false->true
+// transition plays the suspense animation.
 type Stage = 'hidden' | 'rubbing' | 'peeling' | 'revealed'
 const stage = ref<Stage>(props.trigger ? 'revealed' : 'hidden')
+const position = computed(() => (stage.value === 'hidden' ? props.peekOffsetRem : props.finalOffsetRem))
 
 watch(
   () => props.trigger,
@@ -46,8 +57,8 @@ watch(
         stage.value = 'peeling'
         setTimeout(() => {
           stage.value = 'revealed'
-        }, PEEL_MS)
-      }, RUB_MS)
+        }, GHOTCHU_PEEL_MS)
+      }, GHOTCHU_RUB_MS)
     }, props.delayMs)
   },
 )
