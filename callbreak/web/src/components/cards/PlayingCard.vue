@@ -9,8 +9,12 @@
       )
     "
   >
-    <svg :viewBox="CARD_VIEWBOX" class="h-full w-full">
-      <use :href="href" />
+    <svg :viewBox="CARD_VIEWBOX" preserveAspectRatio="xMidYMid meet" class="h-full w-full">
+      <!-- Cross-document <use> (referencing an external .svg file, not a
+           same-page symbol) is unreliable on some mobile browsers with only
+           the plain `href` attribute — the legacy `xlink:href` is what
+           actually makes external references resolve consistently there. -->
+      <use :href="href" :xlink:href="href" />
     </svg>
   </div>
 </template>
