@@ -1,8 +1,5 @@
 <template>
-  <div class="isolate flex min-h-dvh flex-col bg-background text-foreground">
-    <AppBlob flavor="grape" size="22rem" class="fixed -left-24 -top-24 -z-10" />
-    <AppBlob flavor="citron" size="18rem" class="fixed -bottom-16 -right-16 -z-10" :delay="1.2" />
-
+  <div class="flex min-h-dvh flex-col bg-background text-foreground">
     <header class="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
       <RouterLink to="/" class="font-display text-lg font-bold text-foreground/80 hover:text-foreground">
         ← {{ t.common.backToHub }}
@@ -34,7 +31,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import AppBlob from '@/components/decor/AppBlob.vue'
 import ResyncButton from '@/components/ResyncButton.vue'
 import ThemeToggle from '@/components/ui/theme-toggle/ThemeToggle.vue'
 import { en } from '@/locales/en'

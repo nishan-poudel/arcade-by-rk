@@ -1,8 +1,5 @@
 <template>
-  <div class="isolate flex min-h-dvh flex-col bg-background text-foreground">
-    <AppBlob flavor="berry" size="22rem" class="fixed -left-24 -top-24 -z-10" />
-    <AppBlob flavor="grape" size="18rem" class="fixed -bottom-16 -right-16 -z-10" :delay="1.2" />
-
+  <div class="flex min-h-dvh flex-col bg-background text-foreground">
     <header class="flex justify-end px-4 pt-[max(1rem,env(safe-area-inset-top))]">
       <ThemeToggle />
     </header>
@@ -16,7 +13,7 @@
 
       <div class="flex w-full flex-col gap-4">
         <RouterLink to="/play">
-          <Card class="text-left transition-transform duration-200 ease-bounce hover:-translate-y-1">
+          <Card class="text-left transition-colors duration-200 hover:bg-accent/60">
             <CardContent class="flex items-center gap-4 pt-6">
               <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15">
                 <Gamepad2 class="h-6 w-6 text-primary" />
@@ -30,7 +27,7 @@
         </RouterLink>
 
         <RouterLink to="/score">
-          <Card class="text-left transition-transform duration-200 ease-bounce hover:-translate-y-1">
+          <Card class="text-left transition-colors duration-200 hover:bg-accent/60">
             <CardContent class="flex items-center gap-4 pt-6">
               <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-flavor-melon/20">
                 <ClipboardList class="h-6 w-6 text-flavor-melon-ink" />
@@ -44,7 +41,7 @@
         </RouterLink>
 
         <RouterLink to="/faras">
-          <Card class="text-left transition-transform duration-200 ease-bounce hover:-translate-y-1">
+          <Card class="text-left transition-colors duration-200 hover:bg-accent/60">
             <CardContent class="flex items-center gap-4 pt-6">
               <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-flavor-berry/20">
                 <Eye class="h-6 w-6 text-flavor-berry-ink" />
@@ -70,7 +67,6 @@ import { RouterLink } from 'vue-router'
 import { ClipboardList, Eye, Gamepad2 } from '@lucide/vue'
 import { Card, CardContent } from '@/components/ui/card'
 import ThemeToggle from '@/components/ui/theme-toggle/ThemeToggle.vue'
-import AppBlob from '@/components/decor/AppBlob.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import SuitGlyph from '@/components/cards/SuitGlyph.vue'
 import { en } from '@/locales/en'

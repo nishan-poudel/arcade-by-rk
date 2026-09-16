@@ -132,21 +132,20 @@ export default {
           'Segoe UI', 'Roboto', 'sans-serif',
         ],
         display: [
-          'Fredoka Variable', 'Hanken Grotesk Variable', 'ui-rounded',
-          '-apple-system', 'sans-serif',
+          'Hanken Grotesk Variable', '-apple-system', 'BlinkMacSystemFont',
+          'Segoe UI', 'Roboto', 'sans-serif',
         ],
       },
 
       // ── Shadows & motion curves ────────────────────────────────────────
       boxShadow: {
-        // Soft colored lift for hovered/elevated surfaces.
-        pop: '0 18px 40px -18px hsl(var(--primary) / 0.35)',
-        // Hard "sticker" offset shadow — pairs with a 2px border.
-        hard: '4px 4px 0 0 hsl(var(--foreground))',
-        'hard-sm': '3px 3px 0 0 hsl(var(--foreground))',
+        // Very subtle ambient lift — flat by default, a whisper on elevation.
+        pop: '0 2px 10px -4px hsl(var(--foreground) / 0.12)',
+        hard: '0 2px 10px -4px hsl(var(--foreground) / 0.12)',
+        'hard-sm': '0 1px 6px -2px hsl(var(--foreground) / 0.1)',
       },
       transitionTimingFunction: {
-        bounce: 'cubic-bezier(0.34, 1.4, 0.5, 1)',
+        bounce: 'cubic-bezier(0.4, 0, 0.2, 1)',
         expo: 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
 
@@ -158,7 +157,7 @@ export default {
         'slide-up':   'slideUp 0.3s ease-out',
         'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'bounce-once':'bounceOnce 0.5s ease-in-out',
-        'pop-in':     'popIn 0.35s cubic-bezier(0.34, 1.4, 0.5, 1)',
+        'pop-in':     'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         'wobble':     'wobble 6s ease-in-out infinite',
         'float':      'float 8s ease-in-out infinite',
         'confetti-fall': 'confettiFall 1.8s ease-in forwards',
