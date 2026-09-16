@@ -77,8 +77,15 @@ function setupListeners() {
       state.value = msg.payload as ScoreStateView
       errorMessage.value = null
       pendingAction.value = null
-      if (state.value.yourPlayerId) {
-        myPlayerId.value = state.value.yourPlayerId
+      if (state.value.yourPlayerId) myPlayerId.value = state.value.yourPlayerId
+      // Once the session is actually over there's nothing left to rejoin —
+      // forget it so a later visit to /score starts fresh at the landing
+      // screen instead of trying to resurrect a finished session. (The
+      // current tab can still use "Review & Correct Scores" normally —
+      // this only affects a future reconnect attempt.)
+      if (state.value.phase === 'gameOver') {
+        clearReconnectInfo()
+      } else if (state.value.yourPlayerId) {
         saveReconnectInfo({ roomCode: state.value.code, name: myName.value, playerId: state.value.yourPlayerId })
       }
     } else if (msg.type === 'error') {
@@ -150,6 +157,31 @@ function leaveRoom(): void {
   stopConnectionWatch = null
 }
 
+/**
+ * Called when the score-keeper view unmounts — navigating back to the
+ * hub, including from a finished session's final standings. This
+ * module's state is a page-life singleton, not tied to the route, so
+ * without this a later visit to /score would instantly show whatever
+ * screen the last session ended on (most visibly: a finished session's
+ * GameOverScreen) before attemptRejoin() even runs. Tears down the
+ * connection and clears in-memory state; a still-active session is
+ * recovered by attemptRejoin() on the next mount from the server's
+ * authoritative state — unlike leaveRoom(), this never touches the
+ * localStorage reconnect info, which is what makes that possible.
+ */
+function disconnectOnly(): void {
+  conn.disconnect()
+  if (resyncTimer !== null) clearInterval(resyncTimer)
+  resyncTimer = null
+  stopConnectionWatch?.()
+  stopConnectionWatch = null
+  state.value = null
+  myPlayerId.value = null
+  myName.value = ''
+  errorMessage.value = null
+  pendingAction.value = null
+}
+
 function setRoundCount(roundCount: RoundCount): void {
   conn.send('set_round_count', { roundCount })
 }
@@ -199,6 +231,7 @@ export function useScoreRoom() {
     joinRoom,
     attemptRejoin,
     leaveRoom,
+    disconnectOnly,
     setRoundCount,
     startGame,
     lockCall,

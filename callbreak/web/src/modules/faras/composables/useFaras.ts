@@ -78,8 +78,13 @@ function setupListeners() {
       state.value = msg.payload as FarasStateView
       errorMessage.value = null
       pendingAction.value = null
-      if (state.value.yourPlayerId) {
-        myPlayerId.value = state.value.yourPlayerId
+      if (state.value.yourPlayerId) myPlayerId.value = state.value.yourPlayerId
+      // Once the session is actually over there's nothing left to rejoin —
+      // forget it so a later visit to /faras starts fresh at the landing
+      // screen instead of trying to resurrect a finished game.
+      if (state.value.phase === 'gameOver') {
+        clearReconnectInfo()
+      } else if (state.value.yourPlayerId) {
         saveReconnectInfo({ roomCode: state.value.code, name: myName.value, playerId: state.value.yourPlayerId })
       }
     } else if (msg.type === 'error') {
@@ -154,14 +159,29 @@ function leaveRoom(): void {
   stopConnectionWatch = null
 }
 
-/** A raw disconnect (closing the tab) — not used for a deliberate "leave
- * the table" action, which sends `leave_table` first (see leaveRoom). */
+/**
+ * Called when the game view unmounts — navigating back to the hub,
+ * including from a finished game's standings screen. This module's state
+ * is a page-life singleton, not tied to the route, so without this a
+ * later visit to /faras would instantly show whatever screen the last
+ * session ended on (most visibly: a finished game's GameOverScreen)
+ * before attemptRejoin() even runs. Tears down the connection and clears
+ * in-memory state; a still-active game is recovered by attemptRejoin() on
+ * the next mount from the server's authoritative state — this never
+ * touches the localStorage reconnect info, which is what makes that
+ * possible (not a deliberate "leave the table", which is leaveRoom()).
+ */
 function disconnectOnly(): void {
   conn.disconnect()
   if (resyncTimer !== null) clearInterval(resyncTimer)
   resyncTimer = null
   stopConnectionWatch?.()
   stopConnectionWatch = null
+  state.value = null
+  myPlayerId.value = null
+  myName.value = ''
+  errorMessage.value = null
+  pendingAction.value = null
 }
 
 function startHand(): void {

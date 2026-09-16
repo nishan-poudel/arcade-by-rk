@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AppBlob from '@/components/decor/AppBlob.vue'
 import ResyncButton from '@/components/ResyncButton.vue'
@@ -65,5 +65,13 @@ const statusClass = computed(() => {
 
 onMounted(() => {
   score.attemptRejoin()
+})
+
+// Leaving this route (e.g. "Back to hub" from a finished session) tears
+// down the connection and clears in-memory state, so the next visit
+// starts fresh instead of instantly showing whatever screen this session
+// last had — see the comment on disconnectOnly() for why that's needed.
+onUnmounted(() => {
+  score.disconnectOnly()
 })
 </script>
