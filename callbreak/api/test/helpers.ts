@@ -12,7 +12,9 @@ export interface TestSocket {
 
 type PendingMessage = { type: string; payload: unknown }
 
-export async function connect(room: string, mode: 'game' | 'score' = 'game'): Promise<TestSocket> {
+export type RoomMode = 'game' | 'score' | 'faras'
+
+export async function connect(room: string, mode: RoomMode = 'game'): Promise<TestSocket> {
   const res = await SELF.fetch(`http://example.com/ws?room=${room}&mode=${mode}`, {
     headers: { Upgrade: 'websocket' },
   })
@@ -65,7 +67,7 @@ function tick(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-export async function createRoom(mode: 'game' | 'score' = 'game'): Promise<string> {
+export async function createRoom(mode: RoomMode = 'game'): Promise<string> {
   const res = await SELF.fetch('http://example.com/api/rooms', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,9 +80,23 @@ export async function createRoom(mode: 'game' | 'score' = 'game'): Promise<strin
 /** Connects 4 sockets in seat order and joins them all (socket[0] becomes host). */
 export async function joinFour(
   room: string,
-  mode: 'game' | 'score' = 'game',
+  mode: RoomMode = 'game',
   names = ['Alice', 'Bina', 'Chirag', 'Deepa'],
 ): Promise<{ sockets: TestSocket[]; playerIds: string[] }> {
+  return joinN(room, mode, names)
+}
+
+const DEFAULT_NAMES = ['Alice', 'Bina', 'Chirag', 'Deepa', 'Esha', 'Faran', 'Gita', 'Hari', 'Ipsa', 'Jay']
+
+/** Connects and joins `n` sockets in order (socket[0] becomes host) — the
+ * variable-player-count equivalent of `joinFour`, for rooms like Faras that
+ * don't have a fixed seat count. */
+export async function joinN(
+  room: string,
+  mode: RoomMode,
+  namesOrCount: string[] | number,
+): Promise<{ sockets: TestSocket[]; playerIds: string[] }> {
+  const names = Array.isArray(namesOrCount) ? namesOrCount : DEFAULT_NAMES.slice(0, namesOrCount)
   const sockets: TestSocket[] = []
   const playerIds: string[] = []
   for (const name of names) {

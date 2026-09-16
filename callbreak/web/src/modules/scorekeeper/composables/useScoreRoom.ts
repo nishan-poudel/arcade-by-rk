@@ -13,16 +13,19 @@ interface ReconnectInfo {
   playerId: string
 }
 
+// localStorage (not sessionStorage) so a backgrounded mobile tab/PWA that
+// gets killed and reopened — the realistic "disconnected, reload to get
+// back in" case on a phone — can still find its way back to the room.
 function saveReconnectInfo(info: ReconnectInfo) {
   try {
-    sessionStorage.setItem(RECONNECT_KEY, JSON.stringify(info))
+    localStorage.setItem(RECONNECT_KEY, JSON.stringify(info))
   } catch {
     // ignore
   }
 }
 function getReconnectInfo(): ReconnectInfo | null {
   try {
-    const raw = sessionStorage.getItem(RECONNECT_KEY)
+    const raw = localStorage.getItem(RECONNECT_KEY)
     return raw ? (JSON.parse(raw) as ReconnectInfo) : null
   } catch {
     return null
@@ -30,7 +33,7 @@ function getReconnectInfo(): ReconnectInfo | null {
 }
 function clearReconnectInfo() {
   try {
-    sessionStorage.removeItem(RECONNECT_KEY)
+    localStorage.removeItem(RECONNECT_KEY)
   } catch {
     // ignore
   }
@@ -178,6 +181,10 @@ function addPlayer(name: string): void {
   conn.send('add_player', { name })
 }
 
+function requestState(): void {
+  conn.send('request_state')
+}
+
 export function useScoreRoom() {
   return {
     state,
@@ -202,5 +209,6 @@ export function useScoreRoom() {
     editRound,
     removePlayer,
     addPlayer,
+    requestState,
   }
 }

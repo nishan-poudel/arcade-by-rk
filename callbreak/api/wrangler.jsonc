@@ -19,13 +19,18 @@
 	"durable_objects": {
 		"bindings": [
 			{ "name": "GAME_ROOM", "class_name": "GameRoom" },
-			{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" }
+			{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" },
+			{ "name": "FARAS_ROOM", "class_name": "FarasRoom" }
 		]
 	},
 	"migrations": [
 		{
 			"tag": "v1",
 			"new_sqlite_classes": ["GameRoom", "ScoreRoom"]
+		},
+		{
+			"tag": "v2",
+			"new_sqlite_classes": ["FarasRoom"]
 		}
 	],
 	"env": {
@@ -44,7 +49,8 @@
 			"durable_objects": {
 				"bindings": [
 					{ "name": "GAME_ROOM", "class_name": "GameRoom" },
-					{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" }
+					{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" },
+					{ "name": "FARAS_ROOM", "class_name": "FarasRoom" }
 				]
 			}
 			// Uncomment once you attach a custom domain (see callbreak/README.md):
@@ -59,7 +65,8 @@
 			"durable_objects": {
 				"bindings": [
 					{ "name": "GAME_ROOM", "class_name": "GameRoom" },
-					{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" }
+					{ "name": "SCORE_ROOM", "class_name": "ScoreRoom" },
+					{ "name": "FARAS_ROOM", "class_name": "FarasRoom" }
 				]
 			}
 		}

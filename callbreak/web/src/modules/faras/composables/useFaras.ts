@@ -1,10 +1,10 @@
 import { computed, ref, watch } from 'vue'
-import type { Card, RoundCount } from '@callbreak/shared-logic'
 import { createRoomConnection, createRoomOnServer } from '@/composables/useSocketConnection'
-import type { GameScreen, GameStateView } from '../types'
+import type { FarasScreen, FarasStateView } from '../types'
 
-const RECONNECT_KEY = 'callbreak_game_reconnect'
+const RECONNECT_KEY = 'callbreak_faras_reconnect'
 const QUICK_RESYNC_DELAYS_MS = [1000, 3000, 6000]
+const RESYNC_INTERVAL_MS = 15_000
 
 interface ReconnectInfo {
   roomCode: string
@@ -13,16 +13,14 @@ interface ReconnectInfo {
 }
 
 // localStorage (not sessionStorage) so a backgrounded mobile tab/PWA that
-// gets killed and reopened — the realistic "disconnected, reload to get
-// back in" case on a phone — can still find its way back to the room.
+// gets killed and reopened can still find its way back to the table.
 function saveReconnectInfo(info: ReconnectInfo) {
   try {
     localStorage.setItem(RECONNECT_KEY, JSON.stringify(info))
   } catch {
-    // localStorage unavailable — reconnect just won't be remembered.
+    // ignore
   }
 }
-
 function getReconnectInfo(): ReconnectInfo | null {
   try {
     const raw = localStorage.getItem(RECONNECT_KEY)
@@ -31,7 +29,6 @@ function getReconnectInfo(): ReconnectInfo | null {
     return null
   }
 }
-
 function clearReconnectInfo() {
   try {
     localStorage.removeItem(RECONNECT_KEY)
@@ -40,44 +37,35 @@ function clearReconnectInfo() {
   }
 }
 
-const conn = createRoomConnection('game')
+const conn = createRoomConnection('faras')
 
-const state = ref<GameStateView | null>(null)
+const state = ref<FarasStateView | null>(null)
 const myPlayerId = ref<string | null>(null)
-const myName = ref<string>('')
+const myName = ref('')
 const errorMessage = ref<string | null>(null)
 const pendingAction = ref<'create' | 'join' | null>(null)
 
 const connectionState = conn.connectionState
 
-const screen = computed<GameScreen>(() => {
+const screen = computed<FarasScreen>(() => {
   if (!state.value) return 'landing'
   switch (state.value.phase) {
     case 'lobby':
       return 'waitingRoom'
-    case 'bidding':
-      return 'bidding'
-    case 'playing':
-      return 'trickPlay'
-    case 'roundEnd':
-      return 'roundResult'
+    case 'hand':
+      return 'hand'
+    case 'handResult':
+      return 'handResult'
     case 'gameOver':
       return 'gameOver'
   }
 })
 
-const me = computed(() => (state.value?.yourSeat !== null && state.value ? state.value.players[state.value.yourSeat] : null))
+const me = computed(() => state.value?.players.find((p) => p.id === state.value?.yourPlayerId) ?? null)
 const isHost = computed(() => me.value?.isHost ?? false)
-const isMyTurn = computed(() => state.value?.yourSeat !== null && state.value?.turnSeat === state.value?.yourSeat)
-const sortedByScore = computed(() => {
-  if (!state.value) return []
-  return state.value.players
-    .map((p, seat) => ({ player: p, seat, total: state.value!.totals[seat] }))
-    .filter((row): row is { player: NonNullable<typeof row.player>; seat: number; total: number } => row.player !== null)
-    .sort((a, b) => b.total - a.total)
-})
-
-const RESYNC_INTERVAL_MS = 15_000
+const isMyTurn = computed(() => !!state.value?.yourPlayerId && state.value.turnPlayerId === state.value.yourPlayerId)
+const myHandState = computed(() => (state.value?.yourPlayerId ? (state.value.handState[state.value.yourPlayerId] ?? null) : null))
+const activePlayers = computed(() => state.value?.players.filter((p) => !state.value?.handState[p.id]?.folded) ?? [])
 
 let unsubscribe: (() => void) | null = null
 let stopConnectionWatch: (() => void) | null = null
@@ -87,7 +75,7 @@ function setupListeners() {
   if (unsubscribe) return
   unsubscribe = conn.subscribe((msg) => {
     if (msg.type === 'state') {
-      state.value = msg.payload as GameStateView
+      state.value = msg.payload as FarasStateView
       errorMessage.value = null
       pendingAction.value = null
       if (state.value.yourPlayerId) {
@@ -100,9 +88,6 @@ function setupListeners() {
     }
   })
 
-  // A raw socket reconnect (network blip) needs to re-attach to our seat —
-  // the transport just reopens the connection, it doesn't know about
-  // game-level identity.
   stopConnectionWatch = watch(connectionState, (value, prev) => {
     if (value === 'online' && prev !== 'online' && myPlayerId.value) {
       conn.send('rejoin', { playerId: myPlayerId.value })
@@ -127,7 +112,7 @@ async function createRoom(name: string): Promise<void> {
   pendingAction.value = 'create'
   myName.value = name
   try {
-    const roomCode = await createRoomOnServer('game')
+    const roomCode = await createRoomOnServer('faras')
     conn.connect(roomCode)
     conn.send('join', { name })
   } catch {
@@ -158,6 +143,7 @@ function attemptRejoin(): boolean {
 }
 
 function leaveRoom(): void {
+  conn.send('leave_table')
   conn.disconnect()
   clearReconnectInfo()
   state.value = null
@@ -168,35 +154,45 @@ function leaveRoom(): void {
   stopConnectionWatch = null
 }
 
-function setRoundCount(roundCount: RoundCount): void {
-  conn.send('set_round_count', { roundCount })
+/** A raw disconnect (closing the tab) — not used for a deliberate "leave
+ * the table" action, which sends `leave_table` first (see leaveRoom). */
+function disconnectOnly(): void {
+  conn.disconnect()
+  if (resyncTimer !== null) clearInterval(resyncTimer)
+  resyncTimer = null
+  stopConnectionWatch?.()
+  stopConnectionWatch = null
 }
 
-function startGame(): void {
-  conn.send('start_game')
+function startHand(): void {
+  conn.send('start_hand')
 }
-
-function submitBid(call: number): void {
-  conn.send('submit_bid', { call })
+function ghotchu(): void {
+  conn.send('ghotchu')
 }
-
-function playCard(card: Card): void {
-  conn.send('play_card', { card })
+function fold(): void {
+  conn.send('fold')
 }
-
-function nextRound(): void {
-  conn.send('next_round')
+function stay(): void {
+  conn.send('stay')
 }
-
-function removePlayer(seat: number): void {
-  conn.send('remove_player', { seat })
+function requestShow(): void {
+  conn.send('request_show')
 }
-
+function nextHand(): void {
+  conn.send('next_hand')
+}
+function endSession(): void {
+  conn.send('end_session')
+}
+function removePlayer(playerId: string): void {
+  conn.send('remove_player', { playerId })
+}
 function requestState(): void {
   conn.send('request_state')
 }
 
-export function useGame() {
+export function useFaras() {
   return {
     state,
     connectionState,
@@ -204,19 +200,23 @@ export function useGame() {
     me,
     isHost,
     isMyTurn,
-    sortedByScore,
+    myHandState,
+    activePlayers,
+    myPlayerId,
     errorMessage,
     pendingAction,
-    myPlayerId,
     createRoom,
     joinRoom,
     attemptRejoin,
     leaveRoom,
-    setRoundCount,
-    startGame,
-    submitBid,
-    playCard,
-    nextRound,
+    disconnectOnly,
+    startHand,
+    ghotchu,
+    fold,
+    stay,
+    requestShow,
+    nextHand,
+    endSession,
     removePlayer,
     requestState,
   }

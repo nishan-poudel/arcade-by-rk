@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-// Both games are lazy-loaded so each ships as its own chunk.
+// Every game is lazy-loaded so each ships as its own chunk.
 const Hub = () => import('@/modules/HubScreen.vue')
 const CallBreakGame = () => import('@/modules/game/views/CallBreakGame.vue')
 const ScoreKeeper = () => import('@/modules/scorekeeper/views/ScoreKeeper.vue')
+const FarasGame = () => import('@/modules/faras/views/FarasGame.vue')
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -15,12 +16,14 @@ export const ROUTE_NAMES = {
   HUB: 'hub',
   GAME: 'game',
   SCORE: 'score',
+  FARAS: 'faras',
 } as const
 
 export const ROUTE_PATHS = {
   HUB: '/',
   GAME: '/play',
   SCORE: '/score',
+  FARAS: '/faras',
 } as const
 
 const routes: RouteRecordRaw[] = [
@@ -28,7 +31,7 @@ const routes: RouteRecordRaw[] = [
     path: ROUTE_PATHS.HUB,
     component: Hub,
     name: ROUTE_NAMES.HUB,
-    meta: { title: 'Call Break' },
+    meta: { title: 'Taas Adda' },
   },
   {
     path: '/play/:roomCode?',
@@ -41,6 +44,12 @@ const routes: RouteRecordRaw[] = [
     component: ScoreKeeper,
     name: ROUTE_NAMES.SCORE,
     meta: { title: 'Call Break: Score Keeper' },
+  },
+  {
+    path: '/faras/:roomCode?',
+    component: FarasGame,
+    name: ROUTE_NAMES.FARAS,
+    meta: { title: 'Taas Adda: Faras' },
   },
   {
     path: '/:pathMatch(.*)*',

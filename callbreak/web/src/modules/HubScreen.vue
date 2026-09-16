@@ -22,8 +22,8 @@
                 <Gamepad2 class="h-6 w-6 text-primary" />
               </span>
               <span>
-                <p class="font-display text-lg font-bold">{{ t.playOnline }}</p>
-                <p class="text-sm text-muted-foreground">{{ t.playOnlineDesc }}</p>
+                <p class="font-display text-lg font-bold">{{ t.callBreakOnline }}</p>
+                <p class="text-sm text-muted-foreground">{{ t.callBreakOnlineDesc }}</p>
               </span>
             </CardContent>
           </Card>
@@ -36,8 +36,22 @@
                 <ClipboardList class="h-6 w-6 text-flavor-melon-ink" />
               </span>
               <span>
-                <p class="font-display text-lg font-bold">{{ t.scoreKeeper }}</p>
-                <p class="text-sm text-muted-foreground">{{ t.scoreKeeperDesc }}</p>
+                <p class="font-display text-lg font-bold">{{ t.callBreakOffline }}</p>
+                <p class="text-sm text-muted-foreground">{{ t.callBreakOfflineDesc }}</p>
+              </span>
+            </CardContent>
+          </Card>
+        </RouterLink>
+
+        <RouterLink to="/faras">
+          <Card class="text-left transition-transform duration-200 ease-bounce hover:-translate-y-1">
+            <CardContent class="flex items-center gap-4 pt-6">
+              <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-flavor-berry/20">
+                <Eye class="h-6 w-6 text-flavor-berry-ink" />
+              </span>
+              <span>
+                <p class="font-display text-lg font-bold">{{ t.faras }}</p>
+                <p class="text-sm text-muted-foreground">{{ t.farasDesc }}</p>
               </span>
             </CardContent>
           </Card>
@@ -53,7 +67,7 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { ClipboardList, Gamepad2 } from '@lucide/vue'
+import { ClipboardList, Eye, Gamepad2 } from '@lucide/vue'
 import { Card, CardContent } from '@/components/ui/card'
 import ThemeToggle from '@/components/ui/theme-toggle/ThemeToggle.vue'
 import AppBlob from '@/components/decor/AppBlob.vue'

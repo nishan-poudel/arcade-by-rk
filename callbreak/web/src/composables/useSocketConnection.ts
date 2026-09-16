@@ -12,7 +12,7 @@
 import { ref } from 'vue'
 
 export type ConnectionState = 'online' | 'reconnecting' | 'offline'
-export type RoomMode = 'game' | 'score'
+export type RoomMode = 'game' | 'score' | 'faras'
 
 export interface InboundMessage {
   type: string

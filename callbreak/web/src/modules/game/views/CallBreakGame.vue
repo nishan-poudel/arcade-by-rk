@@ -15,6 +15,7 @@
         >
           {{ statusLabel }}
         </span>
+        <ResyncButton v-if="game.state.value" :label="t.common.resyncButton" :resync="game.requestState" />
         <ThemeToggle />
       </div>
     </header>
@@ -34,6 +35,7 @@
 import { computed, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AppBlob from '@/components/decor/AppBlob.vue'
+import ResyncButton from '@/components/ResyncButton.vue'
 import ThemeToggle from '@/components/ui/theme-toggle/ThemeToggle.vue'
 import { en } from '@/locales/en'
 import BidPanel from '../components/BidPanel.vue'

@@ -1,17 +1,22 @@
 import type { Env } from './env'
 import { randomRoomCode, ROOM_CODE_PATTERN } from './roomSocket'
 
+export { FarasRoom } from './FarasRoom'
 export { GameRoom } from './GameRoom'
 export { ScoreRoom } from './ScoreRoom'
 
-type Mode = 'game' | 'score'
+type Mode = 'game' | 'score' | 'faras'
 
 function modeFrom(value: string | null): Mode {
-  return value === 'score' ? 'score' : 'game'
+  if (value === 'score') return 'score'
+  if (value === 'faras') return 'faras'
+  return 'game'
 }
 
 function namespaceFor(env: Env, mode: Mode) {
-  return mode === 'score' ? env.SCORE_ROOM : env.GAME_ROOM
+  if (mode === 'score') return env.SCORE_ROOM
+  if (mode === 'faras') return env.FARAS_ROOM
+  return env.GAME_ROOM
 }
 
 // env.CORS_ALLOWED_ORIGINS is fixed for the Worker's lifetime — parse it

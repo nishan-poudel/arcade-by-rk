@@ -90,11 +90,10 @@
       </div>
     </div>
 
-    <div class="scroll-area -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2">
+    <div class="grid grid-cols-6 gap-1.5 sm:grid-cols-8">
       <button
         v-for="card in sortedHand"
         :key="`${card.suit}${card.rank}`"
-        class="w-16 shrink-0"
         :disabled="!isMyTurn || !isLegal(card)"
         @click="play(card)"
       >
