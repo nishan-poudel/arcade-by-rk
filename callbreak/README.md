@@ -1,29 +1,34 @@
-# Call Break
+# Taas Adda
 
-The trick-taking card game: spades are always trump, 4 players, calls and
-tricks decide your score. Two ways to play:
+Nepali card games, no physical deck needed. Three ways to play:
 
-- **Online** (`/play`): deal virtual cards and play a full 4-player game
-  together, live, from your own phones.
-- **In-person score keeper** (`/score`): playing with a real deck? Track
+- **Call Break** (`/play`): the trick-taking game — spades are always
+  trump, 4 players, calls and tricks decide your score. Deal virtual cards
+  and play a full game together, live, from your own phones.
+- **Offline Call Break** (`/score`): playing with a real deck? Track
   everyone's calls and tricks here. The leaderboard updates live on every
   phone after every round, with a "who moved up" animation.
+- **Faras** (`/faras`): Teen Patti, Nepali style — 2 to 10 players, 3 cards
+  each, fold/stay/show, a point per hand won (no chips). Ghotchu lets you
+  peek at your hand with a slow, suspenseful one-tap reveal instead of
+  flipping all 3 cards at once.
 
 This is a **standalone app**, separate from the Imposter/Traitor games in the
 rest of this repo (which are untouched). It deploys to **Cloudflare Workers**
 on the **free plan**, no D1, no KV, no R2. A room's entire state lives in its
 own Durable Object (SQLite-backed, included on Workers Free), so the whole
-game costs nothing beyond the Workers Free plan's generous daily limits.
+app costs nothing beyond the Workers Free plan's generous daily limits.
 
 ## Project layout
 
 ```
 callbreak/
 ├── shared-logic/   Framework-free TS: deck/shuffle/deal, trick legality
-│                   (incl. the "must trump if void" rule), scoring.
-│                   Used by both the online game and the score keeper.
-├── api/            Cloudflare Worker: GameRoom + ScoreRoom Durable Objects,
-│                   WebSocket Hibernation, rate limiting, input validation.
+│                   (incl. the "must trump if void" rule), Call Break
+│                   scoring, and Faras hand ranking/dealing.
+├── api/            Cloudflare Worker: GameRoom + ScoreRoom + FarasRoom
+│                   Durable Objects, WebSocket Hibernation, rate limiting,
+│                   input validation.
 └── web/            Cloudflare Worker (static assets): the Vue 3 SPA.
                      Design system (tokens, UI kit, fonts) ported from this
                      repo's Imposter/Traitor "juicy soda" look.
@@ -178,3 +183,14 @@ updating if the web Worker's URL ever changes).
   Hibernation API, not Socket.IO (Durable Objects don't speak that
   protocol). Workers never sleep the way a free Render instance does, so
   there's no cold-start delay to design around on reconnect.
+- **Reconnecting**: reconnect info lives in `localStorage`, so a reload —
+  including a backgrounded mobile tab/PWA getting killed and reopened —
+  rejoins the same room automatically. Each game's header also has a manual
+  refresh button that forces a fresh state pull without disconnecting.
+- **Faras rules**: 2–10 players, 3 cards each, hand ranking per
+  [pagat.com](https://www.pagat.com/vying/teen_patti.html) (trail > pure
+  sequence > sequence > color > pair > high card, A-2-3 as the one special
+  highest sequence). No chips/betting — a point per hand won instead, and
+  the host can end the session anytime. Players can explicitly leave the
+  table (distinct from a disconnect); the game continues as long as 2+
+  remain (`FarasRoom.ts`, `shared-logic/farasHand.ts`).
