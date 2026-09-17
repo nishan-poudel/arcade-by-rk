@@ -5,6 +5,7 @@ const Hub = () => import('@/modules/HubScreen.vue')
 const CallBreakGame = () => import('@/modules/game/views/CallBreakGame.vue')
 const ScoreKeeper = () => import('@/modules/scorekeeper/views/ScoreKeeper.vue')
 const FarasGame = () => import('@/modules/faras/views/FarasGame.vue')
+const NishanPage = () => import('@/modules/nishan/NishanPage.vue')
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -17,6 +18,7 @@ export const ROUTE_NAMES = {
   GAME: 'game',
   SCORE: 'score',
   FARAS: 'faras',
+  NISHAN: 'nishan',
 } as const
 
 export const ROUTE_PATHS = {
@@ -24,6 +26,7 @@ export const ROUTE_PATHS = {
   GAME: '/play',
   SCORE: '/score',
   FARAS: '/faras',
+  NISHAN: '/nishan',
 } as const
 
 const routes: RouteRecordRaw[] = [
@@ -50,6 +53,12 @@ const routes: RouteRecordRaw[] = [
     component: FarasGame,
     name: ROUTE_NAMES.FARAS,
     meta: { title: 'Taas Adda: Faras' },
+  },
+  {
+    path: ROUTE_PATHS.NISHAN,
+    component: NishanPage,
+    name: ROUTE_NAMES.NISHAN,
+    meta: { title: 'Nishan Poudel — Software Engineer' },
   },
   {
     path: '/:pathMatch(.*)*',
