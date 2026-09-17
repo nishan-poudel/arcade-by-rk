@@ -71,10 +71,11 @@
               </div>
             </div>
 
-            <!-- Pulled up to overlap the card's bottom-right corner. -->
+            <!-- Pulled up to overlap the card's bottom-right corner. Every
+                 project links out, "Coming Soon" included — Soju Nepal's
+                 site is live, just not much there yet. -->
             <div class="-mt-5 flex justify-end pr-4">
               <a
-                v-if="p.category !== 'Coming Soon'"
                 :href="p.url"
                 target="_blank"
                 rel="noopener"
@@ -84,13 +85,6 @@
                 {{ p.cta }}
                 <ArrowRight class="h-3.5 w-3.5 shrink-0" />
               </a>
-              <span
-                v-else
-                class="inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white/90 shadow-pop"
-                :class="FLAVOR_CLASSES[p.flavor].pill"
-              >
-                {{ p.cta }}
-              </span>
             </div>
           </div>
 

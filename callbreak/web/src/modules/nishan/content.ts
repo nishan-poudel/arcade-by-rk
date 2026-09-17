@@ -38,6 +38,9 @@ export const FLAVOR_CLASSES: Record<Flavor, { card: string; icon: string; pill: 
 
 export interface Project {
   name: string
+  /** Every tile's CTA links here unconditionally, "Coming Soon" included —
+   * must be a real, live destination even for a not-yet-launched project
+   * (a placeholder page is fine; a placeholder URL like '#' is not). */
   url: string
   category: ProjectCategory
   flavor: Flavor
