@@ -4,10 +4,10 @@
       <ThemeToggle />
     </header>
 
-    <main class="screen mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-8 px-4 pb-8 text-center">
+    <main class="screen mx-auto flex w-full max-w-sm flex-1 flex-col items-center gap-8 px-4 pb-8 pt-10 text-center sm:pt-16">
       <div class="animate-slide-up">
-        <SuitGlyph suit="S" class="mx-auto mb-3 h-14 w-14" />
-        <h1 class="font-display text-4xl font-bold">{{ t.brandTitle }}</h1>
+        <SuitGlyph suit="S" class="mx-auto mb-3 h-12 w-12" />
+        <h1 class="font-display text-3xl font-bold">{{ t.brandTitle }}</h1>
         <p class="mt-2 text-sm text-muted-foreground">{{ t.brandTagline }}</p>
       </div>
 

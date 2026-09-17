@@ -20,6 +20,9 @@
         <Button size="lg" :disabled="!hostName.trim() || !!pending" @click="onCreate">
           {{ pending === 'create' ? t.landing.creatingButton : t.landing.createButton }}
         </Button>
+        <Button variant="outline" size="lg" :disabled="!hostName.trim() || !!pending" @click="onCreateWithBot">
+          {{ pending === 'createWithBot' ? t.landing.startingBotButton : t.landing.playBotButton }}
+        </Button>
       </CardContent>
     </Card>
 
@@ -78,6 +81,10 @@ const canJoin = computed(() => roomCode.value.trim().length === 6 && playerName.
 
 function onCreate() {
   faras.createRoom(hostName.value.trim())
+}
+
+function onCreateWithBot() {
+  faras.createRoom(hostName.value.trim(), true)
 }
 
 function onJoin() {

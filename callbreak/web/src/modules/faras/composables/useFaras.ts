@@ -43,7 +43,7 @@ const state = ref<FarasStateView | null>(null)
 const myPlayerId = ref<string | null>(null)
 const myName = ref('')
 const errorMessage = ref<string | null>(null)
-const pendingAction = ref<'create' | 'join' | null>(null)
+const pendingAction = ref<'create' | 'createWithBot' | 'join' | null>(null)
 
 const connectionState = conn.connectionState
 
@@ -111,15 +111,19 @@ function quickResyncBurst() {
   }
 }
 
-async function createRoom(name: string): Promise<void> {
+async function createRoom(name: string, withBot = false): Promise<void> {
   setupListeners()
   errorMessage.value = null
-  pendingAction.value = 'create'
+  pendingAction.value = withBot ? 'createWithBot' : 'create'
   myName.value = name
   try {
     const roomCode = await createRoomOnServer('faras')
     conn.connect(roomCode)
     conn.send('join', { name })
+    // Queued right behind 'join' on the same connection — the DO processes
+    // messages from one connection in order, so by the time this runs the
+    // sender is already recorded as the table's host (the first joiner).
+    if (withBot) conn.send('add_bot')
   } catch {
     errorMessage.value = 'Could not reach the server. Try again?'
     pendingAction.value = null
