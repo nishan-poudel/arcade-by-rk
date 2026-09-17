@@ -1,5 +1,5 @@
 import { env, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Card } from '@callbreak/shared-logic'
 import type { FarasRoom } from '../src/FarasRoom'
 import { collectAll, createRoom, joinN, type TestSocket } from './helpers'
@@ -451,7 +451,10 @@ describe('FarasRoom bots (solo play)', () => {
     let state = asState((await collectAll(sockets))[0])
     expect(state.turnPlayerId).toBe(botId) // dealerIndex 0 -> left of dealer (seat0/human) is seat1/bot
 
-    // Give the bot a trail — BOT_STAY_CHANCE.trail is 1, so it deterministically stays.
+    // Give the bot a trail and force it into the "seen" path — a blind
+    // decision can't be driven by hand strength (a bot hasn't looked any
+    // more than a human has), so BOT_SEEN_STAY_CHANCE.trail is 1 only once
+    // seen is true — that's what makes this deterministic.
     await setHands(room, {
       [playerIds[0]]: [
         { suit: 'S', rank: 2 },
@@ -466,6 +469,10 @@ describe('FarasRoom bots (solo play)', () => {
     })
 
     const stub = env.FARAS_ROOM.getByName(room)
+    await runInDurableObject(stub, async (instance: FarasRoom) => {
+      const state = (instance as unknown as { roomState: { handState: Record<string, { seen: boolean }> } }).roomState
+      state.handState[botId].seen = true
+    })
     const ran = await runDurableObjectAlarm(stub)
     expect(ran).toBe(true)
 
@@ -475,6 +482,47 @@ describe('FarasRoom bots (solo play)', () => {
 
     // No alarm left pending once it's a human's turn.
     expect(await runDurableObjectAlarm(stub)).toBe(false)
+  })
+
+  it('stays on a cheap blind bet even with a weak hand, instead of folding on hand strength it has not looked at', async () => {
+    const room = await createRoom('faras')
+    const { sockets, playerIds } = await joinN(room, 'faras', 1)
+    sockets[0].send('add_bot')
+    const afterAddBot = asState((await collectAll(sockets))[0])
+    const botId = afterAddBot.players.find((p) => p.isBot)!.id
+
+    sockets[0].send('start_hand')
+    await collectAll(sockets) // pot=4, both at 98, bot's turn, bot still blind
+
+    // Worst possible hand — if the bot were (wrongly) folding on secretly-
+    // known hand strength while blind, this would make it fold.
+    await setHands(room, {
+      [playerIds[0]]: [
+        { suit: 'S', rank: 12 },
+        { suit: 'H', rank: 11 },
+        { suit: 'D', rank: 9 },
+      ],
+      [botId]: [
+        { suit: 'S', rank: 2 },
+        { suit: 'H', rank: 4 },
+        { suit: 'D', rank: 7 },
+      ],
+    })
+
+    // Pin the randomness: above the (small, bet-proportional) peek chance —
+    // so it stays blind — but below the blind stay-chance roll.
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    try {
+      const stub = env.FARAS_ROOM.getByName(room)
+      expect(await runDurableObjectAlarm(stub)).toBe(true)
+    } finally {
+      randomSpy.mockRestore()
+    }
+
+    const state = asState(await sockets[0].next())
+    expect(state.handState[botId].seen).toBe(false)
+    expect(state.handState[botId].folded).toBe(false)
+    expect(state.players.find((p) => p.id === botId)?.chips).toBeLessThan(98) // paid the blind stay
   })
 
   it("a bot forced to fold (can't afford to stay) hands the human the pot", async () => {

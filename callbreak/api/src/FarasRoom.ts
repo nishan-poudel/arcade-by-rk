@@ -85,19 +85,39 @@ const STORAGE_KEY = 'state'
 const STARTING_CHIPS = 100
 const BOOT_AMOUNT = 2
 /** How long a bot "thinks" before acting on its own turn — purely pacing,
- * so it doesn't feel instant/robotic. */
-const BOT_THINK_MS = 1500
+ * randomized within a range so a run of decisions doesn't feel like a
+ * metronome. */
+const BOT_THINK_MS_MIN = 1100
+const BOT_THINK_MS_MAX = 2400
 const BOT_NAME_POOL = ['Kancha Bot', 'Kanchi Bot', 'Bhai Bot', 'Didi Bot']
 
-/** Per-hand-category odds a bot chooses to Stay rather than Fold — a
- * casual opponent's rough gut feel, not a solver. */
-const BOT_STAY_CHANCE: Record<FarasCategory, number> = {
+/** Blind means genuinely uninformed — a bot hasn't looked, so (like a real
+ * player) its blind decision can't be driven by hand strength. A blind
+ * Stay is also half the price of a seen one, so the rational default is to
+ * ride it out most of the time rather than fold cheap bets at random. */
+const BOT_BLIND_BASE_STAY = 0.8
+
+/** Once a bot has actually looked (Ghotchu), it plays its real hand
+ * strength — the same category-tier lookup a simple rule-based card-game
+ * bot typically leans on instead of full hand-equity math. Calibrated so a
+ * bare high card is usually let go and anything pair-or-better is usually
+ * defended, with pot odds/table-size/bankroll adjustments layered on top
+ * in botDecideAndAct(). */
+const BOT_SEEN_STAY_CHANCE: Record<FarasCategory, number> = {
   trail: 1,
   pureSequence: 0.95,
-  sequence: 0.85,
-  color: 0.75,
-  pair: 0.55,
-  highCard: 0.25,
+  sequence: 0.8,
+  color: 0.62,
+  pair: 0.4,
+  highCard: 0.15,
+}
+
+/** Chance a bot peeks (Ghotchu) before deciding, given how much the
+ * required bet already eats into its stack — a cautious player is far more
+ * likely to check their cards once a blind bet stops being pocket change,
+ * not on a flat coin flip every single turn. */
+function botPeekChance(betFraction: number): number {
+  return Math.min(0.85, 0.25 + betFraction * 1.5)
 }
 
 function initialState(): RoomState {
@@ -644,7 +664,8 @@ export class FarasRoom extends DurableObject<Env> {
    * way (a human folding/staying, leaving, the hand resolving, etc). */
   private async syncBotAlarm(): Promise<void> {
     if (this.currentTurnBot()) {
-      await this.ctx.storage.setAlarm(Date.now() + BOT_THINK_MS)
+      const thinkMs = BOT_THINK_MS_MIN + Math.random() * (BOT_THINK_MS_MAX - BOT_THINK_MS_MIN)
+      await this.ctx.storage.setAlarm(Date.now() + thinkMs)
     } else {
       await this.ctx.storage.deleteAlarm()
     }
@@ -659,22 +680,51 @@ export class FarasRoom extends DurableObject<Env> {
     this.broadcastState()
   }
 
-  /** A casual opponent's rough gut feel, not a Teen Patti solver: maybe
-   * peeks first, then leans on hand strength (with a little randomness)
-   * to decide fold vs. stay, folding outright if it can't afford to stay
-   * — the same rule a human is held to. Never proactively calls Show; a
-   * human at the table can always do that once eligible. */
+  /** A medium-skill opponent, not a Teen Patti solver: a rule-based tier
+   * lookup plus a few situational adjustments, the same shape most simple
+   * card-game bots use (hand-strength tier -> pot odds / stack pressure /
+   * table size modifiers -> a probabilistic decision, not a hard cutoff).
+   * Folds outright if it can't afford to stay — the same rule a human is
+   * held to. Never proactively calls Show; a human at the table can always
+   * do that once eligible. */
   private botDecideAndAct(bot: FarasPlayer): void {
     const hs = this.roomState.handState[bot.id]
     if (!hs) return
 
-    if (!hs.seen && Math.random() < 0.5) hs.seen = true
-
-    const hand = this.roomState.hands[bot.id] as [Card, Card, Card]
-    const category = rankFarasHand(hand).category
     const bet = this.requiredBet(bot.id)
+    const betFraction = bet / Math.max(bot.chips, 1)
+
+    if (!hs.seen && Math.random() < botPeekChance(betFraction)) hs.seen = true
+
+    // Blind is genuinely uninformed — no category to look up — so it plays
+    // the odds of a cheap blind bet instead of (unknown-to-it) hand
+    // strength. Only once seen does actual hand strength drive the call.
+    const category = hs.seen
+      ? rankFarasHand(this.roomState.hands[bot.id] as [Card, Card, Card]).category
+      : null
+    let stayChance = category ? BOT_SEEN_STAY_CHANCE[category] : BOT_BLIND_BASE_STAY
+
+    if (category) {
+      // Pot odds: a fat pot relative to the cost of staying is worth
+      // chasing looser, same reasoning a human calls "pot odds."
+      const potOdds = this.roomState.pot / Math.max(bet, 1)
+      if (potOdds >= 4) stayChance = Math.min(1, stayChance + 0.1)
+    }
+
+    // Short-handed looseness: fewer opponents left in the hand means a
+    // marginal hand is more likely to actually be best.
+    if (this.activePlayerIds().length <= 2) stayChance = Math.min(1, stayChance + 0.12)
+
+    // Bankroll caution: don't let a bet that would burn a big chunk of the
+    // stack slide by on autopilot — unless the hand is strong enough that
+    // folding it would never be right regardless of stack size.
+    const nearNuts = category === 'trail' || category === 'pureSequence'
+    if (betFraction > 0.4 && !nearNuts) stayChance *= 0.5
+
+    stayChance = Math.min(1, Math.max(0, stayChance))
+
     const canAfford = bot.chips >= bet
-    const wantsToStay = canAfford && Math.random() < BOT_STAY_CHANCE[category]
+    const wantsToStay = canAfford && Math.random() < stayChance
 
     if (wantsToStay) {
       bot.chips -= bet
