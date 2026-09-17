@@ -50,37 +50,43 @@
           <div
             v-for="p in filteredProjects"
             :key="p.name"
-            class="group flex w-60 shrink-0 snap-start flex-col overflow-hidden rounded-2xl transition-all duration-200 hover:-translate-y-1.5 hover:shadow-pop sm:w-64"
-            :class="FLAVOR_CLASSES[p.flavor].card"
+            class="group flex w-60 shrink-0 snap-start flex-col transition-transform duration-200 hover:-translate-y-1.5 sm:w-64"
           >
-            <div class="flex h-28 items-center justify-center">
-              <component
-                :is="p.icon"
-                v-if="p.icon"
-                class="h-12 w-12 transition-transform duration-200 group-hover:scale-110"
-                :class="FLAVOR_CLASSES[p.flavor].icon"
-              />
-              <SuitGlyph v-else suit="S" class="h-12 w-12 transition-transform duration-200 group-hover:scale-110" />
+            <!-- Colored card body: icon + copy. overflow-hidden clips only this
+                 box, so the pill button below can overlap its bottom edge
+                 instead of sitting padded fully inside it. -->
+            <div class="flex flex-1 flex-col overflow-hidden rounded-2xl" :class="FLAVOR_CLASSES[p.flavor].card">
+              <div class="flex h-28 items-center justify-center">
+                <component
+                  :is="p.icon"
+                  v-if="p.icon"
+                  class="h-12 w-12 transition-transform duration-200 group-hover:scale-110"
+                  :class="FLAVOR_CLASSES[p.flavor].icon"
+                />
+                <SuitGlyph v-else suit="S" class="h-12 w-12 transition-transform duration-200 group-hover:scale-110" />
+              </div>
+              <div class="flex flex-1 flex-col gap-2 px-4 pb-9">
+                <p class="font-display text-lg font-bold leading-snug">{{ p.name }}</p>
+                <p class="text-xs text-foreground/70">{{ p.blurb }}</p>
+              </div>
             </div>
-            <div class="flex flex-1 flex-col gap-2 px-4">
-              <p class="font-display text-lg font-bold leading-snug">{{ p.name }}</p>
-              <p class="text-xs text-foreground/70">{{ p.blurb }}</p>
-            </div>
-            <div class="flex justify-end p-4 pt-3">
+
+            <!-- Pulled up to overlap the card's bottom-right corner. -->
+            <div class="-mt-5 flex justify-end pr-4">
               <a
                 v-if="p.category !== 'Coming Soon'"
                 :href="p.url"
                 target="_blank"
                 rel="noopener"
-                class="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                class="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-pop transition-opacity hover:opacity-90"
                 :class="FLAVOR_CLASSES[p.flavor].pill"
               >
                 {{ p.cta }}
-                <ExternalLink class="h-3.5 w-3.5" />
+                <ArrowRight class="h-3.5 w-3.5 shrink-0" />
               </a>
               <span
                 v-else
-                class="inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white/90"
+                class="inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white/90 shadow-pop"
                 :class="FLAVOR_CLASSES[p.flavor].pill"
               >
                 {{ p.cta }}
@@ -154,7 +160,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Briefcase, ChevronLeft, ChevronRight, ExternalLink, GraduationCap, Mail } from '@lucide/vue'
+import { ArrowRight, Briefcase, ChevronLeft, ChevronRight, GraduationCap, Mail } from '@lucide/vue'
 import AppFooter from '@/components/AppFooter.vue'
 import SuitGlyph from '@/components/cards/SuitGlyph.vue'
 import { buttonVariants } from '@/components/ui/button'
