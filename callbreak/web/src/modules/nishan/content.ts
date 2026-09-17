@@ -15,7 +15,6 @@ export const PROFILE = {
   role: 'Software Engineer',
   education: 'B.S., University of Wisconsin–Parkside',
   email: 'nishan.poudel@outlook.com',
-  tagline: "I build small, playful things — party games, card games, and whatever else won't leave me alone until it exists.",
 }
 
 export type ProjectCategory = 'App' | 'Game' | 'Food & Culture' | 'Coming Soon'
@@ -43,6 +42,8 @@ export interface Project {
   category: ProjectCategory
   flavor: Flavor
   blurb: string
+  /** Playful, project-specific call-to-action text instead of a plain "Visit". */
+  cta: string
   /** Undefined for the one project that reuses SuitGlyph instead. */
   icon?: LucideIcon
 }
@@ -54,7 +55,8 @@ export const PROJECTS: Project[] = [
     category: 'App',
     flavor: 'grape',
     icon: Sparkles,
-    blurb: 'See who’s near you right now and send an anonymous compliment. Free, 18+, safety-first.',
+    blurb: 'Spot who’s nearby and send them an anonymous compliment. No names required until you’re ready. Free, 18+, safety-first.',
+    cta: 'Send a spark',
   },
   {
     name: 'Nepali Imposter',
@@ -62,14 +64,16 @@ export const PROJECTS: Project[] = [
     category: 'Game',
     flavor: 'berry',
     icon: VenetianMask,
-    blurb: 'A pass-the-phone party game: everyone gets a secret word except the imposter, who has to bluff their way through.',
+    blurb: 'Everyone gets a secret word except one person. Pass the phone around and see who can bluff their way out of getting caught.',
+    cta: 'Catch the imposter',
   },
   {
     name: 'Taas Adda',
     url: 'https://call-break-by-rk.nishan-poudel.workers.dev',
     category: 'Game',
     flavor: 'citron',
-    blurb: "A Nepali card-game hub: Call Break online, an offline score keeper, and Faras (Teen Patti). You're on it right now.",
+    blurb: 'My Nepali card-game hub: Call Break online, an offline score keeper, and Faras (Teen Patti). Yes, the page you’re on right now.',
+    cta: 'Deal me in',
   },
   {
     name: 'Arcade by RK',
@@ -77,7 +81,8 @@ export const PROJECTS: Project[] = [
     category: 'Game',
     flavor: 'lychee',
     icon: Puzzle,
-    blurb: 'Two original browser games, no installs or accounts: Grid Raider and Math Chain.',
+    blurb: 'Two original browser games built just for fun: Grid Raider, a roguelike raid, and Math Chain, a logic puzzle. No installs, no accounts.',
+    cta: 'Insert coin',
   },
   {
     name: 'Momo Not Momos',
@@ -85,7 +90,8 @@ export const PROJECTS: Project[] = [
     category: 'Food & Culture',
     flavor: 'peach',
     icon: Soup,
-    blurb: 'The Gen Z home for momo culture: a personality quiz, a momo dictionary, and live voting for the best momo.',
+    blurb: 'A Gen Z shrine to momo culture, complete with a personality quiz, a momo dictionary, and live voting for the best momo around.',
+    cta: 'Take a bite',
   },
   {
     name: 'Soju Nepal',
@@ -93,6 +99,7 @@ export const PROJECTS: Project[] = [
     category: 'Coming Soon',
     flavor: 'melon',
     icon: Wine,
-    blurb: 'A new venture in the works — more here once it launches.',
+    blurb: 'Something new is fermenting behind the scenes. Check back soon to see what it turns into.',
+    cta: 'Cheers, soon',
   },
 ]

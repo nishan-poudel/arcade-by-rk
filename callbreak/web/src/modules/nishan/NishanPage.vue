@@ -8,10 +8,9 @@
     </header>
 
     <main class="screen flex-1 pb-12">
-      <!-- Intro: plain background, no decoration -->
-      <div class="mx-auto max-w-2xl animate-slide-up px-4 pt-8 text-center">
-        <h1 class="font-display text-4xl font-bold sm:text-5xl">{{ PROFILE.name }}</h1>
-        <p class="mx-auto mt-3 max-w-md text-sm text-muted-foreground sm:text-base">{{ PROFILE.tagline }}</p>
+      <!-- Hero: just the name, over a soft CSS gradient mesh (no stock photo needed) -->
+      <div class="hero-mesh mx-4 mt-2 flex h-48 animate-slide-up items-center justify-center rounded-3xl text-center sm:h-56">
+        <h1 class="font-display text-4xl font-bold text-foreground sm:text-6xl">{{ PROFILE.name }}</h1>
       </div>
 
       <!-- Quick facts: a plain, responsive row (wraps on narrow screens) -->
@@ -34,7 +33,7 @@
 
       <!-- Filter -->
       <div class="mx-4 mt-10 flex flex-col items-center gap-4">
-        <h2 class="font-display text-2xl font-bold">What I've built</h2>
+        <h2 class="font-display text-2xl font-bold">Shuffle through my work</h2>
         <ToggleGroup v-model="activeFilter" class="flex flex-wrap justify-center gap-2">
           <ToggleGroupItem value="All" class="h-9 flex-none px-4 text-sm">All</ToggleGroupItem>
           <ToggleGroupItem v-for="c in CATEGORIES" :key="c" :value="c" class="h-9 flex-none px-4 text-sm">{{ c }}</ToggleGroupItem>
@@ -51,18 +50,23 @@
           <div
             v-for="p in filteredProjects"
             :key="p.name"
-            class="flex w-60 shrink-0 snap-start flex-col overflow-hidden rounded-2xl sm:w-64"
+            class="group flex w-60 shrink-0 snap-start flex-col overflow-hidden rounded-2xl transition-all duration-200 hover:-translate-y-1.5 hover:shadow-pop sm:w-64"
             :class="FLAVOR_CLASSES[p.flavor].card"
           >
             <div class="flex h-28 items-center justify-center">
-              <component :is="p.icon" v-if="p.icon" class="h-12 w-12" :class="FLAVOR_CLASSES[p.flavor].icon" />
-              <SuitGlyph v-else suit="S" class="h-12 w-12" />
+              <component
+                :is="p.icon"
+                v-if="p.icon"
+                class="h-12 w-12 transition-transform duration-200 group-hover:scale-110"
+                :class="FLAVOR_CLASSES[p.flavor].icon"
+              />
+              <SuitGlyph v-else suit="S" class="h-12 w-12 transition-transform duration-200 group-hover:scale-110" />
             </div>
             <div class="flex flex-1 flex-col gap-2 px-4">
               <p class="font-display text-lg font-bold leading-snug">{{ p.name }}</p>
               <p class="text-xs text-foreground/70">{{ p.blurb }}</p>
             </div>
-            <div class="p-4 pt-3">
+            <div class="flex justify-end p-4 pt-3">
               <a
                 v-if="p.category !== 'Coming Soon'"
                 :href="p.url"
@@ -71,7 +75,7 @@
                 class="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
                 :class="FLAVOR_CLASSES[p.flavor].pill"
               >
-                Visit
+                {{ p.cta }}
                 <ExternalLink class="h-3.5 w-3.5" />
               </a>
               <span
@@ -79,7 +83,7 @@
                 class="inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-white/90"
                 :class="FLAVOR_CLASSES[p.flavor].pill"
               >
-                Coming soon
+                {{ p.cta }}
               </span>
             </div>
           </div>
@@ -108,6 +112,20 @@
           <ChevronRight class="h-5 w-5" />
         </button>
       </div>
+
+      <!-- Contact -->
+      <div class="mx-4 mt-14 flex flex-col items-center gap-3 text-center sm:mx-auto sm:max-w-lg">
+        <h2 class="font-display text-2xl font-bold">Want the director's commentary?</h2>
+        <p class="text-sm text-muted-foreground">
+          Résumé, actual work experience, or just curious how many of these got built at 2am? Say hello, I read every email.
+        </p>
+        <a
+          :href="`mailto:${PROFILE.email}`"
+          :class="cn(buttonVariants({ size: 'lg' }), 'mt-1')"
+        >
+          Say hello 👋
+        </a>
+      </div>
     </main>
 
     <AppFooter />
@@ -121,6 +139,16 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* A soft, layered gradient mesh stands in for a photo hero — no external
+   image needed, so nothing to license or host. */
+.hero-mesh {
+  background-color: hsl(var(--secondary));
+  background-image:
+    radial-gradient(60% 90% at 12% 15%, hsl(var(--primary) / 0.35), transparent 60%),
+    radial-gradient(55% 85% at 88% 25%, hsl(var(--flavor-grape) / 0.3), transparent 60%),
+    radial-gradient(70% 100% at 50% 105%, hsl(var(--flavor-berry) / 0.25), transparent 65%);
+}
 </style>
 
 <script setup lang="ts">
@@ -129,9 +157,11 @@ import { RouterLink } from 'vue-router'
 import { Briefcase, ChevronLeft, ChevronRight, ExternalLink, GraduationCap, Mail } from '@lucide/vue'
 import AppFooter from '@/components/AppFooter.vue'
 import SuitGlyph from '@/components/cards/SuitGlyph.vue'
+import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import ThemeToggle from '@/components/ui/theme-toggle/ThemeToggle.vue'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { cn } from '@/lib/utils'
 import { CATEGORIES, FLAVOR_CLASSES, PROFILE, PROJECTS, type ProjectCategory } from './content'
 
 const activeFilter = ref<ProjectCategory | 'All'>('All')
